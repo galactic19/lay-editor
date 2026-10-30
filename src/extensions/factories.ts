@@ -77,11 +77,21 @@ export function markInputRule(pattern: RegExp, type: MarkType, attrs?: Attrs): I
   });
 }
 
-const removeMark =
+export const removeMark =
   (type: MarkType): Command =>
   (state, dispatch) => {
     const { from, to, empty } = state.selection;
     if (dispatch) dispatch(empty ? state.tr.removeStoredMark(type) : state.tr.removeMark(from, to, type));
+    return true;
+  };
+
+/** Adds (or replaces) a mark over the selection, or stores it for the next input when empty. */
+export const applyMark =
+  (type: MarkType, attrs?: Attrs): Command =>
+  (state, dispatch) => {
+    const { from, to, empty } = state.selection;
+    const mark = type.create(attrs);
+    if (dispatch) dispatch(empty ? state.tr.addStoredMark(mark) : state.tr.addMark(from, to, mark));
     return true;
   };
 

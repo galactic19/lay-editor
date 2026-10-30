@@ -6,7 +6,6 @@ import { getDefaultExtensions } from '../extensions';
 import { parseHTML, serializeHTML } from './html';
 
 // Control characters and whitespace browsers ignore inside a URL scheme.
-// eslint-disable-next-line no-control-regex
 const IGNORED_IN_SCHEME = /[\u0000- \u007f-\u009f]/g;
 const SCHEME = /^([a-z][a-z0-9+.-]*):/i;
 const BYTE = '(25[0-5]|2[0-4]\\d|1?\\d?\\d)';
