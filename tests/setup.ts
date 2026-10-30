@@ -56,6 +56,17 @@ if (typeof (globalThis as any).ClipboardEvent === 'undefined') {
   };
 }
 
+if (typeof (globalThis as any).IntersectionObserver === 'undefined') {
+  (globalThis as any).IntersectionObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+    takeRecords(): [] {
+      return [];
+    }
+  };
+}
+
 const emptyRect = (): DOMRect =>
   ({ x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, toJSON: () => ({}) }) as DOMRect;
 Range.prototype.getBoundingClientRect = emptyRect;

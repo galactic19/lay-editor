@@ -1,6 +1,32 @@
-/** Forward declaration; implemented in Task 9. */
-export declare abstract class UIComponent {
-  readonly el: HTMLElement;
-  update(): void;
-  destroy(): void;
+import type { Editor, EditorEvents } from '../core/Editor';
+
+/** Base for every UI piece: tracks listeners and editor subscriptions and releases them on destroy. */
+export abstract class UIComponent<E extends HTMLElement = HTMLElement> {
+  private readonly disposers: Array<() => void> = [];
+
+  protected constructor(
+    protected readonly editor: Editor,
+    readonly el: E,
+  ) {}
+
+  protected listen(target: EventTarget, type: string, fn: (event: any) => void, options?: AddEventListenerOptions): void {
+    target.addEventListener(type, fn, options);
+    this.disposers.push(() => target.removeEventListener(type, fn, options));
+  }
+
+  protected subscribe<K extends keyof EditorEvents>(event: K, fn: (...args: EditorEvents[K]) => void): void {
+    this.disposers.push(this.editor.on(event, fn));
+  }
+
+  protected addDisposer(fn: () => void): void {
+    this.disposers.push(fn);
+  }
+
+  /** Re-reads editor state; called once per frame after editor updates. */
+  update(): void {}
+
+  destroy(): void {
+    this.disposers.splice(0).reverse().forEach((dispose) => dispose());
+    this.el.remove();
+  }
 }

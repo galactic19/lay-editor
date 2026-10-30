@@ -1,0 +1,49 @@
+import type { Editor } from '../core/Editor';
+import type { DeviceMode, PanelFactory } from '../core/types';
+import { Dropdown } from './Dropdown';
+
+export interface PanelContainer {
+  /** `onClose(hadFocus)` reports whether focus was inside the panel when it closed. */
+  open(content: HTMLElement, anchor: HTMLElement | null, onClose: (hadFocus: boolean) => void): void;
+  close(): void;
+  readonly isOpen: boolean;
+  destroy(): void;
+}
+
+/** Opens panel content in the container that fits the device (dropdown on desktop). */
+export class PanelHost {
+  private container: PanelContainer | null = null;
+
+  constructor(
+    protected readonly editor: Editor,
+    protected readonly getMode: () => DeviceMode,
+  ) {}
+
+  get isOpen(): boolean {
+    return Boolean(this.container?.isOpen);
+  }
+
+  openPanel(factory: PanelFactory, anchor: HTMLElement | null = null): void {
+    this.close();
+    const container = this.createContainer();
+    const content = factory({ editor: this.editor, t: this.editor.t, close: () => this.close() });
+    this.container = container;
+    container.open(content, anchor, (hadFocus) => {
+      if (this.container === container) this.container = null;
+      if (hadFocus) this.editor.focus();
+    });
+  }
+
+  close(): void {
+    this.container?.close();
+  }
+
+  destroy(): void {
+    this.container?.destroy();
+    this.container = null;
+  }
+
+  protected createContainer(): PanelContainer {
+    return new Dropdown(this.editor.root);
+  }
+}

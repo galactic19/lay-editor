@@ -1,0 +1,60 @@
+/* Design tokens. Override any of these on .le-editor (and .le-portal) to theme the editor. */
+:where(.le-editor, .le-portal, .le-prose) {
+  --le-color-bg: #ffffff;
+  --le-color-fg: #1f2328;
+  --le-color-muted: #59636e;
+  --le-color-border: #d1d9e0;
+  --le-color-surface: #f6f8fa;
+  --le-color-hover: #eaeef2;
+  --le-color-active: #dbe7ff;
+  --le-color-primary: #1f6feb;
+  --le-color-primary-fg: #ffffff;
+  --le-color-danger: #cf222e;
+  --le-color-selection: rgba(31, 111, 235, 0.18);
+  --le-color-code-bg: #eff2f5;
+  --le-color-quote: #d1d9e0;
+  --le-color-mark-match: rgba(255, 196, 0, 0.45);
+  --le-color-mark-current: rgba(255, 140, 0, 0.75);
+  --le-shadow: 0 8px 24px rgba(31, 35, 40, 0.14), 0 2px 6px rgba(31, 35, 40, 0.08);
+
+  --le-font: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --le-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'D2Coding', monospace;
+  --le-font-size: 16px;
+  --le-font-size-ui: 14px;
+  --le-line-height: 1.7;
+
+  --le-radius: 10px;
+  --le-radius-sm: 6px;
+  --le-space-1: 4px;
+  --le-space-2: 8px;
+  --le-space-3: 12px;
+  --le-space-4: 16px;
+  --le-control-size: 32px;
+  --le-touch-target: 44px;
+  --le-toolbar-height: 44px;
+  --le-content-padding: 16px 20px;
+  --le-min-height: 240px;
+  --le-indent-step: 2em;
+  --le-grid-cell: 18px;
+  --le-sheet-max-height: 70vh;
+  --le-z-overlay: 1000;
+  --le-z-fullscreen: 9999;
+  --le-transition: 120ms ease;
+}
+
+:where(.le-editor, .le-portal, .le-prose)[data-theme='dark'] {
+  --le-color-bg: #0d1117;
+  --le-color-fg: #e6edf3;
+  --le-color-muted: #9198a1;
+  --le-color-border: #3d444d;
+  --le-color-surface: #151b23;
+  --le-color-hover: #262c36;
+  --le-color-active: #1f3460;
+  --le-color-primary: #4493f8;
+  --le-color-primary-fg: #0d1117;
+  --le-color-danger: #f85149;
+  --le-color-selection: rgba(68, 147, 248, 0.3);
+  --le-color-code-bg: #1f2630;
+  --le-color-quote: #3d444d;
+  --le-shadow: 0 8px 24px rgba(1, 4, 9, 0.6), 0 2px 6px rgba(1, 4, 9, 0.4);
+}
