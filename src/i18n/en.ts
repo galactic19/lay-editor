@@ -3,6 +3,7 @@ import type { LocalePack } from './index';
 export const en = {
   placeholder: 'Start writing…',
   toolbar: {
+    video: 'Video',
     image: 'Image',
     imageWidth: 'Width {n}%',
     imageAlignLeft: 'Place left',
@@ -37,6 +38,7 @@ export const en = {
     align: { left: 'Align left', center: 'Align center', right: 'Align right', justify: 'Justify' },
   },
   panel: {
+    video: { url: 'Video URL (YouTube, Vimeo)', insert: 'Embed' },
     image: { file: 'Choose file', url: 'Image URL', alt: 'Describe the image', caption: 'Add a caption', insert: 'Insert', apply: 'Apply' },
     color: { reset: 'Default' },
     link: {

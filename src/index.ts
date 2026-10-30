@@ -17,3 +17,5 @@ export type {
   UploadResult,
 } from './core/types';
 export { sanitizeHTML } from './io/sanitize';
+export { registerVideoProvider } from './extensions/media/video-providers';
+export type { VideoProvider } from './extensions/media/video-providers';

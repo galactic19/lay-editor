@@ -24,6 +24,7 @@ export const DEFAULTS = {
     widths: [25, 50, 75, 100],
     aligns: ['left', 'center', 'right'],
   },
+  video: { providers: ['youtube', 'vimeo'] },
   heading: { levels: [1, 2, 3, 4] },
   paste: {
     keepStyles: ['color', 'background-color', 'text-align'],

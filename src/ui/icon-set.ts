@@ -34,6 +34,7 @@ import {
   Underline,
   Undo2,
   Upload,
+  Video,
   type IconNode,
 } from 'lucide';
 
@@ -74,4 +75,5 @@ export const DEFAULT_ICONS: Record<string, IconNode> = {
   underline: Underline,
   undo: Undo2,
   upload: Upload,
+  video: Video,
 };

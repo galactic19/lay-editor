@@ -15,6 +15,7 @@ import { clearFormat } from './marks/clearFormat';
 import { highlight, textColor } from './marks/colorMark';
 import { link } from './marks/link';
 import { image } from './media/image';
+import { video } from './media/video';
 
 /** Built-in extensions in schema order. Later tasks append here. */
 export function getDefaultExtensions(): Extension[] {
@@ -29,6 +30,7 @@ export function getDefaultExtensions(): Extension[] {
     lists,
     horizontalRule,
     image,
+    video,
     align,
     indent,
     link,

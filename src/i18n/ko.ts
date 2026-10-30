@@ -3,6 +3,7 @@ import type { LocalePack } from './index';
 export const ko = {
   placeholder: '내용을 입력하세요',
   toolbar: {
+    video: '동영상',
     image: '이미지',
     imageWidth: '너비 {n}%',
     imageAlignLeft: '왼쪽 배치',
@@ -37,6 +38,7 @@ export const ko = {
     align: { left: '왼쪽 정렬', center: '가운데 정렬', right: '오른쪽 정렬', justify: '양쪽 정렬' },
   },
   panel: {
+    video: { url: '동영상 주소 (YouTube, Vimeo)', insert: '삽입' },
     image: { file: '파일 선택', url: '이미지 주소', alt: '이미지 설명 (대체 텍스트)', caption: '캡션 입력', insert: '삽입', apply: '적용' },
     color: { reset: '기본색' },
     link: {

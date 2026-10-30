@@ -138,3 +138,7 @@
 .le-file-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--le-space-2); }
 .le-control-text { font-size: 12px; font-weight: 600; padding: 0 2px; }
 .le-panel-error { color: var(--le-color-danger); font-size: 12px; }
+
+/* Video embeds: clicks select the node instead of reaching the iframe. */
+.le-content .le-video iframe { pointer-events: none; }
+.le-content .le-video.ProseMirror-selectednode { outline: 2px solid var(--le-color-primary); outline-offset: 2px; border-radius: var(--le-radius-sm); }
