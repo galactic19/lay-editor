@@ -10,7 +10,8 @@ import type { PresetName } from '../ui/presets';
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
 export type DeviceMode = 'desktop' | 'mobile';
-export type UIContext = 'text' | 'table' | 'image' | 'link' | 'codeBlock';
+export const UI_CONTEXTS = ['text', 'table', 'image', 'link', 'codeBlock'] as const;
+export type UIContext = (typeof UI_CONTEXTS)[number];
 export type UISlot = 'top' | 'status' | 'overlay';
 export type LocaleInput = string | LocalePack;
 

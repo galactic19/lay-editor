@@ -32,6 +32,10 @@ export class EventEmitter<E extends { [K in keyof E]: unknown[] }> {
     }
   }
 
+  listenerCount<K extends keyof E>(event: K): number {
+    return this.listeners.get(event)?.size ?? 0;
+  }
+
   clear(): void {
     this.listeners.clear();
   }
