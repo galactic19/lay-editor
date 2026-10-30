@@ -12,6 +12,8 @@ export const DEFAULTS = {
   mobileBreakpoint: 768,
   touchTarget: 44,
   toast: { duration: 4000 },
+  sheet: { dismissDistance: 80 },
+  mobileBar: { scrollGap: 8 },
   status: { debounce: 200 },
   autosave: { prefix: 'le-draft:', probeKey: 'le-draft-probe', debounce: 1000 },
   slash: { trigger: '/', maxItems: 10 },

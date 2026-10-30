@@ -1,0 +1,85 @@
+import type { Editor } from '../core/Editor';
+import { DEFAULTS } from '../core/defaults';
+import type { UIContext, UIItem } from '../core/types';
+import { c, PORTAL_CLASS } from './classes';
+import { contextOnlyItems } from './context';
+import { createControl, syncControl } from './controls';
+import { h } from './dom';
+import type { EditorUI } from './EditorUI';
+import { SEPARATOR } from './presets';
+import { RovingFocus } from './roving';
+import type { ToolbarEntry } from './Toolbar';
+import { UIComponent } from './UIComponent';
+
+const { scrollGap } = DEFAULTS.mobileBar;
+
+/** One-row toolbar pinned above the on-screen keyboard; its items follow the selection context. */
+export class MobileToolbar extends UIComponent<HTMLDivElement> {
+  private context: UIContext | null = null;
+  private controls: Array<{ item: UIItem; el: HTMLButtonElement }> = [];
+  private readonly roving: RovingFocus;
+  private height = -1;
+
+  constructor(
+    editor: Editor,
+    private readonly ui: EditorUI,
+  ) {
+    super(editor, h('div', { class: `${PORTAL_CLASS} ${c('mobile-bar')}`, attrs: { role: 'toolbar', 'aria-label': editor.t('a11y.toolbar'), hidden: true } }));
+    document.body.appendChild(this.el);
+    this.roving = new RovingFocus(this.el, `.${c('control')}`);
+    this.addDisposer(() => this.roving.destroy());
+    this.addDisposer(ui.viewport.onChange(() => this.place()));
+    this.addDisposer(() => {
+      editor.root.style.removeProperty('--le-mobile-bar-height');
+      editor.view.setProps({ scrollMargin: undefined });
+    });
+    this.subscribe('focus', () => this.update());
+    this.subscribe('blur', () => queueMicrotask(() => this.update()));
+  }
+
+  /** Context-only tools first, then the regular tools that also work in this context. */
+  private entries(context: UIContext): ToolbarEntry[] {
+    if (context === 'text') return this.ui.entries;
+    const shared = this.ui.entries.filter((entry): entry is UIItem => entry !== SEPARATOR && entry.contexts.includes(context));
+    return [...contextOnlyItems(this.ui.registry, context), SEPARATOR, ...shared];
+  }
+
+  override update(): void {
+    const focused = this.editor.view.hasFocus() || this.el.contains(document.activeElement);
+    if (!focused) {
+      this.el.hidden = true;
+      return;
+    }
+    const context = this.ui.getContext();
+    if (context !== this.context) this.rebuild(context);
+    this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
+    this.el.dataset.theme = this.editor.root.dataset.theme;
+    this.el.hidden = false;
+    this.place();
+  }
+
+  private rebuild(context: UIContext): void {
+    this.context = context;
+    this.controls = [];
+    this.el.replaceChildren(
+      ...this.entries(context).map((entry) => {
+        if (entry === SEPARATOR) return h('span', { class: c('separator'), attrs: { role: 'separator', 'aria-orientation': 'vertical' } });
+        const el = createControl(entry, this.editor, this.ui);
+        this.controls.push({ item: entry, el });
+        return el;
+      }),
+    );
+    this.roving.refresh();
+  }
+
+  /** Keeps the bar on top of the keyboard and the caret clear of the bar. */
+  private place(): void {
+    if (this.el.hidden) return;
+    this.el.style.bottom = `${this.ui.viewport.bottomInset}px`;
+    const height = this.el.offsetHeight;
+    if (height === this.height) return;
+    this.height = height;
+    this.editor.root.style.setProperty('--le-mobile-bar-height', `${height}px`);
+    this.editor.view.setProps({ scrollMargin: { top: scrollGap, left: scrollGap, right: scrollGap, bottom: height + scrollGap } });
+  }
+}

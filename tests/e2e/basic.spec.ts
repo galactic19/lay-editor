@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { html, MOD, openEmpty } from './helpers';
+import { control, html, MOD, openEmpty, panel } from './helpers';
 
 test('formats with the toolbar and shortcuts', async ({ page }) => {
   await openEmpty(page);
   await page.keyboard.type('hello');
   await page.keyboard.press('Shift+Home');
-  await page.click('#editor .le-toolbar [data-item="bold"]');
+  await control(page, 'bold').click();
   expect(await html(page)).toBe('<p><strong>hello</strong></p>');
-  await expect(page.locator('#editor .le-toolbar [data-item="bold"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(control(page, 'bold')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press(`${MOD}+i`);
   expect(await html(page)).toBe('<p><strong><em>hello</em></strong></p>');
 });
@@ -17,12 +17,12 @@ test('adds a link through the link panel', async ({ page }) => {
   await page.keyboard.type('site');
   await page.keyboard.press('Shift+Home');
   await page.keyboard.press(`${MOD}+k`);
-  const input = page.locator('.le-dropdown input[type="url"]');
+  const input = panel(page).locator('input[type="url"]');
   await expect(input).toBeFocused();
   await input.fill('https://example.com');
   await input.press('Enter');
   expect(await html(page)).toBe('<p><a href="https://example.com">site</a></p>');
-  await expect(page.locator('.le-dropdown')).toHaveCount(0);
+  await expect(panel(page)).toHaveCount(0);
 });
 
 test('markdown shortcuts build blocks', async ({ page }) => {

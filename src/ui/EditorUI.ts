@@ -2,13 +2,14 @@ import type { Editor } from '../core/Editor';
 import { DEFAULTS } from '../core/defaults';
 import { EditorError } from '../core/errors';
 import { rafBatch } from '../core/timing';
-import type { UIContext, UIItem, UISlot } from '../core/types';
+import type { DeviceMode, UIContext, UIItem, UISlot } from '../core/types';
 import { c } from './classes';
 import { BubbleMenu } from './BubbleMenu';
 import { resolveContext } from './context';
 import { ContextToolbar } from './ContextToolbar';
-import { DeviceWatcher } from './device';
+import { DeviceWatcher, ViewportTracker } from './device';
 import { h } from './dom';
+import { MobileToolbar } from './MobileToolbar';
 import { listPanel } from './panels/listPanel';
 import { PanelHost } from './PanelHost';
 import { PRESETS, SEPARATOR } from './presets';
@@ -25,56 +26,48 @@ function tidySeparators(entries: ToolbarEntry[]): ToolbarEntry[] {
 /** Owns every piece of editor chrome and keeps it in sync with the editor state. */
 export class EditorUI {
   readonly registry: Map<string, UIItem>;
+  /** Toolbar items resolved from the preset or the `toolbar` option. */
+  readonly entries: ToolbarEntry[];
   readonly panels: PanelHost;
   readonly toaster: Toaster;
   readonly device: DeviceWatcher;
+  readonly viewport = new ViewportTracker();
   readonly theme: ThemeController;
   private readonly slots: Record<Exclude<UISlot, 'overlay'>, HTMLElement>;
-  private readonly components: UIComponent[] = [];
-  private readonly toolbar: Toolbar;
+  private readonly extensionComponents: UIComponent[] = [];
+  private modeComponents: UIComponent[] = [];
+  private toolbar: Toolbar | null = null;
   private readonly batch = rafBatch(() => this.updateAll());
   private readonly disposers: Array<() => void> = [];
 
   constructor(private readonly editor: Editor) {
     this.registry = editor.manager.createUIRegistry(editor);
+    this.entries = this.resolveEntries();
     this.slots = { top: h('div', { class: c('top') }), status: h('div', { class: c('status') }) };
     editor.root.prepend(this.slots.top);
     editor.root.append(this.slots.status);
     this.device = new DeviceWatcher(editor.root, DEFAULTS.mobileBreakpoint);
-    editor.root.dataset.mode = this.device.mode;
     this.theme = new ThemeController(() => [editor.root], editor.config.theme);
     this.panels = new PanelHost(editor, () => this.device.mode);
     this.toaster = new Toaster(editor.root);
 
-    this.toolbar = new Toolbar(editor, this, this.toolbarEntries());
-    this.slots.top.appendChild(this.toolbar.el);
-    this.components.push(this.toolbar, new ContextToolbar(editor, this), new BubbleMenu(editor, this));
     for (const spec of editor.manager.createComponents(editor)) {
       const component = spec.create(editor, this);
       (spec.slot === 'overlay' ? document.body : this.slots[spec.slot]).appendChild(component.el);
-      this.components.push(component);
+      this.extensionComponents.push(component);
     }
-    this.disposers.push(editor.on('update', () => this.batch.schedule()));
-    this.toolbar.layout();
+    this.mountMode(this.device.mode);
+    this.disposers.push(
+      editor.on('update', () => this.batch.schedule()),
+      this.device.onChange((mode) => this.switchMode(mode)),
+    );
     this.updateAll();
-  }
-
-  toolbarEntries(): ToolbarEntry[] {
-    const { toolbar, preset } = this.editor.config;
-    const strict = toolbar !== null;
-    const entries: ToolbarEntry[] = [];
-    for (const id of toolbar ?? PRESETS[preset]) {
-      const item = id === SEPARATOR ? SEPARATOR : this.registry.get(id);
-      if (item) entries.push(item);
-      else if (strict) console.warn(new EditorError('UNKNOWN_UI_ITEM', `"${id}"; available: ${[...this.registry.keys()].join(', ')}`).message);
-    }
-    return tidySeparators(entries);
   }
 
   openPanelFor(itemId: string, anchor?: HTMLElement | null): void {
     const item = this.registry.get(itemId);
     if (!item) return;
-    const at = anchor ?? this.toolbar.anchorFor(itemId);
+    const at = anchor ?? this.toolbar?.anchorFor(itemId) ?? null;
     if (item.panel) this.panels.openPanel(item.panel, at);
     else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at);
   }
@@ -98,15 +91,51 @@ export class EditorUI {
   destroy(): void {
     this.batch.cancel();
     this.disposers.splice(0).forEach((dispose) => dispose());
-    this.components.splice(0).forEach((component) => component.destroy());
+    [...this.modeComponents, ...this.extensionComponents].forEach((component) => component.destroy());
+    this.modeComponents = [];
     this.panels.destroy();
     this.toaster.destroy();
     this.device.destroy();
+    this.viewport.destroy();
     this.theme.destroy();
     Object.values(this.slots).forEach((slot) => slot.remove());
   }
 
+  /** Desktop: top toolbar, context toolbar and bubble. Mobile: the keyboard bar. */
+  private mountMode(mode: DeviceMode): void {
+    this.editor.root.dataset.mode = mode;
+    if (mode === 'mobile') {
+      this.toolbar = null;
+      this.modeComponents = [new MobileToolbar(this.editor, this)];
+      return;
+    }
+    this.toolbar = new Toolbar(this.editor, this, this.entries);
+    this.slots.top.prepend(this.toolbar.el);
+    this.modeComponents = [this.toolbar, new ContextToolbar(this.editor, this), new BubbleMenu(this.editor, this)];
+    this.toolbar.layout();
+  }
+
+  private switchMode(mode: DeviceMode): void {
+    this.panels.close();
+    this.modeComponents.splice(0).forEach((component) => component.destroy());
+    this.mountMode(mode);
+    this.editor.emit('modeChange', mode);
+    this.flush();
+  }
+
+  private resolveEntries(): ToolbarEntry[] {
+    const { toolbar, preset } = this.editor.config;
+    const strict = toolbar !== null;
+    const entries: ToolbarEntry[] = [];
+    for (const id of toolbar ?? PRESETS[preset]) {
+      const item = id === SEPARATOR ? SEPARATOR : this.registry.get(id);
+      if (item) entries.push(item);
+      else if (strict) console.warn(new EditorError('UNKNOWN_UI_ITEM', `"${id}"; available: ${[...this.registry.keys()].join(', ')}`).message);
+    }
+    return tidySeparators(entries);
+  }
+
   private updateAll(): void {
-    this.components.forEach((component) => component.update());
+    [...this.modeComponents, ...this.extensionComponents].forEach((component) => component.update());
   }
 }

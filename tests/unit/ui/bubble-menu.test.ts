@@ -62,7 +62,7 @@ describe('BubbleMenu', () => {
     const mobile = focused('<p>abc</p>');
     selectText(mobile, 'ab');
     mobile.ui!.flush();
-    expect(bubble().hidden).toBe(true);
+    expect(document.querySelector('.le-bubble')).toBeNull();
   });
 
   it('the link context toolbar yields to the bubble for range selections', () => {

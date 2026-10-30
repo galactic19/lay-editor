@@ -159,7 +159,6 @@
 .le-grid-cell.le-grid-on { background: var(--le-color-active); border-color: var(--le-color-primary); }
 .le-grid-cell:focus-visible { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
 .le-grid-label { text-align: center; color: var(--le-color-muted); font-size: 12px; }
-.le-editor[data-mode='mobile'] ~ .le-portal .le-grid-cell, .le-portal[data-mode='mobile'] .le-grid-cell { width: var(--le-touch-target); height: var(--le-touch-target); }
 
 /* Context toolbar */
 .le-context-toolbar { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); display: flex; gap: 2px; padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
@@ -171,7 +170,7 @@
 .le-slash-item { display: flex; align-items: center; gap: var(--le-space-2); min-height: var(--le-control-size); padding: 0 var(--le-space-2); border-radius: var(--le-radius-sm); cursor: pointer; }
 .le-slash-item[aria-selected='true'], .le-slash-item:hover { background: var(--le-color-hover); }
 .le-slash-empty { padding: var(--le-space-2); color: var(--le-color-muted); }
-.le-editor[data-mode='mobile'] ~ .le-slash-menu .le-slash-item { min-height: var(--le-touch-target); }
+@media (pointer: coarse) { .le-slash-item { min-height: var(--le-touch-target); } }
 
 /* Syntax highlighting (lowlight / highlight.js class names) */
 .le-content .hljs-keyword, .le-content .hljs-selector-tag, .le-content .hljs-literal, .le-content .hljs-doctag { color: var(--le-code-keyword); }
@@ -206,3 +205,50 @@ html.le-scroll-locked { overflow: hidden; }
 /* Selection bubble */
 .le-bubble { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); display: flex; gap: 2px; padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
 .le-bubble[hidden] { display: none; }
+
+/* Mobile: keyboard bar and bottom sheets */
+.le-mobile-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--le-z-overlay);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: var(--le-space-1) var(--le-space-2);
+  padding-bottom: calc(var(--le-space-1) + env(safe-area-inset-bottom, 0px));
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  background: var(--le-color-surface);
+  border-top: 1px solid var(--le-color-border);
+  -webkit-overflow-scrolling: touch;
+}
+.le-mobile-bar::-webkit-scrollbar { display: none; }
+.le-mobile-bar[hidden] { display: none; }
+.le-mobile-bar .le-control { min-width: var(--le-touch-target); height: var(--le-touch-target); scroll-snap-align: start; }
+.le-mobile-bar .le-separator { margin: var(--le-space-2) var(--le-space-1); }
+.le-editor[data-mode='mobile'] .le-content { scroll-padding-bottom: var(--le-mobile-bar-height, 0px); }
+.le-sheet-backdrop { position: fixed; inset: 0; z-index: var(--le-z-overlay); background: rgba(0, 0, 0, 0.35); }
+.le-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--le-z-overlay);
+  max-height: var(--le-sheet-max-height);
+  overflow-y: auto;
+  padding: var(--le-space-2) var(--le-space-4) calc(var(--le-space-4) + env(safe-area-inset-bottom, 0px));
+  background: var(--le-color-bg);
+  border-radius: var(--le-radius) var(--le-radius) 0 0;
+  box-shadow: var(--le-shadow);
+  animation: le-sheet-in 160ms ease-out;
+}
+.le-sheet-handle { width: 40px; height: 5px; margin: 0 auto var(--le-space-3); border-radius: 3px; background: var(--le-color-border); touch-action: none; cursor: grab; }
+.le-sheet .le-control, .le-sheet .le-button, .le-sheet .le-input { min-height: var(--le-touch-target); }
+.le-sheet .le-swatches { grid-template-columns: repeat(5, var(--le-touch-target)); }
+.le-sheet { --le-grid-cell: var(--le-touch-target); }
+.le-sheet .le-grid { justify-content: center; }
+.le-sheet .le-swatch { width: var(--le-touch-target); height: var(--le-touch-target); }
+@keyframes le-sheet-in { from { transform: translateY(100%); } }

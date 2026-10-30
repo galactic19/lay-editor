@@ -1,5 +1,6 @@
 import type { Editor } from '../core/Editor';
 import type { DeviceMode, PanelFactory } from '../core/types';
+import { BottomSheet } from './BottomSheet';
 import { Dropdown } from './Dropdown';
 
 export interface PanelContainer {
@@ -10,7 +11,7 @@ export interface PanelContainer {
   destroy(): void;
 }
 
-/** Opens panel content in the container that fits the device (dropdown on desktop). */
+/** Opens panel content in the container that fits the device: dropdown on desktop, bottom sheet on mobile. */
 export class PanelHost {
   private container: PanelContainer | null = null;
 
@@ -47,6 +48,6 @@ export class PanelHost {
   }
 
   protected createContainer(): PanelContainer {
-    return new Dropdown(this.editor.root);
+    return this.getMode() === 'mobile' ? new BottomSheet(this.editor.root) : new Dropdown(this.editor.root);
   }
 }

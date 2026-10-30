@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { html, openEmpty } from './helpers';
+import { control, html, openEmpty, panel } from './helpers';
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -7,8 +7,8 @@ const PNG = Buffer.from(
 );
 
 async function pickFile(page: import('@playwright/test').Page): Promise<void> {
-  await page.click('#editor .le-toolbar [data-item="image"]');
-  await page.setInputFiles('.le-dropdown input[type="file"]', { name: 'dot.png', mimeType: 'image/png', buffer: PNG });
+  await control(page, 'image').click();
+  await panel(page).locator('input[type="file"]').setInputFiles({ name: 'dot.png', mimeType: 'image/png', buffer: PNG });
 }
 
 test('uploads a picked file and inserts the returned URL', async ({ page }) => {

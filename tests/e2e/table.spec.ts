@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { compose, html, openEmpty } from './helpers';
+import { compose, control, html, openEmpty, panel } from './helpers';
 
 async function insertTable(page: import('@playwright/test').Page, rows: number, cols: number): Promise<void> {
-  await page.click('#editor .le-toolbar [data-item="table"]');
-  await page.click(`.le-dropdown [data-rows="${rows}"][data-cols="${cols}"]`);
+  await control(page, 'table').click();
+  await panel(page).locator(`[data-rows="${rows}"][data-cols="${cols}"]`).click();
 }
 
 test('inserts a table from the size picker', async ({ page }) => {
