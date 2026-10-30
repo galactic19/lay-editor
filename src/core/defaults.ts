@@ -16,6 +16,15 @@ export const DEFAULTS = {
   },
   image: { minWidth: 10, maxWidth: 100 },
   heading: { levels: [1, 2, 3, 4] },
+  paste: {
+    keepStyles: ['color', 'background-color', 'text-align'],
+    keepDataAttrs: ['data-type', 'data-checked', 'data-indent', 'data-align', 'data-video', 'data-provider', 'data-id'],
+    /** Colors that equal the page default; dropping them keeps pasted text readable in dark mode. */
+    defaultColors: {
+      color: ['#000', '#000000', 'rgb(0,0,0)'],
+      'background-color': ['#fff', '#ffffff', 'rgb(255,255,255)'],
+    },
+  },
   indent: { max: 8 },
   colors: {
     text: ['#000000', '#495057', '#e03131', '#f08c00', '#2f9e44', '#1971c2', '#6741d9', '#c2255c', '#0c8599', '#868e96'],

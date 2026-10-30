@@ -46,6 +46,16 @@ class ResizeObserverStub {
 (globalThis as any).ResizeObserver = ResizeObserverStub;
 export const triggerResize = (): void => ResizeObserverStub.trigger();
 
+if (typeof (globalThis as any).ClipboardEvent === 'undefined') {
+  (globalThis as any).ClipboardEvent = class ClipboardEvent extends Event {
+    readonly clipboardData: DataTransfer | null;
+    constructor(type: string, init: EventInit & { clipboardData?: DataTransfer | null } = {}) {
+      super(type, init);
+      this.clipboardData = init.clipboardData ?? null;
+    }
+  };
+}
+
 const emptyRect = (): DOMRect =>
   ({ x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, toJSON: () => ({}) }) as DOMRect;
 Range.prototype.getBoundingClientRect = emptyRect;

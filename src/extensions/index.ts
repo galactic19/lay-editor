@@ -1,5 +1,6 @@
 import type { Extension } from '../core/types';
 import { base } from './base/base';
+import { clipboard } from './base/clipboard';
 import { cursors } from './base/cursors';
 import { historyExtension } from './base/history';
 import { placeholder } from './base/placeholder';
@@ -20,6 +21,7 @@ export function getDefaultExtensions(): Extension[] {
     base,
     historyExtension,
     cursors,
+    clipboard,
     placeholder,
     heading,
     blockquote,
