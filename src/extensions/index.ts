@@ -17,6 +17,7 @@ import { link } from './marks/link';
 import { image } from './media/image';
 import { video } from './media/video';
 import { table } from './table/table';
+import { slashMenu } from './tools/slashMenu';
 
 /** Built-in extensions in schema order. Later tasks append here. */
 export function getDefaultExtensions(): Extension[] {
@@ -40,5 +41,6 @@ export function getDefaultExtensions(): Extension[] {
     textColor,
     highlight,
     clearFormat,
+    slashMenu,
   ];
 }

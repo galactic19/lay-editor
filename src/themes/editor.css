@@ -164,3 +164,11 @@
 /* Context toolbar */
 .le-context-toolbar { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); display: flex; gap: 2px; padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
 .le-context-toolbar[hidden] { display: none; }
+
+/* Slash menu */
+.le-slash-menu { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); width: 260px; max-height: 320px; overflow-y: auto; padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
+.le-slash-menu[hidden] { display: none; }
+.le-slash-item { display: flex; align-items: center; gap: var(--le-space-2); min-height: var(--le-control-size); padding: 0 var(--le-space-2); border-radius: var(--le-radius-sm); cursor: pointer; }
+.le-slash-item[aria-selected='true'], .le-slash-item:hover { background: var(--le-color-hover); }
+.le-slash-empty { padding: var(--le-space-2); color: var(--le-color-muted); }
+.le-editor[data-mode='mobile'] ~ .le-slash-menu .le-slash-item { min-height: var(--le-touch-target); }

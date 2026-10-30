@@ -70,7 +70,9 @@ export const en = {
     uploadBadType: 'This image type is not supported',
     uploadNotConfigured: 'Image upload is not set up',
   },
+  slash: { empty: 'No matching blocks' },
   a11y: {
+    slashMenu: 'Insert block',
     contextToolbar: 'Tools for the selection',
     tableGrid: 'Choose table size',
     uploading: 'Uploading',

@@ -70,7 +70,9 @@ export const ko = {
     uploadBadType: '지원하지 않는 이미지 형식입니다',
     uploadNotConfigured: '이미지 업로드가 설정되지 않았습니다',
   },
+  slash: { empty: '일치하는 항목이 없습니다' },
   a11y: {
+    slashMenu: '블록 삽입 메뉴',
     contextToolbar: '선택한 요소 도구',
     tableGrid: '표 크기 선택',
     uploading: '업로드 중',
