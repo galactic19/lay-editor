@@ -15,6 +15,8 @@ export const DEFAULTS = {
     dataImageTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
   },
   image: { minWidth: 10, maxWidth: 100 },
+  heading: { levels: [1, 2, 3, 4] },
+  indent: { max: 8 },
   colors: {
     text: ['#000000', '#495057', '#e03131', '#f08c00', '#2f9e44', '#1971c2', '#6741d9', '#c2255c', '#0c8599', '#868e96'],
     highlight: ['#ffec99', '#ffd8a8', '#ffc9c9', '#d3f9d8', '#d0ebff', '#e5dbff', '#fcc2d7', '#c5f6fa', '#e9ecef', '#fff3bf'],

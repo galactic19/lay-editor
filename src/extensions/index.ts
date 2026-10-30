@@ -2,6 +2,13 @@ import type { Extension } from '../core/types';
 import { base } from './base/base';
 import { cursors } from './base/cursors';
 import { historyExtension } from './base/history';
+import { placeholder } from './base/placeholder';
+import { align } from './blocks/align';
+import { blockquote } from './blocks/blockquote';
+import { heading } from './blocks/heading';
+import { horizontalRule } from './blocks/horizontalRule';
+import { indent } from './blocks/indent';
+import { lists } from './blocks/lists';
 import { basicMarks } from './marks/basic';
 import { clearFormat } from './marks/clearFormat';
 import { highlight, textColor } from './marks/colorMark';
@@ -9,5 +16,21 @@ import { link } from './marks/link';
 
 /** Built-in extensions in schema order. Later tasks append here. */
 export function getDefaultExtensions(): Extension[] {
-  return [base, historyExtension, cursors, link, ...basicMarks, textColor, highlight, clearFormat];
+  return [
+    base,
+    historyExtension,
+    cursors,
+    placeholder,
+    heading,
+    blockquote,
+    lists,
+    horizontalRule,
+    align,
+    indent,
+    link,
+    ...basicMarks,
+    textColor,
+    highlight,
+    clearFormat,
+  ];
 }
