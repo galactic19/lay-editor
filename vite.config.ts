@@ -5,8 +5,11 @@ export default defineConfig({
   plugins: [demoUploadPlugin()],
   build: {
     target: ['es2022', 'safari16'],
-    lib: { entry: { index: 'src/index.ts' }, formats: ['es'] },
-    rollupOptions: { external: ['react', 'react-dom', 'vue'] },
+    lib: {
+      entry: { index: 'src/index.ts', react: 'src/adapters/react.ts', vue: 'src/adapters/vue.ts' },
+      formats: ['es'],
+    },
+    rollupOptions: { external: ['react', 'react-dom', 'react/jsx-runtime', 'vue'] },
   },
   test: {
     globals: true,

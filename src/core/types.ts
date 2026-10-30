@@ -103,8 +103,8 @@ export interface Extension<O = any> {
   onCreate?(ctx: ExtensionContext<O>): void | (() => void);
 }
 
-/** Public options. Extension options are passed under the extension name (or its optionsKey). */
-export interface EditorOptions {
+/** Options the core understands. */
+export interface CoreEditorOptions {
   element: string | HTMLElement;
   content?: string;
   preset?: PresetName;
@@ -118,8 +118,10 @@ export interface EditorOptions {
   disable?: string[];
   onChange?(html: string): void;
   onReady?(editor: Editor): void;
-  [extensionOptions: string]: unknown;
 }
+
+/** Public options. Extension options are passed under the extension name (or its optionsKey). */
+export type EditorOptions = CoreEditorOptions & { [extensionOptions: string]: unknown };
 
 export interface EditorConfig {
   element: HTMLElement;
