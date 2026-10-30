@@ -44,6 +44,9 @@ import {
   TableCellsSplit,
   TableColumnsSplit,
   TableRowsSplit,
+  ExternalLink,
+  Pencil,
+  Unlink,
   type IconNode,
 } from 'lucide';
 
@@ -94,4 +97,7 @@ export const DEFAULT_ICONS: Record<string, IconNode> = {
   'table-cells-split': TableCellsSplit,
   'table-columns-split': TableColumnsSplit,
   'table-rows-split': TableRowsSplit,
+  'external-link': ExternalLink,
+  pencil: Pencil,
+  unlink: Unlink,
 };

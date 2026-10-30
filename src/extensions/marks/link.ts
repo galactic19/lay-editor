@@ -68,6 +68,12 @@ export const link = defineExtension({
     return {
       setLink: (input: LinkInput) => setLink(type, input),
       unsetLink: () => unsetLink(type),
+      openLink: (): Command => (state, dispatch) => {
+        const href = state.selection.$from.marks().find((mark) => mark.type === type)?.attrs.href;
+        if (!href) return false;
+        if (dispatch) window.open(href, '_blank', 'noopener');
+        return true;
+      },
       openLinkPanel: (): Command => (_state, dispatch) => {
         if (dispatch) editor.ui?.openPanelFor('link');
         return true;
@@ -99,5 +105,8 @@ export const link = defineExtension({
       isActive: (editor) => editor.isActive('link'),
       panel: linkPanel,
     },
+    { id: 'linkEdit', kind: 'panel', icon: 'pencil', label: 'toolbar.linkEdit', contexts: ['link'], panel: linkPanel },
+    { id: 'linkOpen', kind: 'button', icon: 'external-link', label: 'toolbar.linkOpen', command: 'openLink', contexts: ['link'] },
+    { id: 'linkRemove', kind: 'button', icon: 'unlink', label: 'toolbar.linkRemove', command: 'unsetLink', contexts: ['link'] },
   ],
 });

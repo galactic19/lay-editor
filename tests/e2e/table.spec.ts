@@ -24,7 +24,7 @@ test('merges two selected cells', async ({ page }, info) => {
   await page.mouse.down();
   await page.mouse.move(second.x + second.width / 2, second.y + second.height / 2, { steps: 5 });
   await page.mouse.up();
-  await page.evaluate(() => window.__editor.exec('mergeCells'));
+  await page.click('.le-context-toolbar [data-item="tableMerge"]');
   await expect.poll(() => html(page)).toContain('colspan="2"');
 });
 

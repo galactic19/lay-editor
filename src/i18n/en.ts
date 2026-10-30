@@ -3,6 +3,9 @@ import type { LocalePack } from './index';
 export const en = {
   placeholder: 'Start writing…',
   toolbar: {
+    linkEdit: 'Edit link',
+    linkOpen: 'Open link',
+    linkRemove: 'Remove link',
     table: 'Table',
     tableAddRowAfter: 'Add row below',
     tableAddColumnAfter: 'Add column right',
@@ -68,6 +71,7 @@ export const en = {
     uploadNotConfigured: 'Image upload is not set up',
   },
   a11y: {
+    contextToolbar: 'Tools for the selection',
     tableGrid: 'Choose table size',
     uploading: 'Uploading',
     resizeImage: 'Resize image',

@@ -160,3 +160,7 @@
 .le-grid-cell:focus-visible { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
 .le-grid-label { text-align: center; color: var(--le-color-muted); font-size: 12px; }
 .le-editor[data-mode='mobile'] ~ .le-portal .le-grid-cell, .le-portal[data-mode='mobile'] .le-grid-cell { width: var(--le-touch-target); height: var(--le-touch-target); }
+
+/* Context toolbar */
+.le-context-toolbar { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); display: flex; gap: 2px; padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
+.le-context-toolbar[hidden] { display: none; }

@@ -3,6 +3,9 @@ import type { LocalePack } from './index';
 export const ko = {
   placeholder: '내용을 입력하세요',
   toolbar: {
+    linkEdit: '링크 편집',
+    linkOpen: '링크 열기',
+    linkRemove: '링크 제거',
     table: '표',
     tableAddRowAfter: '아래에 행 추가',
     tableAddColumnAfter: '오른쪽에 열 추가',
@@ -68,6 +71,7 @@ export const ko = {
     uploadNotConfigured: '이미지 업로드가 설정되지 않았습니다',
   },
   a11y: {
+    contextToolbar: '선택한 요소 도구',
     tableGrid: '표 크기 선택',
     uploading: '업로드 중',
     resizeImage: '이미지 크기 조절',

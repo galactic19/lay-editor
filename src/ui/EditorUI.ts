@@ -4,6 +4,8 @@ import { EditorError } from '../core/errors';
 import { rafBatch } from '../core/timing';
 import type { UIContext, UIItem, UISlot } from '../core/types';
 import { c } from './classes';
+import { resolveContext } from './context';
+import { ContextToolbar } from './ContextToolbar';
 import { DeviceWatcher } from './device';
 import { h } from './dom';
 import { listPanel } from './panels/listPanel';
@@ -45,7 +47,7 @@ export class EditorUI {
 
     this.toolbar = new Toolbar(editor, this, this.toolbarEntries());
     this.slots.top.appendChild(this.toolbar.el);
-    this.components.push(this.toolbar);
+    this.components.push(this.toolbar, new ContextToolbar(editor, this));
     for (const spec of editor.manager.createComponents(editor)) {
       const component = spec.create(editor, this);
       (spec.slot === 'overlay' ? document.body : this.slots[spec.slot]).appendChild(component.el);
@@ -77,7 +79,7 @@ export class EditorUI {
   }
 
   getContext(): UIContext {
-    return 'text';
+    return resolveContext(this.editor.state);
   }
 
   /** Whether an item is temporarily unavailable regardless of state (e.g. while editing source). */
