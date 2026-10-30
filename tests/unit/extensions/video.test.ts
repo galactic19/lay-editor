@@ -1,3 +1,4 @@
+import { Selection } from 'prosemirror-state';
 import { parseVideoUrl, registerVideoProvider } from '../../../src/extensions/media/video-providers';
 import { makeEditor } from '../../helpers/editor';
 
@@ -55,7 +56,7 @@ describe('video node', () => {
 
   it('keeps a pasted URL as text inside a sentence', () => {
     const ed = makeEditor({ content: '<p>see </p>' });
-    ed.view.dispatch(ed.state.tr.setSelection(ed.state.selection.constructor.atEnd(ed.state.doc) as never));
+    ed.view.dispatch(ed.state.tr.setSelection(Selection.atEnd(ed.state.doc)));
     ed.view.pasteText('https://youtu.be/dQw4w9WgXcQ');
     expect(ed.getHTML()).not.toContain('data-video');
   });
