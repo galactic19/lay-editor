@@ -16,3 +16,4 @@ export type {
   UploadFn,
   UploadResult,
 } from './core/types';
+export { sanitizeHTML } from './io/sanitize';

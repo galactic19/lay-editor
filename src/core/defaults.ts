@@ -14,6 +14,7 @@ export const DEFAULTS = {
     protocols: ['http:', 'https:', 'mailto:', 'tel:'],
     dataImageTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
   },
+  image: { minWidth: 10, maxWidth: 100 },
 } as const;
 
 export type Defaults = typeof DEFAULTS;
