@@ -3,6 +3,8 @@ import type { LocalePack } from './index';
 export const en = {
   placeholder: 'Start writing…',
   toolbar: {
+    fullscreen: 'Full screen',
+    sourceView: 'HTML source',
     findReplace: 'Find and replace',
     codeBlock: 'Code block',
     codeLanguage: 'Code language',
@@ -76,8 +78,9 @@ export const en = {
     uploadNotConfigured: 'Image upload is not set up',
   },
   slash: { empty: 'No matching blocks' },
-  status: { matchCount: '{current}/{total}', noMatch: 'No results' },
+  status: { count: '{chars} characters · {charsNoSpace} without spaces · {words} words', matchCount: '{current}/{total}', noMatch: 'No results' },
   a11y: {
+    sourceEditor: 'Edit HTML source',
     slashMenu: 'Insert block',
     contextToolbar: 'Tools for the selection',
     tableGrid: 'Choose table size',

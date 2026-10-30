@@ -36,3 +36,22 @@ export function serializeHTML(schema: Schema, doc: PMNode): string {
   container.appendChild(DOMSerializer.fromSchema(schema).serializeFragment(clean.content));
   return container.innerHTML;
 }
+
+/** Containers whose children go on their own lines in the source view. */
+const LINE_CONTAINERS = new Set(['UL', 'OL', 'TABLE', 'THEAD', 'TBODY', 'TR', 'BLOCKQUOTE']);
+
+function formatElement(el: Element): string {
+  if (!LINE_CONTAINERS.has(el.tagName)) return el.outerHTML;
+  const outer = el.outerHTML;
+  const open = outer.slice(0, outer.indexOf('>') + 1);
+  return [open, ...Array.from(el.children, formatElement), `</${el.tagName.toLowerCase()}>`].join('\n');
+}
+
+/** Readable HTML for the source view: one block per line. */
+export function formatHTML(html: string): string {
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  return Array.from(container.childNodes, (node) => (node instanceof Element ? formatElement(node) : (node.textContent ?? '')))
+    .filter((line) => line.trim())
+    .join('\n');
+}

@@ -51,6 +51,8 @@ import {
   FileCode,
   Search,
   ChevronUp,
+  Maximize,
+  CodeXml,
   type IconNode,
 } from 'lucide';
 
@@ -108,4 +110,6 @@ export const DEFAULT_ICONS: Record<string, IconNode> = {
   'file-code': FileCode,
   search: Search,
   'chevron-up': ChevronUp,
+  maximize: Maximize,
+  'code-xml': CodeXml,
 };

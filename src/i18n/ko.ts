@@ -3,6 +3,8 @@ import type { LocalePack } from './index';
 export const ko = {
   placeholder: '내용을 입력하세요',
   toolbar: {
+    fullscreen: '전체 화면',
+    sourceView: 'HTML 소스',
     findReplace: '찾기/바꾸기',
     codeBlock: '코드 블록',
     codeLanguage: '코드 언어',
@@ -76,8 +78,9 @@ export const ko = {
     uploadNotConfigured: '이미지 업로드가 설정되지 않았습니다',
   },
   slash: { empty: '일치하는 항목이 없습니다' },
-  status: { matchCount: '{current}/{total}', noMatch: '결과 없음' },
+  status: { count: '글자 {chars} · 공백 제외 {charsNoSpace} · 단어 {words}', matchCount: '{current}/{total}', noMatch: '결과 없음' },
   a11y: {
+    sourceEditor: 'HTML 소스 편집',
     slashMenu: '블록 삽입 메뉴',
     contextToolbar: '선택한 요소 도구',
     tableGrid: '표 크기 선택',

@@ -12,6 +12,7 @@ export const DEFAULTS = {
   mobileBreakpoint: 768,
   touchTarget: 44,
   toast: { duration: 4000 },
+  status: { debounce: 200 },
   slash: { trigger: '/', maxItems: 10 },
   url: {
     protocols: ['http:', 'https:', 'mailto:', 'tel:'],

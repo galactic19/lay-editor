@@ -20,6 +20,9 @@ import { image } from './media/image';
 import { video } from './media/video';
 import { table } from './table/table';
 import { findReplace } from './tools/findReplace';
+import { fullscreen } from './tools/fullscreen';
+import { sourceView } from './tools/sourceView';
+import { wordCount } from './tools/wordCount';
 import { slashMenu } from './tools/slashMenu';
 
 /** Built-in extensions in schema order. Later tasks append here. */
@@ -48,5 +51,8 @@ export function getDefaultExtensions(): Extension[] {
     clearFormat,
     slashMenu,
     findReplace,
+    wordCount,
+    fullscreen,
+    sourceView,
   ];
 }

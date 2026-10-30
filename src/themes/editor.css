@@ -187,3 +187,13 @@
 .le-find-panel { min-width: 280px; }
 .le-find-panel .le-input { flex: 1; width: auto; }
 .le-find-status { min-width: 4em; text-align: right; color: var(--le-color-muted); font-size: 12px; }
+
+/* Status bar, full screen, source view */
+.le-status:empty { display: none; }
+.le-statusbar { padding: var(--le-space-1) var(--le-space-3); border-top: 1px solid var(--le-color-border); color: var(--le-color-muted); font-size: 12px; text-align: right; }
+.le-editor.le-fullscreen { position: fixed; inset: 0; z-index: var(--le-z-fullscreen); border-radius: 0; border: none; }
+.le-editor.le-fullscreen .le-content { overflow-y: auto; }
+.le-editor.le-fullscreen .le-top { border-radius: 0; }
+html.le-scroll-locked { overflow: hidden; }
+.le-source { display: block; width: 100%; min-height: var(--le-min-height); padding: var(--le-content-padding); border: none; resize: vertical; background: var(--le-color-code-bg); color: var(--le-color-fg); font-family: var(--le-font-mono); font-size: 13px; line-height: 1.6; outline: none; }
+.le-editor.le-fullscreen .le-source { flex: 1; resize: none; }

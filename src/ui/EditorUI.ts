@@ -83,8 +83,9 @@ export class EditorUI {
   }
 
   /** Whether an item is temporarily unavailable regardless of state (e.g. while editing source). */
-  isLocked(_item: UIItem): boolean {
-    return false;
+  isLocked(item: UIItem): boolean {
+    const except = this.editor.root.dataset.lockedExcept;
+    return except !== undefined && item.id !== except;
   }
 
   /** Runs pending UI updates now. */
