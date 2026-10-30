@@ -10,8 +10,7 @@ const dialog = (): HTMLElement | null => document.querySelector('.le-dropdown');
 describe('Toolbar', () => {
   it('renders preset items in order with separators and labels', () => {
     const ed = makeEditor({ preset: 'basic' });
-    // image is registered in Task 11; presets skip unregistered ids silently.
-    expect(toolbarIds(ed.root)).toEqual(PRESETS.basic.filter((id) => id !== 'image'));
+    expect(toolbarIds(ed.root)).toEqual(PRESETS.basic);
     const bold = control(ed.root, 'bold');
     expect(bold.getAttribute('aria-label')).toBe(ed.t('toolbar.bold'));
     expect(bold.dataset.tooltip).toMatch(/B\)$/);

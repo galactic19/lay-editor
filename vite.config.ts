@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
+import { demoUploadPlugin } from './demo/upload-plugin.ts';
 
 export default defineConfig({
+  plugins: [demoUploadPlugin()],
   build: {
     target: ['es2022', 'safari16'],
     lib: { entry: { index: 'src/index.ts' }, formats: ['es'] },

@@ -15,6 +15,7 @@ import {
   Heading3,
   Heading4,
   Highlighter,
+  Image,
   IndentDecrease,
   IndentIncrease,
   Italic,
@@ -28,8 +29,11 @@ import {
   Redo2,
   RemoveFormatting,
   Strikethrough,
+  Trash2,
+  Type,
   Underline,
   Undo2,
+  Upload,
   type IconNode,
 } from 'lucide';
 
@@ -51,6 +55,7 @@ export const DEFAULT_ICONS: Record<string, IconNode> = {
   'heading-3': Heading3,
   'heading-4': Heading4,
   highlighter: Highlighter,
+  image: Image,
   'indent-decrease': IndentDecrease,
   'indent-increase': IndentIncrease,
   italic: Italic,
@@ -64,6 +69,9 @@ export const DEFAULT_ICONS: Record<string, IconNode> = {
   redo: Redo2,
   'remove-formatting': RemoveFormatting,
   strikethrough: Strikethrough,
+  trash: Trash2,
+  type: Type,
   underline: Underline,
   undo: Undo2,
+  upload: Upload,
 };

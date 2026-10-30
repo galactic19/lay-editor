@@ -56,6 +56,10 @@ export interface UIItem {
   kind: 'button' | 'dropdown' | 'panel';
   icon: string;
   label: string;
+  /** Parameters for the translated label, e.g. { n: 50 }. */
+  labelParams?: Record<string, string | number>;
+  /** Short visible text shown instead of the icon (e.g. "50%"). */
+  text?: string;
   command?: string;
   args?: unknown[];
   shortcut?: string;

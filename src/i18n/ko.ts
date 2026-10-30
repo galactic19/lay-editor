@@ -3,6 +3,13 @@ import type { LocalePack } from './index';
 export const ko = {
   placeholder: '내용을 입력하세요',
   toolbar: {
+    image: '이미지',
+    imageWidth: '너비 {n}%',
+    imageAlignLeft: '왼쪽 배치',
+    imageAlignCenter: '가운데 배치',
+    imageAlignRight: '오른쪽 배치',
+    imageAlt: '대체 텍스트',
+    imageDelete: '이미지 삭제',
     heading: '제목',
     blockquote: '인용',
     bulletList: '글머리 기호 목록',
@@ -30,6 +37,7 @@ export const ko = {
     align: { left: '왼쪽 정렬', center: '가운데 정렬', right: '오른쪽 정렬', justify: '양쪽 정렬' },
   },
   panel: {
+    image: { file: '파일 선택', url: '이미지 주소', alt: '이미지 설명 (대체 텍스트)', caption: '캡션 입력', insert: '삽입', apply: '적용' },
     color: { reset: '기본색' },
     link: {
       url: '링크 주소',
@@ -40,7 +48,15 @@ export const ko = {
       invalid: '올바른 링크 주소를 입력하세요',
     },
   },
+  toast: {
+    uploadFailed: '이미지를 올리지 못했습니다',
+    uploadTooLarge: '파일이 너무 큽니다 (최대 {max})',
+    uploadBadType: '지원하지 않는 이미지 형식입니다',
+    uploadNotConfigured: '이미지 업로드가 설정되지 않았습니다',
+  },
   a11y: {
+    uploading: '업로드 중',
+    resizeImage: '이미지 크기 조절',
     taskCheckbox: '할 일 완료 표시',
     toolbar: '서식 도구',
   },

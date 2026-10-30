@@ -22,6 +22,15 @@ const editor = createEditor({
   element: '#editor',
   content: params.has('empty') ? '' : SAMPLE,
   theme: (params.get('theme') as 'light' | 'dark' | null) ?? 'auto',
+  upload: async (file) => {
+    const response = await fetch(`/__upload${params.has('fail') ? '?fail=1' : ''}`, {
+      method: 'POST',
+      body: file,
+      headers: { 'content-type': file.type },
+    });
+    if (!response.ok) throw new Error(`upload failed: ${response.status}`);
+    return response.json();
+  },
   onChange: (html) => (output.textContent = html),
 });
 output.textContent = editor.getHTML();

@@ -26,7 +26,7 @@ export function activateItem(item: UIItem, editor: Editor, ui: EditorUI, anchor:
 
 /** One button for a UI item. Shared by the toolbar, menus, bubble and mobile bars. */
 export function createControl(item: UIItem, editor: Editor, ui: EditorUI, options: ControlOptions = {}): HTMLButtonElement {
-  const label = editor.t(item.label);
+  const label = editor.t(item.label, item.labelParams);
   const shortcut = item.shortcut ? formatShortcut(item.shortcut) : null;
   const button: HTMLButtonElement = h(
     'button',
@@ -48,7 +48,7 @@ export function createControl(item: UIItem, editor: Editor, ui: EditorUI, option
         },
       },
     },
-    renderIcon(item.icon),
+    item.text ? h('span', { class: c('control-text') }, item.text) : renderIcon(item.icon),
     options.showLabel ? h('span', { class: c('control-label') }, label) : null,
     options.showLabel && shortcut ? h('span', { class: c('control-hint') }, shortcut) : null,
   );

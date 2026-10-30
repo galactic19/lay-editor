@@ -14,6 +14,7 @@ import { basicMarks } from './marks/basic';
 import { clearFormat } from './marks/clearFormat';
 import { highlight, textColor } from './marks/colorMark';
 import { link } from './marks/link';
+import { image } from './media/image';
 
 /** Built-in extensions in schema order. Later tasks append here. */
 export function getDefaultExtensions(): Extension[] {
@@ -27,6 +28,7 @@ export function getDefaultExtensions(): Extension[] {
     blockquote,
     lists,
     horizontalRule,
+    image,
     align,
     indent,
     link,

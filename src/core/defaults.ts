@@ -2,6 +2,8 @@
  * Single source of every default value and tunable number.
  * User options override these; nothing else in the codebase hard-codes them.
  */
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+
 export const DEFAULTS = {
   preset: 'full',
   locale: 'ko',
@@ -12,9 +14,16 @@ export const DEFAULTS = {
   toast: { duration: 4000 },
   url: {
     protocols: ['http:', 'https:', 'mailto:', 'tel:'],
-    dataImageTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+    dataImageTypes: IMAGE_TYPES,
   },
-  image: { minWidth: 10, maxWidth: 100 },
+  image: {
+    minWidth: 10,
+    maxWidth: 100,
+    maxSize: 10 * 1024 * 1024,
+    accept: IMAGE_TYPES,
+    widths: [25, 50, 75, 100],
+    aligns: ['left', 'center', 'right'],
+  },
   heading: { levels: [1, 2, 3, 4] },
   paste: {
     keepStyles: ['color', 'background-color', 'text-align'],

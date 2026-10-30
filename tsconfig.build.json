@@ -6,7 +6,10 @@
     "emitDeclarationOnly": true,
     "outDir": "dist/types",
     "rootDir": "src",
-    "types": []
+    "types": [],
+    "allowImportingTsExtensions": false
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }
