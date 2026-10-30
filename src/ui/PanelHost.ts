@@ -27,10 +27,12 @@ export class PanelHost {
     this.close();
     this.editor.syncSelection();
     const container = this.createContainer();
-    const content = factory({ editor: this.editor, t: this.editor.t, close: () => this.close() });
+    const cleanups: Array<() => void> = [];
+    const content = factory({ editor: this.editor, t: this.editor.t, close: () => this.close(), onClose: (fn) => cleanups.push(fn) });
     this.container = container;
     container.open(content, anchor, (hadFocus) => {
       if (this.container === container) this.container = null;
+      cleanups.forEach((fn) => fn());
       if (hadFocus) this.editor.focus();
     });
   }

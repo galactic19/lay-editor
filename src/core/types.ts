@@ -28,6 +28,8 @@ export interface PanelContext {
   editor: Editor;
   t: Translate;
   close(): void;
+  /** Registers cleanup to run when the panel closes for any reason. */
+  onClose(fn: () => void): void;
 }
 export type PanelFactory = (ctx: PanelContext) => HTMLElement;
 

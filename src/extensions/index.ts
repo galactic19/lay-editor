@@ -19,6 +19,7 @@ import { link } from './marks/link';
 import { image } from './media/image';
 import { video } from './media/video';
 import { table } from './table/table';
+import { findReplace } from './tools/findReplace';
 import { slashMenu } from './tools/slashMenu';
 
 /** Built-in extensions in schema order. Later tasks append here. */
@@ -46,5 +47,6 @@ export function getDefaultExtensions(): Extension[] {
     highlight,
     clearFormat,
     slashMenu,
+    findReplace,
   ];
 }

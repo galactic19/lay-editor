@@ -180,3 +180,10 @@
 .le-content .hljs-number, .le-content .hljs-built_in, .le-content .hljs-variable, .le-content .hljs-symbol { color: var(--le-code-number); }
 .le-content .hljs-title, .le-content .hljs-section, .le-content .hljs-name, .le-content .hljs-type { color: var(--le-code-title); }
 .le-content .hljs-attr, .le-content .hljs-attribute, .le-content .hljs-property, .le-content .hljs-params, .le-content .hljs-meta { color: var(--le-code-attr); }
+
+/* Find and replace */
+.le-find-match { background: var(--le-color-mark-match); border-radius: 2px; }
+.le-find-current { background: var(--le-color-mark-current); }
+.le-find-panel { min-width: 280px; }
+.le-find-panel .le-input { flex: 1; width: auto; }
+.le-find-status { min-width: 4em; text-align: right; color: var(--le-color-muted); font-size: 12px; }

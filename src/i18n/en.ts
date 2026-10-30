@@ -3,6 +3,7 @@ import type { LocalePack } from './index';
 export const en = {
   placeholder: 'Start writing…',
   toolbar: {
+    findReplace: 'Find and replace',
     codeBlock: 'Code block',
     codeLanguage: 'Code language',
     linkEdit: 'Edit link',
@@ -54,6 +55,7 @@ export const en = {
     align: { left: 'Align left', center: 'Align center', right: 'Align right', justify: 'Justify' },
   },
   panel: {
+    find: { find: 'Find', replace: 'Replace with', caseSensitive: 'Match case', prev: 'Previous', next: 'Next', replaceOne: 'Replace', replaceAll: 'Replace all' },
     table: { size: '{rows} × {cols} table' },
     video: { url: 'Video URL (YouTube, Vimeo)', insert: 'Embed' },
     image: { file: 'Choose file', url: 'Image URL', alt: 'Describe the image', caption: 'Add a caption', insert: 'Insert', apply: 'Apply' },
@@ -74,6 +76,7 @@ export const en = {
     uploadNotConfigured: 'Image upload is not set up',
   },
   slash: { empty: 'No matching blocks' },
+  status: { matchCount: '{current}/{total}', noMatch: 'No results' },
   a11y: {
     slashMenu: 'Insert block',
     contextToolbar: 'Tools for the selection',

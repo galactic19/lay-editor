@@ -49,6 +49,8 @@ import {
   Unlink,
   SquareCode,
   FileCode,
+  Search,
+  ChevronUp,
   type IconNode,
 } from 'lucide';
 
@@ -104,4 +106,6 @@ export const DEFAULT_ICONS: Record<string, IconNode> = {
   unlink: Unlink,
   'square-code': SquareCode,
   'file-code': FileCode,
+  search: Search,
+  'chevron-up': ChevronUp,
 };

@@ -3,6 +3,7 @@ import type { LocalePack } from './index';
 export const ko = {
   placeholder: '내용을 입력하세요',
   toolbar: {
+    findReplace: '찾기/바꾸기',
     codeBlock: '코드 블록',
     codeLanguage: '코드 언어',
     linkEdit: '링크 편집',
@@ -54,6 +55,7 @@ export const ko = {
     align: { left: '왼쪽 정렬', center: '가운데 정렬', right: '오른쪽 정렬', justify: '양쪽 정렬' },
   },
   panel: {
+    find: { find: '찾기', replace: '바꿀 내용', caseSensitive: '대소문자 구분', prev: '이전', next: '다음', replaceOne: '바꾸기', replaceAll: '모두 바꾸기' },
     table: { size: '{rows} × {cols} 표' },
     video: { url: '동영상 주소 (YouTube, Vimeo)', insert: '삽입' },
     image: { file: '파일 선택', url: '이미지 주소', alt: '이미지 설명 (대체 텍스트)', caption: '캡션 입력', insert: '삽입', apply: '적용' },
@@ -74,6 +76,7 @@ export const ko = {
     uploadNotConfigured: '이미지 업로드가 설정되지 않았습니다',
   },
   slash: { empty: '일치하는 항목이 없습니다' },
+  status: { matchCount: '{current}/{total}', noMatch: '결과 없음' },
   a11y: {
     slashMenu: '블록 삽입 메뉴',
     contextToolbar: '선택한 요소 도구',
