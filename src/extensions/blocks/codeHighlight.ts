@@ -34,8 +34,8 @@ function toRanges(nodes: HastNode[], ranges: HighlightRange[] = [], start = 0): 
 
 /** Default highlighter: lowlight with its common languages, loaded on first use. */
 export async function loadLowlight(): Promise<Highlighter> {
-  const { common, createLowlight } = await import('lowlight');
-  const lowlight = createLowlight(common);
+  const { createCommonLowlight } = await import('./lowlightLoader');
+  const lowlight = createCommonLowlight();
   return (code, language) => {
     if (!language || !lowlight.registered(language)) return [];
     const ranges: HighlightRange[] = [];

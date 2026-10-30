@@ -7,12 +7,32 @@
   "sideEffects": [
     "*.css"
   ],
+  "module": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "unpkg": "./dist/editor.umd.js",
+  "jsdelivr": "./dist/editor.umd.js",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/types/adapters/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./vue": {
+      "types": "./dist/types/adapters/vue.d.ts",
+      "import": "./dist/vue.js"
+    },
+    "./style.css": "./dist/style.css",
+    "./content.css": "./dist/content.css"
+  },
   "files": [
     "dist"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.umd.config.ts && node scripts/build-css.mjs && tsc -p tsconfig.build.json && node scripts/verify-exports.mjs && node scripts/check-size.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
@@ -61,5 +81,8 @@
     "vite": "8.3.5",
     "vitest": "5.0.5",
     "vue": "3.5.44"
+  },
+  "laymaker": {
+    "sizeBudget": 153600
   }
 }
