@@ -28,6 +28,11 @@ export const DEFAULTS = {
   video: { providers: ['youtube', 'vimeo'] },
   table: { maxGrid: 10, mobileMaxGrid: 6, defaultRows: 3, defaultCols: 3 },
   heading: { levels: [1, 2, 3, 4] },
+  codeBlock: {
+    indent: '  ',
+    plainLanguage: 'plaintext',
+    languages: ['plaintext', 'javascript', 'typescript', 'html', 'css', 'json', 'python', 'java', 'sql', 'bash'],
+  },
   paste: {
     keepStyles: ['color', 'background-color', 'text-align'],
     keepDataAttrs: ['data-type', 'data-checked', 'data-indent', 'data-align', 'data-video', 'data-provider', 'data-id'],

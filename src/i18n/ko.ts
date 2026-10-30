@@ -3,6 +3,8 @@ import type { LocalePack } from './index';
 export const ko = {
   placeholder: '내용을 입력하세요',
   toolbar: {
+    codeBlock: '코드 블록',
+    codeLanguage: '코드 언어',
     linkEdit: '링크 편집',
     linkOpen: '링크 열기',
     linkRemove: '링크 제거',
@@ -47,6 +49,7 @@ export const ko = {
     more: '더보기',
   },
   option: {
+    codeLanguage: { plain: '일반 텍스트', named: '{name}' },
     heading: { paragraph: '본문', h1: '제목 1', h2: '제목 2', h3: '제목 3', h4: '제목 4' },
     align: { left: '왼쪽 정렬', center: '가운데 정렬', right: '오른쪽 정렬', justify: '양쪽 정렬' },
   },

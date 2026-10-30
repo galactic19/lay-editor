@@ -3,6 +3,8 @@ import type { LocalePack } from './index';
 export const en = {
   placeholder: 'Start writing…',
   toolbar: {
+    codeBlock: 'Code block',
+    codeLanguage: 'Code language',
     linkEdit: 'Edit link',
     linkOpen: 'Open link',
     linkRemove: 'Remove link',
@@ -47,6 +49,7 @@ export const en = {
     more: 'More',
   },
   option: {
+    codeLanguage: { plain: 'Plain text', named: '{name}' },
     heading: { paragraph: 'Normal text', h1: 'Heading 1', h2: 'Heading 2', h3: 'Heading 3', h4: 'Heading 4' },
     align: { left: 'Align left', center: 'Align center', right: 'Align right', justify: 'Justify' },
   },

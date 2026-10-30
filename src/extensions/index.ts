@@ -6,6 +6,8 @@ import { historyExtension } from './base/history';
 import { placeholder } from './base/placeholder';
 import { align } from './blocks/align';
 import { blockquote } from './blocks/blockquote';
+import { codeBlock } from './blocks/codeBlock';
+import { codeHighlight } from './blocks/codeHighlight';
 import { heading } from './blocks/heading';
 import { horizontalRule } from './blocks/horizontalRule';
 import { indent } from './blocks/indent';
@@ -31,6 +33,8 @@ export function getDefaultExtensions(): Extension[] {
     blockquote,
     lists,
     horizontalRule,
+    codeBlock,
+    codeHighlight,
     image,
     video,
     table,

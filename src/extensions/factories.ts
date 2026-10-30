@@ -153,6 +153,8 @@ export interface BlockExtensionConfig {
   content?: string;
   group?: string;
   attrs?: NodeSpec['attrs'];
+  /** Extra fields for the main `tag` parse rule (getAttrs, preserveWhitespace…). */
+  tagRule?: Omit<TagParseRule, 'tag'>;
   parse?: TagParseRule[];
   toDOM?: NodeSpec['toDOM'];
   defining?: boolean;
@@ -173,7 +175,7 @@ export function blockExtension(cfg: BlockExtensionConfig): Extension {
   const spec: NodeSpec = {
     group: cfg.group ?? 'block',
     content: cfg.content ?? (isTextblock ? 'inline*' : 'block+'),
-    parseDOM: [{ tag }, ...(cfg.parse ?? [])],
+    parseDOM: [{ tag, ...cfg.tagRule }, ...(cfg.parse ?? [])],
     toDOM: cfg.toDOM ?? (() => [tag, 0]),
   };
   if (cfg.attrs) spec.attrs = cfg.attrs;

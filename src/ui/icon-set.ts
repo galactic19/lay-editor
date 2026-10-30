@@ -47,6 +47,8 @@ import {
   ExternalLink,
   Pencil,
   Unlink,
+  SquareCode,
+  FileCode,
   type IconNode,
 } from 'lucide';
 
@@ -100,4 +102,6 @@ export const DEFAULT_ICONS: Record<string, IconNode> = {
   'external-link': ExternalLink,
   pencil: Pencil,
   unlink: Unlink,
+  'square-code': SquareCode,
+  'file-code': FileCode,
 };

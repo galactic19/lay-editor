@@ -17,6 +17,12 @@
   --le-color-mark-match: rgba(255, 196, 0, 0.45);
   --le-color-mark-current: rgba(255, 140, 0, 0.75);
   --le-shadow: 0 8px 24px rgba(31, 35, 40, 0.14), 0 2px 6px rgba(31, 35, 40, 0.08);
+  --le-code-keyword: #cf222e;
+  --le-code-string: #0a3069;
+  --le-code-comment: #59636e;
+  --le-code-number: #0550ae;
+  --le-code-title: #8250df;
+  --le-code-attr: #953800;
 
   --le-font: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   --le-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'D2Coding', monospace;
@@ -58,4 +64,10 @@
   --le-color-code-bg: #1f2630;
   --le-color-quote: #3d444d;
   --le-shadow: 0 8px 24px rgba(1, 4, 9, 0.6), 0 2px 6px rgba(1, 4, 9, 0.4);
+  --le-code-keyword: #ff7b72;
+  --le-code-string: #a5d6ff;
+  --le-code-comment: #9198a1;
+  --le-code-number: #79c0ff;
+  --le-code-title: #d2a8ff;
+  --le-code-attr: #ffa657;
 }

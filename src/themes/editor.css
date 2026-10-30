@@ -172,3 +172,11 @@
 .le-slash-item[aria-selected='true'], .le-slash-item:hover { background: var(--le-color-hover); }
 .le-slash-empty { padding: var(--le-space-2); color: var(--le-color-muted); }
 .le-editor[data-mode='mobile'] ~ .le-slash-menu .le-slash-item { min-height: var(--le-touch-target); }
+
+/* Syntax highlighting (lowlight / highlight.js class names) */
+.le-content .hljs-keyword, .le-content .hljs-selector-tag, .le-content .hljs-literal, .le-content .hljs-doctag { color: var(--le-code-keyword); }
+.le-content .hljs-string, .le-content .hljs-regexp, .le-content .hljs-meta .hljs-string { color: var(--le-code-string); }
+.le-content .hljs-comment, .le-content .hljs-quote { color: var(--le-code-comment); font-style: italic; }
+.le-content .hljs-number, .le-content .hljs-built_in, .le-content .hljs-variable, .le-content .hljs-symbol { color: var(--le-code-number); }
+.le-content .hljs-title, .le-content .hljs-section, .le-content .hljs-name, .le-content .hljs-type { color: var(--le-code-title); }
+.le-content .hljs-attr, .le-content .hljs-attribute, .le-content .hljs-property, .le-content .hljs-params, .le-content .hljs-meta { color: var(--le-code-attr); }
