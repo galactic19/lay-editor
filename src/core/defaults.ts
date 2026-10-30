@@ -13,6 +13,7 @@ export const DEFAULTS = {
   touchTarget: 44,
   toast: { duration: 4000 },
   status: { debounce: 200 },
+  autosave: { prefix: 'le-draft:', probeKey: 'le-draft-probe', debounce: 1000 },
   slash: { trigger: '/', maxItems: 10 },
   url: {
     protocols: ['http:', 'https:', 'mailto:', 'tel:'],

@@ -19,6 +19,7 @@ import { link } from './marks/link';
 import { image } from './media/image';
 import { video } from './media/video';
 import { table } from './table/table';
+import { autosave } from './tools/autosave';
 import { findReplace } from './tools/findReplace';
 import { fullscreen } from './tools/fullscreen';
 import { sourceView } from './tools/sourceView';
@@ -54,5 +55,6 @@ export function getDefaultExtensions(): Extension[] {
     wordCount,
     fullscreen,
     sourceView,
+    autosave,
   ];
 }

@@ -197,3 +197,8 @@
 html.le-scroll-locked { overflow: hidden; }
 .le-source { display: block; width: 100%; min-height: var(--le-min-height); padding: var(--le-content-padding); border: none; resize: vertical; background: var(--le-color-code-bg); color: var(--le-color-fg); font-family: var(--le-font-mono); font-size: 13px; line-height: 1.6; outline: none; }
 .le-editor.le-fullscreen .le-source { flex: 1; resize: none; }
+
+/* Autosave restore bar */
+.le-restore-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--le-space-2); padding: var(--le-space-2) var(--le-space-3); border-top: 1px solid var(--le-color-border); background: var(--le-color-active); }
+.le-restore-bar[hidden] { display: none; }
+.le-restore-bar span { flex: 1; min-width: 12em; }

@@ -168,6 +168,11 @@ export class Editor {
     this.view.dispatch(this.state.tr.setMeta('localeChange', true));
   }
 
+  /** Deletes the autosaved draft; call after the content was saved for real. */
+  clearDraft(): void {
+    if (this.commands.has('clearDraft')) this.exec('clearDraft');
+  }
+
   on<K extends keyof EditorEvents>(event: K, fn: (...args: EditorEvents[K]) => void): () => void {
     return this.events.on(event, fn);
   }
