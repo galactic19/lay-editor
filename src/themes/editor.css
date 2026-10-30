@@ -20,7 +20,8 @@
 .le-placeholder::before { content: attr(data-placeholder); color: var(--le-color-muted); pointer-events: none; float: left; height: 0; }
 
 /* Task list editing view */
-.le-content ul[data-type='taskList'] li::before { content: none; }
+.le-content .le-prose ul[data-type='taskList'] li::before,
+.le-content .le-prose ul[data-type='taskList'] li[data-checked]::before { content: none; }
 .le-task-check { flex: none; display: inline-flex; align-items: center; height: calc(var(--le-line-height) * 1em); user-select: none; }
 .le-task-check input { width: 1.05em; height: 1.05em; margin: 0; accent-color: var(--le-color-primary); cursor: pointer; }
 .le-task-content { flex: 1; min-width: 0; }

@@ -31,7 +31,14 @@ export const en = {
   },
   panel: {
     color: { reset: 'Default' },
-    link: { url: 'Link URL', newTab: 'Open in new tab', apply: 'Apply', remove: 'Remove link' },
+    link: {
+      url: 'Link URL',
+      newTab: 'Open in new tab',
+      apply: 'Apply',
+      remove: 'Remove link',
+      placeholder: 'https://',
+      invalid: 'Enter a valid link address',
+    },
   },
   a11y: {
     taskCheckbox: 'Mark task done',

@@ -3,6 +3,7 @@ import { InputRule } from 'prosemirror-inputrules';
 import type { Command } from 'prosemirror-state';
 import { getMarkRange, isMarkActive } from '../../core/state-utils';
 import { safeUrl } from '../../io/sanitize';
+import { linkPanel } from '../../ui/panels/linkPanel';
 import { defineExtension } from '../factories';
 
 export interface LinkInput {
@@ -96,6 +97,7 @@ export const link = defineExtension({
       shortcut: 'Mod-k',
       contexts: ['text', 'table'],
       isActive: (editor) => editor.isActive('link'),
+      panel: linkPanel,
     },
   ],
 });

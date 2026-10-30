@@ -31,7 +31,14 @@ export const ko = {
   },
   panel: {
     color: { reset: '기본색' },
-    link: { url: '링크 주소', newTab: '새 탭에서 열기', apply: '적용', remove: '링크 제거' },
+    link: {
+      url: '링크 주소',
+      newTab: '새 탭에서 열기',
+      apply: '적용',
+      remove: '링크 제거',
+      placeholder: 'https://',
+      invalid: '올바른 링크 주소를 입력하세요',
+    },
   },
   a11y: {
     taskCheckbox: '할 일 완료 표시',

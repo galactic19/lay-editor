@@ -25,6 +25,7 @@ export class PanelHost {
 
   openPanel(factory: PanelFactory, anchor: HTMLElement | null = null): void {
     this.close();
+    this.editor.syncSelection();
     const container = this.createContainer();
     const content = factory({ editor: this.editor, t: this.editor.t, close: () => this.close() });
     this.container = container;

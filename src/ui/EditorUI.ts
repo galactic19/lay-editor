@@ -1,5 +1,108 @@
-/** Forward declaration; implemented in Task 10. */
-export declare class EditorUI {
-  openPanelFor(itemId: string, anchor?: HTMLElement | null): void;
-  destroy(): void;
+import type { Editor } from '../core/Editor';
+import { DEFAULTS } from '../core/defaults';
+import { EditorError } from '../core/errors';
+import { rafBatch } from '../core/timing';
+import type { UIContext, UIItem, UISlot } from '../core/types';
+import { c } from './classes';
+import { DeviceWatcher } from './device';
+import { h } from './dom';
+import { listPanel } from './panels/listPanel';
+import { PanelHost } from './PanelHost';
+import { PRESETS, SEPARATOR } from './presets';
+import { ThemeController } from './theme';
+import { Toaster } from './Toast';
+import { Toolbar, type ToolbarEntry } from './Toolbar';
+import type { UIComponent } from './UIComponent';
+
+/** Drops leading, trailing and repeated separators. */
+function tidySeparators(entries: ToolbarEntry[]): ToolbarEntry[] {
+  return entries.filter((entry, i, all) => entry !== SEPARATOR || (i > 0 && i < all.length - 1 && all[i - 1] !== SEPARATOR));
+}
+
+/** Owns every piece of editor chrome and keeps it in sync with the editor state. */
+export class EditorUI {
+  readonly registry: Map<string, UIItem>;
+  readonly panels: PanelHost;
+  readonly toaster: Toaster;
+  readonly device: DeviceWatcher;
+  readonly theme: ThemeController;
+  private readonly slots: Record<Exclude<UISlot, 'overlay'>, HTMLElement>;
+  private readonly components: UIComponent[] = [];
+  private readonly toolbar: Toolbar;
+  private readonly batch = rafBatch(() => this.updateAll());
+  private readonly disposers: Array<() => void> = [];
+
+  constructor(private readonly editor: Editor) {
+    this.registry = editor.manager.createUIRegistry(editor);
+    this.slots = { top: h('div', { class: c('top') }), status: h('div', { class: c('status') }) };
+    editor.root.prepend(this.slots.top);
+    editor.root.append(this.slots.status);
+    this.device = new DeviceWatcher(editor.root, DEFAULTS.mobileBreakpoint);
+    editor.root.dataset.mode = this.device.mode;
+    this.theme = new ThemeController(() => [editor.root], editor.config.theme);
+    this.panels = new PanelHost(editor, () => this.device.mode);
+    this.toaster = new Toaster(editor.root);
+
+    this.toolbar = new Toolbar(editor, this, this.toolbarEntries());
+    this.slots.top.appendChild(this.toolbar.el);
+    this.components.push(this.toolbar);
+    for (const spec of editor.manager.createComponents(editor)) {
+      const component = spec.create(editor, this);
+      (spec.slot === 'overlay' ? document.body : this.slots[spec.slot]).appendChild(component.el);
+      this.components.push(component);
+    }
+    this.disposers.push(editor.on('update', () => this.batch.schedule()));
+    this.toolbar.layout();
+    this.updateAll();
+  }
+
+  toolbarEntries(): ToolbarEntry[] {
+    const { toolbar, preset } = this.editor.config;
+    const strict = toolbar !== null;
+    const entries: ToolbarEntry[] = [];
+    for (const id of toolbar ?? PRESETS[preset]) {
+      const item = id === SEPARATOR ? SEPARATOR : this.registry.get(id);
+      if (item) entries.push(item);
+      else if (strict) console.warn(new EditorError('UNKNOWN_UI_ITEM', `"${id}"; available: ${[...this.registry.keys()].join(', ')}`).message);
+    }
+    return tidySeparators(entries);
+  }
+
+  openPanelFor(itemId: string, anchor?: HTMLElement | null): void {
+    const item = this.registry.get(itemId);
+    if (!item) return;
+    const at = anchor ?? this.toolbar.anchorFor(itemId);
+    if (item.panel) this.panels.openPanel(item.panel, at);
+    else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at);
+  }
+
+  getContext(): UIContext {
+    return 'text';
+  }
+
+  /** Whether an item is temporarily unavailable regardless of state (e.g. while editing source). */
+  isLocked(_item: UIItem): boolean {
+    return false;
+  }
+
+  /** Runs pending UI updates now. */
+  flush(): void {
+    this.batch.cancel();
+    this.updateAll();
+  }
+
+  destroy(): void {
+    this.batch.cancel();
+    this.disposers.splice(0).forEach((dispose) => dispose());
+    this.components.splice(0).forEach((component) => component.destroy());
+    this.panels.destroy();
+    this.toaster.destroy();
+    this.device.destroy();
+    this.theme.destroy();
+    Object.values(this.slots).forEach((slot) => slot.remove());
+  }
+
+  private updateAll(): void {
+    this.components.forEach((component) => component.update());
+  }
 }

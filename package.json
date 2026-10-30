@@ -4,8 +4,12 @@
   "description": "Framework-agnostic, mobile-friendly rich text editor built on ProseMirror",
   "license": "MIT",
   "type": "module",
-  "sideEffects": ["*.css"],
-  "files": ["dist"],
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -33,6 +37,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
+    "@types/node": "22.19.1",
     "@types/react": "19.3.0",
     "eslint": "10.14.0",
     "jsdom": "30.1.3",

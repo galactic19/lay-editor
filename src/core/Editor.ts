@@ -5,13 +5,13 @@ import { createTranslator, type Translate } from '../i18n';
 import { getDefaultExtensions } from '../extensions';
 import { parseHTML, serializeHTML, isDocEmpty } from '../io/html';
 import { c } from '../ui/classes';
-import type { EditorUI } from '../ui/EditorUI';
+import { EditorUI } from '../ui/EditorUI';
 import { EditorError } from './errors';
 import { EventEmitter } from './EventEmitter';
 import { ExtensionManager } from './ExtensionManager';
 import { isMarkActive, isNodeActive } from './state-utils';
 import { debounce, type Debounced } from './timing';
-import type { CommandFactory, DeviceMode, EditorConfig } from './types';
+import type { CommandFactory, DeviceMode, EditorConfig, LocaleInput, ThemeMode } from './types';
 
 export interface EditorEvents {
   update: [tr: Transaction];
@@ -61,7 +61,7 @@ export class Editor {
     this.root = document.createElement('div');
     this.root.className = c('editor');
     this.content = document.createElement('div');
-    this.content.className = c('content', 'prose');
+    this.content.className = c('content');
     this.root.appendChild(this.content);
     this.mount();
 
@@ -70,6 +70,7 @@ export class Editor {
       state: EditorState.create({ doc: parseHTML(this.schema, config.content), plugins: this.manager.createPlugins(this, this.commands) }),
       nodeViews: this.manager.createNodeViews(this),
       editable: () => this.editable,
+      attributes: { class: c('prose') },
       dispatchTransaction: (tr) => this.dispatch(tr),
       handleDOMEvents: {
         focus: () => (this.events.emit('focus'), false),
@@ -81,6 +82,7 @@ export class Editor {
       },
     });
     this.manager.runCreate(this);
+    this.ui = new EditorUI(this);
     this.safeCall('onReady', () => config.onReady?.(this));
   }
 
@@ -129,6 +131,15 @@ export class Editor {
     return node ? isNodeActive(this.state, node, attrs) : false;
   }
 
+  /**
+   * Applies a DOM selection change ProseMirror has not read yet. Browsers report selection
+   * changes asynchronously, so a fast shortcut (Shift+Home, then Mod-k) can otherwise act on
+   * the old selection once focus moves into a panel.
+   */
+  syncSelection(): void {
+    if (!this.destroyed) (this.view as unknown as { domObserver?: { flush(): void } }).domObserver?.flush();
+  }
+
   focus(): void {
     if (!this.destroyed) this.view.focus();
   }
@@ -141,6 +152,20 @@ export class Editor {
     this.editable = editable;
     this.view.setProps({ editable: () => this.editable });
     this.root.classList.toggle(c('readonly'), !editable);
+    this.ui?.flush();
+  }
+
+  setTheme(theme: ThemeMode): void {
+    this.ui?.theme.set(theme);
+  }
+
+  /** Swaps the language pack and rebuilds the UI so every label is re-translated. */
+  setLocale(locale: LocaleInput): void {
+    if (this.destroyed) return;
+    this.t = createTranslator(locale);
+    this.ui?.destroy();
+    this.ui = new EditorUI(this);
+    this.view.dispatch(this.state.tr.setMeta('localeChange', true));
   }
 
   on<K extends keyof EditorEvents>(event: K, fn: (...args: EditorEvents[K]) => void): () => void {

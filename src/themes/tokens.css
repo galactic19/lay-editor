@@ -1,5 +1,6 @@
-/* Design tokens. Override any of these on .le-editor (and .le-portal) to theme the editor. */
-:where(.le-editor, .le-portal, .le-prose) {
+/* Design tokens. Override any of these on .le-editor (and .le-portal) to theme the editor.
+   A standalone .le-prose (read-only page) gets them too; inside the editor it inherits them. */
+:where(.le-editor, .le-portal, .le-prose:not(.le-editor .le-prose)) {
   --le-color-bg: #ffffff;
   --le-color-fg: #1f2328;
   --le-color-muted: #59636e;
@@ -42,7 +43,7 @@
   --le-transition: 120ms ease;
 }
 
-:where(.le-editor, .le-portal, .le-prose)[data-theme='dark'] {
+:where(.le-editor, .le-portal, .le-prose:not(.le-editor .le-prose))[data-theme='dark'] {
   --le-color-bg: #0d1117;
   --le-color-fg: #e6edf3;
   --le-color-muted: #9198a1;

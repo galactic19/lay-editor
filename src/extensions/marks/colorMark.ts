@@ -2,6 +2,7 @@ import type { Mark } from 'prosemirror-model';
 import { DEFAULTS } from '../../core/defaults';
 import type { Extension } from '../../core/types';
 import { safeColor } from '../../io/sanitize';
+import { colorPanel } from '../../ui/panels/colorPanel';
 import { applyMark, commandName, defineExtension, removeMark } from '../factories';
 
 export type ColorOptions = { text: readonly string[]; highlight: readonly string[] };
@@ -50,8 +51,16 @@ export function colorMarkExtension(cfg: ColorMarkConfig): Extension<ColorOptions
       },
       [commandName('unset', name)]: () => removeMark(schema.marks[name]!),
     }),
-    ui: () => [
-      { id: name, kind: 'panel', icon, label: `toolbar.${name}`, contexts: ['text', 'table'], isActive: (editor) => editor.isActive(name) },
+    ui: ({ options }) => [
+      {
+        id: name,
+        kind: 'panel',
+        icon,
+        label: `toolbar.${name}`,
+        contexts: ['text', 'table'],
+        isActive: (editor) => editor.isActive(name),
+        panel: colorPanel(options[cfg.paletteKey], commandName('set', name), commandName('unset', name), name),
+      },
     ],
   });
 }
