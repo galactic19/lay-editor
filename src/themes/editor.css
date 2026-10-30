@@ -142,3 +142,21 @@
 /* Video embeds: clicks select the node instead of reaching the iframe. */
 .le-content .le-video iframe { pointer-events: none; }
 .le-content .le-video.ProseMirror-selectednode { outline: 2px solid var(--le-color-primary); outline-offset: 2px; border-radius: var(--le-radius-sm); }
+
+/* Tables (prosemirror-tables) */
+.le-content .tableWrapper { overflow-x: auto; margin: 0 0 1em; }
+.le-content .tableWrapper table { margin: 0; display: table; }
+.le-content table { table-layout: fixed; }
+.le-content td, .le-content th { position: relative; }
+.le-content .selectedCell::after { content: ''; position: absolute; inset: 0; background: var(--le-color-selection); pointer-events: none; }
+.le-content .column-resize-handle { position: absolute; top: 0; bottom: -2px; right: -2px; width: 4px; background: var(--le-color-primary); pointer-events: none; }
+.le-content.resize-cursor, .le-content .resize-cursor { cursor: col-resize; }
+.le-editor[data-mode='mobile'] .column-resize-handle { display: none; }
+
+/* Table size picker */
+.le-grid { display: grid; gap: 2px; }
+.le-grid-cell { width: var(--le-grid-cell); height: var(--le-grid-cell); padding: 0; border: 1px solid var(--le-color-border); border-radius: 2px; background: var(--le-color-bg); cursor: pointer; }
+.le-grid-cell.le-grid-on { background: var(--le-color-active); border-color: var(--le-color-primary); }
+.le-grid-cell:focus-visible { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
+.le-grid-label { text-align: center; color: var(--le-color-muted); font-size: 12px; }
+.le-editor[data-mode='mobile'] ~ .le-portal .le-grid-cell, .le-portal[data-mode='mobile'] .le-grid-cell { width: var(--le-touch-target); height: var(--le-touch-target); }

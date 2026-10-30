@@ -25,6 +25,7 @@ export const DEFAULTS = {
     aligns: ['left', 'center', 'right'],
   },
   video: { providers: ['youtube', 'vimeo'] },
+  table: { maxGrid: 10, mobileMaxGrid: 6, defaultRows: 3, defaultCols: 3 },
   heading: { levels: [1, 2, 3, 4] },
   paste: {
     keepStyles: ['color', 'background-color', 'text-align'],

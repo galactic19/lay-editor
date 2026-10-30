@@ -3,6 +3,16 @@ import type { LocalePack } from './index';
 export const en = {
   placeholder: 'Start writing…',
   toolbar: {
+    table: 'Table',
+    tableAddRowAfter: 'Add row below',
+    tableAddColumnAfter: 'Add column right',
+    tableDeleteRow: 'Delete row',
+    tableDeleteColumn: 'Delete column',
+    tableMerge: 'Merge cells',
+    tableSplit: 'Split cell',
+    tableHeaderRow: 'Header row',
+    tableCellColor: 'Cell color',
+    tableDelete: 'Delete table',
     video: 'Video',
     image: 'Image',
     imageWidth: 'Width {n}%',
@@ -38,6 +48,7 @@ export const en = {
     align: { left: 'Align left', center: 'Align center', right: 'Align right', justify: 'Justify' },
   },
   panel: {
+    table: { size: '{rows} × {cols} table' },
     video: { url: 'Video URL (YouTube, Vimeo)', insert: 'Embed' },
     image: { file: 'Choose file', url: 'Image URL', alt: 'Describe the image', caption: 'Add a caption', insert: 'Insert', apply: 'Apply' },
     color: { reset: 'Default' },
@@ -57,6 +68,7 @@ export const en = {
     uploadNotConfigured: 'Image upload is not set up',
   },
   a11y: {
+    tableGrid: 'Choose table size',
     uploading: 'Uploading',
     resizeImage: 'Resize image',
     taskCheckbox: 'Mark task done',

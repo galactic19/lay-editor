@@ -3,6 +3,16 @@ import type { LocalePack } from './index';
 export const ko = {
   placeholder: '내용을 입력하세요',
   toolbar: {
+    table: '표',
+    tableAddRowAfter: '아래에 행 추가',
+    tableAddColumnAfter: '오른쪽에 열 추가',
+    tableDeleteRow: '행 삭제',
+    tableDeleteColumn: '열 삭제',
+    tableMerge: '셀 병합',
+    tableSplit: '셀 분할',
+    tableHeaderRow: '머리글 행',
+    tableCellColor: '셀 배경색',
+    tableDelete: '표 삭제',
     video: '동영상',
     image: '이미지',
     imageWidth: '너비 {n}%',
@@ -38,6 +48,7 @@ export const ko = {
     align: { left: '왼쪽 정렬', center: '가운데 정렬', right: '오른쪽 정렬', justify: '양쪽 정렬' },
   },
   panel: {
+    table: { size: '{rows} × {cols} 표' },
     video: { url: '동영상 주소 (YouTube, Vimeo)', insert: '삽입' },
     image: { file: '파일 선택', url: '이미지 주소', alt: '이미지 설명 (대체 텍스트)', caption: '캡션 입력', insert: '삽입', apply: '적용' },
     color: { reset: '기본색' },
@@ -57,6 +68,7 @@ export const ko = {
     uploadNotConfigured: '이미지 업로드가 설정되지 않았습니다',
   },
   a11y: {
+    tableGrid: '표 크기 선택',
     uploading: '업로드 중',
     resizeImage: '이미지 크기 조절',
     taskCheckbox: '할 일 완료 표시',
