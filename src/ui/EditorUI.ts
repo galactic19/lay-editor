@@ -4,6 +4,7 @@ import { EditorError } from '../core/errors';
 import { rafBatch } from '../core/timing';
 import type { UIContext, UIItem, UISlot } from '../core/types';
 import { c } from './classes';
+import { BubbleMenu } from './BubbleMenu';
 import { resolveContext } from './context';
 import { ContextToolbar } from './ContextToolbar';
 import { DeviceWatcher } from './device';
@@ -47,7 +48,7 @@ export class EditorUI {
 
     this.toolbar = new Toolbar(editor, this, this.toolbarEntries());
     this.slots.top.appendChild(this.toolbar.el);
-    this.components.push(this.toolbar, new ContextToolbar(editor, this));
+    this.components.push(this.toolbar, new ContextToolbar(editor, this), new BubbleMenu(editor, this));
     for (const spec of editor.manager.createComponents(editor)) {
       const component = spec.create(editor, this);
       (spec.slot === 'overlay' ? document.body : this.slots[spec.slot]).appendChild(component.el);

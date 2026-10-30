@@ -35,7 +35,9 @@ export class ContextToolbar extends UIComponent<HTMLDivElement> {
 
   override update(): void {
     const context = this.ui.getContext();
-    const items = context === 'text' ? [] : contextOnlyItems(this.ui.registry, context);
+    // A range selection over a link belongs to the formatting bubble.
+    const yields = context === 'link' && !this.editor.state.selection.empty;
+    const items = context === 'text' || yields ? [] : contextOnlyItems(this.ui.registry, context);
     const focused = this.editor.view.hasFocus() || this.el.contains(document.activeElement);
     const anchor = items.length && focused && this.ui.device.mode === 'desktop' ? contextAnchor(this.editor.view, context) : null;
     if (!anchor) {

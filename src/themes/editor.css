@@ -202,3 +202,7 @@ html.le-scroll-locked { overflow: hidden; }
 .le-restore-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--le-space-2); padding: var(--le-space-2) var(--le-space-3); border-top: 1px solid var(--le-color-border); background: var(--le-color-active); }
 .le-restore-bar[hidden] { display: none; }
 .le-restore-bar span { flex: 1; min-width: 12em; }
+
+/* Selection bubble */
+.le-bubble { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); display: flex; gap: 2px; padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
+.le-bubble[hidden] { display: none; }

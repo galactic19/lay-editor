@@ -81,6 +81,7 @@ export const en = {
   status: { count: '{chars} characters · {charsNoSpace} without spaces · {words} words', matchCount: '{current}/{total}', noMatch: 'No results' },
   autosave: { found: 'You have unsaved work from before. Restore it?', restore: 'Restore', discard: 'Discard' },
   a11y: {
+    bubbleMenu: 'Text formatting',
     sourceEditor: 'Edit HTML source',
     slashMenu: 'Insert block',
     contextToolbar: 'Tools for the selection',
