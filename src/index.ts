@@ -20,3 +20,8 @@ export type {
 export { sanitizeHTML } from './io/sanitize';
 export { registerVideoProvider } from './extensions/media/video-providers';
 export type { VideoProvider } from './extensions/media/video-providers';
+export { blockExtension, defineExtension, markExtension } from './extensions/factories';
+export { registerIcon } from './ui/icons';
+export { PRESETS } from './ui/presets';
+export type { PresetName } from './ui/presets';
+export type { ComponentSpec, PanelContext, PanelFactory, PasteCleaner } from './core/types';
