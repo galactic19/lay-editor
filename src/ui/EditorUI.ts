@@ -56,8 +56,8 @@ export class EditorUI {
     editor.root.prepend(this.slots.top);
     editor.root.append(this.slots.status);
     this.device = new DeviceWatcher(editor.root, DEFAULTS.mobileBreakpoint);
-    this.theme = new ThemeController(() => [editor.root], editor.config.theme);
     this.panels = new PanelHost(editor, () => this.device.mode);
+    this.theme = new ThemeController(() => [editor.root], editor.theme);
     this.toaster = new Toaster(editor.root, () => this.mobileBar?.coveredHeight ?? this.viewport.bottomInset);
     this.tooltip = new Tooltip(editor.root);
 
@@ -70,11 +70,7 @@ export class EditorUI {
     this.disposers.push(
       editor.on('update', () => this.batch.schedule()),
       this.device.onChange((mode) => this.switchMode(mode)),
-      // Portals copy the root theme only when they update, so repaint them now rather than on the next transaction.
-      this.theme.onChange(() => {
-        this.panels.syncTheme();
-        this.flush();
-      }),
+      this.theme.onChange(() => this.syncTheme()),
       this.viewport.onChange(() => this.toaster.place()),
     );
     this.updateAll();
@@ -181,6 +177,12 @@ export class EditorUI {
       else if (strict) console.warn(new EditorError('UNKNOWN_UI_ITEM', `"${id}"; available: ${[...this.registry.keys()].join(', ')}`).message);
     }
     return tidySeparators(entries);
+  }
+
+  /** Portals copy the root's theme only when they update, so repaint them now rather than on the next transaction. */
+  private syncTheme(): void {
+    this.panels.syncTheme();
+    this.flush();
   }
 
   private updateAll(): void {

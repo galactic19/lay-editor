@@ -1,6 +1,6 @@
 import { createEditor } from '../core/createEditor';
 import type { Editor } from '../core/Editor';
-import type { CoreEditorOptions } from '../core/types';
+import type { CoreEditorOptions, LocaleInput } from '../core/types';
 
 export type AdapterOptions = Omit<CoreEditorOptions, 'element' | 'content' | 'onChange'> & { [extensionOptions: string]: unknown };
 
@@ -10,6 +10,12 @@ export interface SyncedEditor {
   applyValue(value: string | null | undefined): void;
   destroy(): void;
 }
+
+/**
+ * Compares a locale prop by value: an inline object (a new one each render) must not
+ * rebuild the UI. Language packs are plain strings, so JSON is an exact key.
+ */
+export const localeKey = (locale: LocaleInput | undefined): string | undefined => JSON.stringify(locale);
 
 /** Shared by the framework wrappers: two-way value sync without echo loops. */
 export function createSyncedEditor(

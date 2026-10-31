@@ -48,10 +48,13 @@ export class Editor {
   /** Set when destroy() starts, so a 'destroy' listener that calls destroy() again is ignored. */
   private destroying = false;
   private destroyed = false;
+  /** Kept here, not only in the UI, so a rebuild (setLocale) keeps the theme set at runtime. */
+  private themeMode: ThemeMode;
 
   constructor(config: EditorConfig) {
     this.config = config;
     this.t = createTranslator(config.locale);
+    this.themeMode = config.theme;
     this.events = new EventEmitter<EditorEvents>({
       onListenerError: (cause, event) => {
         if (event === 'error') console.error(cause);
@@ -107,6 +110,11 @@ export class Editor {
 
   get isEditable(): boolean {
     return this.view.editable;
+  }
+
+  /** The current theme mode: the `theme` option until setTheme() changes it. */
+  get theme(): ThemeMode {
+    return this.themeMode;
   }
 
   getHTML(): string {
@@ -178,7 +186,9 @@ export class Editor {
   }
 
   setTheme(theme: ThemeMode): void {
-    if (!this.destroyed) this.ui?.theme.set(theme);
+    if (this.destroyed) return;
+    this.themeMode = theme;
+    this.ui?.theme.set(theme);
   }
 
   /** Swaps the language pack and rebuilds the UI so every label is re-translated. */

@@ -1,7 +1,7 @@
 import { defineComponent, h, onBeforeUnmount, onMounted, ref, shallowRef, watch, type PropType } from 'vue';
 import type { Editor } from '../core/Editor';
 import type { LocaleInput, ThemeMode } from '../core/types';
-import { createSyncedEditor, type AdapterOptions, type SyncedEditor } from './shared';
+import { createSyncedEditor, localeKey, type AdapterOptions, type SyncedEditor } from './shared';
 
 /** `v-model` HTML editor. Options are read on mount; `theme` and `locale` follow later changes. */
 export const LayEditor = defineComponent({
@@ -16,7 +16,7 @@ export const LayEditor = defineComponent({
     'update:modelValue': (html: string) => typeof html === 'string',
     ready: (editor: Editor) => Boolean(editor),
   },
-  setup(props, { emit, expose }) {
+  setup(props, { emit }) {
     const host = ref<HTMLDivElement | null>(null);
     const synced = shallowRef<SyncedEditor | null>(null);
 
@@ -36,15 +36,19 @@ export const LayEditor = defineComponent({
       (theme) => theme && synced.value?.editor.setTheme(theme),
     );
     watch(
-      () => props.locale,
-      (locale) => locale && synced.value?.editor.setLocale(locale),
+      () => localeKey(props.locale),
+      () => props.locale && synced.value?.editor.setLocale(props.locale),
     );
     onBeforeUnmount(() => {
       synced.value?.destroy();
       synced.value = null;
     });
 
-    expose({ getEditor: (): Editor | null => synced.value?.editor ?? null });
-    return () => h('div', { ref: host });
+    // Returned bindings (not `expose()`) make up the instance type, so a template ref typed
+    // from LayEditor knows getEditor(). `host` is the root element, i.e. what `$el` already is.
+    return { host, getEditor: (): Editor | null => synced.value?.editor ?? null };
+  },
+  render() {
+    return h('div', { ref: 'host' });
   },
 });

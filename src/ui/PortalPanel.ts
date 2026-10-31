@@ -45,6 +45,11 @@ export abstract class PortalPanel implements PanelContainer {
     focusFirst(parts.dialog);
   }
 
+  /** Copies the editor's current theme onto the portal elements. */
+  syncTheme(): void {
+    this.elements.forEach((el) => (el.dataset.theme = this.root.dataset.theme));
+  }
+
   close(): void {
     const dialog = this.dialog;
     if (!dialog) return;
@@ -56,10 +61,6 @@ export abstract class PortalPanel implements PanelContainer {
     const onClose = this.onClose;
     this.onClose = null;
     onClose?.(hadFocus);
-  }
-
-  syncTheme(): void {
-    this.elements.forEach((el) => (el.dataset.theme = this.root.dataset.theme));
   }
 
   /** A UI rebuild (setLocale) closes like Escape, so panel cleanups such as clearing find highlights still run. */

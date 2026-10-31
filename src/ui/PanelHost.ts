@@ -8,9 +8,9 @@ export interface PanelContainer {
   /** `label` names the dialog; `onClose(hadFocus)` reports whether focus was inside the panel when it closed. */
   open(content: HTMLElement, anchor: Anchor | null, label: string | null, onClose: (hadFocus: boolean) => void): void;
   close(): void;
-  /** Copies the editor theme onto the open panel again. */
-  syncTheme(): void;
   readonly isOpen: boolean;
+  /** Re-reads the editor's theme after it changed while open. */
+  syncTheme(): void;
   destroy(): void;
 }
 
