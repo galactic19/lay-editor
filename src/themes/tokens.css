@@ -43,6 +43,9 @@
   --le-content-padding: 16px 20px;
   --le-min-height: 240px;
   --le-indent-step: 2em;
+  --le-list-paragraph-spacing: 0.15em;
+  --le-task-check-size: 1.05em;
+  --le-task-gap: 0.5em;
   --le-grid-cell: 18px;
   --le-sheet-max-height: 70vh;
   --le-font-size-small: 12px;

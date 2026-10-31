@@ -24,9 +24,13 @@
 /* Task list editing view */
 .le-content .le-prose ul[data-type='taskList'] li::before,
 .le-content .le-prose ul[data-type='taskList'] li[data-checked]::before { content: none; }
-.le-task-check { flex: none; display: inline-flex; align-items: center; height: calc(var(--le-line-height) * 1em); user-select: none; }
-.le-task-check input { width: 1.05em; height: 1.05em; margin: 0; accent-color: var(--le-color-primary); cursor: pointer; }
+.le-content .le-prose ul[data-type='taskList'] li { display: flex; gap: var(--le-task-gap); align-items: flex-start; padding-left: 0; }
+/* The label is as wide as the view page's box glyph, so text starts at the same place in both. */
+.le-task-check { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--le-task-check-size); height: calc(var(--le-line-height) * 1em); user-select: none; }
+.le-task-check input { width: var(--le-task-check-size); height: var(--le-task-check-size); margin: 0; accent-color: var(--le-color-primary); cursor: pointer; }
+/* The content wrapper hides the paragraphs from content.css's li > p rule; space them the same. */
 .le-task-content { flex: 1; min-width: 0; }
+.le-prose .le-task-content > p { margin: var(--le-list-paragraph-spacing) 0; }
 
 /* Top bar */
 .le-top { position: sticky; top: 0; z-index: 2; background: var(--le-color-surface); border-bottom: 1px solid var(--le-color-border); border-radius: var(--le-radius) var(--le-radius) 0 0; }

@@ -21,10 +21,12 @@
 .le-prose pre code { background: none; padding: 0; border-radius: 0; font-size: inherit; }
 .le-prose blockquote { margin: 0 0 1em; padding: 0.1em 0 0.1em 1em; border-left: 4px solid var(--le-color-quote); color: var(--le-color-muted); }
 .le-prose ul, .le-prose ol { margin: 0 0 0.75em; padding-left: 1.6em; }
-.le-prose li > p { margin: 0.15em 0; }
+.le-prose li > p { margin: var(--le-list-paragraph-spacing) 0; }
 .le-prose ul[data-type='taskList'] { list-style: none; padding-left: 0.2em; }
-.le-prose ul[data-type='taskList'] li { display: flex; gap: 0.5em; align-items: flex-start; }
-.le-prose ul[data-type='taskList'] li::before { content: '☐'; flex: none; }
+/* Saved task items have no content wrapper: children keep block flow, the box sits in the padding, and
+   flow-root keeps paragraph margins inside the item like the editor's flex layout does. */
+.le-prose ul[data-type='taskList'] li { display: flow-root; position: relative; padding-left: calc(var(--le-task-check-size) + var(--le-task-gap)); }
+.le-prose ul[data-type='taskList'] li::before { content: '☐'; position: absolute; left: 0; top: 0; width: var(--le-task-check-size); text-align: center; }
 .le-prose ul[data-type='taskList'] li[data-checked='true']::before { content: '☑'; }
 .le-prose ul[data-type='taskList'] li[data-checked='true'] > * { color: var(--le-color-muted); text-decoration: line-through; }
 .le-prose hr { border: none; border-top: 1px solid var(--le-color-border); margin: 1.5em 0; }

@@ -105,3 +105,36 @@ test.describe('audit #44: a selection dragged across cells becomes a cell select
     await expect(page.locator('#editor tr:first-child')).toHaveText('Z');
   });
 });
+
+const TASKS =
+  '<ul data-type="taskList"><li data-checked="false"><p>Parent task</p><ul data-type="taskList"><li data-checked="true"><p>Child task</p></li></ul></li>' +
+  '<li data-checked="false"><p>Second para one</p><p>Second para two</p></li></ul>';
+
+/** Paragraph boxes inside `root`, keyed by text, relative to the root's outer list. */
+const taskBoxes = (page: Page, root: string) =>
+  page.evaluate((selector) => {
+    const list = document.querySelector(`${selector} ul`)!.getBoundingClientRect();
+    return Object.fromEntries(
+      Array.from(document.querySelectorAll(`${selector} p`), (p) => {
+        const box = p.getBoundingClientRect();
+        return [p.textContent, { left: box.left - list.left, top: box.top - list.top, bottom: box.bottom - list.top }];
+      }),
+    );
+  }, root);
+
+test('audit #15: the view page stacks nested task lists and extra paragraphs like the editor', async ({ page }) => {
+  await openEmpty(page);
+  await page.evaluate((content) => window.__editor.setHTML(content), TASKS);
+  await renderViewPage(page, TASKS);
+  for (const root of ['#editor .ProseMirror', '#view-page']) {
+    const boxes = await taskBoxes(page, root);
+    expect(boxes['Child task']!.top, root).toBeGreaterThanOrEqual(boxes['Parent task']!.bottom);
+    expect(boxes['Second para two']!.top, root).toBeGreaterThanOrEqual(boxes['Second para one']!.bottom);
+    expect(boxes['Second para two']!.left, root).toBe(boxes['Second para one']!.left);
+  }
+  const [editor, view] = [await taskBoxes(page, '#editor .ProseMirror'), await taskBoxes(page, '#view-page')];
+  for (const text of Object.keys(editor)) {
+    expect(Math.abs(view[text]!.left - editor[text]!.left), `${text} left`).toBeLessThanOrEqual(1);
+    expect(Math.abs(view[text]!.top - editor[text]!.top), `${text} top`).toBeLessThanOrEqual(1);
+  }
+});
