@@ -44,10 +44,32 @@
       "types": "./dist/types/adapters/vue.d.ts",
       "import": "./dist/vue.js"
     },
-    "./style.css": "./dist/style.css",
-    "./content.css": "./dist/content.css",
+    "./style.css": {
+      "types": "./dist/css.d.ts",
+      "default": "./dist/style.css"
+    },
+    "./content.css": {
+      "types": "./dist/css.d.ts",
+      "default": "./dist/content.css"
+    },
     "./editor.umd.js": "./dist/editor.umd.js",
     "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "react": [
+        "./dist/types/adapters/react.d.ts"
+      ],
+      "vue": [
+        "./dist/types/adapters/vue.d.ts"
+      ],
+      "style.css": [
+        "./dist/css.d.ts"
+      ],
+      "content.css": [
+        "./dist/css.d.ts"
+      ]
+    }
   },
   "files": [
     "dist"
