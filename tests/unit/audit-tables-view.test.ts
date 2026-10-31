@@ -23,7 +23,11 @@ describe('audit #22: cell spans are parsed as clamped integers', () => {
     ['colspan="0"', '<td>'],
     ['colspan="-3"', '<td>'],
     ['colspan="2.5"', '<td colspan="2">'],
-    ['colspan="1e9"', `<td colspan="${maxColspan}">`],
+    // Browsers read the leading digits only.
+    ['colspan="5px"', '<td colspan="5">'],
+    ['colspan="1e9"', '<td>'],
+    ['colspan="0x10"', '<td>'],
+    ['colspan="99999"', `<td colspan="${maxColspan}">`],
     ['rowspan="abc"', '<td>'],
     ['rowspan="70000"', `<td rowspan="${maxRowspan}">`],
     [`data-colwidth="${maxColumnWidth * 10}"`, `<td data-colwidth="${maxColumnWidth}"`],

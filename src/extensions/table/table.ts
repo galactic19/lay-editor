@@ -47,16 +47,20 @@ const { maxColspan, maxRowspan, maxColumnWidth } = DEFAULTS.tableLimits;
 
 /**
  * prosemirror-tables reads spans with a bare Number(): "abc" becomes NaN, and colspan="100000" makes
- * fixTables build 100k cells. Spans and widths are clamped to whole numbers like browsers do.
+ * fixTables build 100k cells. Spans are read and clamped the way browsers do; widths are clamped too.
  */
-function clampCellAttrs(attrs: Attrs): Attrs {
-  const colspan = clampInteger(attrs.colspan, 1, maxColspan);
+const cellSpans = (cell: Element): { colspan: number; rowspan: number } => ({
+  colspan: clampInteger(cell.getAttribute('colspan'), 1, maxColspan),
+  rowspan: clampInteger(cell.getAttribute('rowspan'), 1, maxRowspan),
+});
+
+function clampCellAttrs(attrs: Attrs, cell: HTMLElement): Attrs {
+  const spans = cellSpans(cell);
   const widths = attrs.colwidth as number[] | null;
   return {
     ...attrs,
-    colspan,
-    rowspan: clampInteger(attrs.rowspan, 1, maxRowspan),
-    colwidth: widths?.length === colspan ? widths.map((width) => clampInteger(width, 0, maxColumnWidth)) : null,
+    ...spans,
+    colwidth: widths?.length === spans.colspan ? widths.map((width) => clampInteger(width, 0, maxColumnWidth)) : null,
   };
 }
 
@@ -66,7 +70,7 @@ const withClampedCells = (spec: NodeSpec): NodeSpec => ({
     ...rule,
     getAttrs: (dom: HTMLElement) => {
       const attrs = rule.getAttrs?.(dom) ?? null;
-      return attrs && clampCellAttrs(attrs);
+      return attrs && clampCellAttrs(attrs, dom);
     },
   })),
 });

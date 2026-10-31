@@ -49,9 +49,12 @@ export function clampWidth(value: string | number | null | undefined): number | 
   return Math.round(clamp(n, DEFAULTS.image.minWidth, DEFAULTS.image.maxWidth));
 }
 
-/** Whole number clamped to [min, max]; anything that is not a finite number becomes `min`. */
+/**
+ * Whole number clamped to [min, max]. Strings are read like HTML integer attributes, by their leading digits
+ * ("5px" is 5, "1e9" is 1); anything without them becomes `min`.
+ */
 export function clampInteger(value: unknown, min: number, max: number): number {
-  const n = Math.trunc(Number(value));
+  const n = typeof value === 'number' ? Math.trunc(value) : parseInt(String(value), 10);
   return Number.isFinite(n) ? clamp(n, min, max) : min;
 }
 
