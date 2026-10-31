@@ -3,7 +3,9 @@ import { Plugin, type Command, type EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { Editor } from '../../core/Editor';
 import { UI_CONTEXTS } from '../../core/types';
-import { formatHTML, isTransient } from '../../io/html';
+import { replaceDocument } from '../../core/state-utils';
+import { formatHTML, isTransient, parseHTML } from '../../io/html';
+import { endUndoStep } from '../base/history';
 import { c } from '../../ui/classes';
 import { h, outsideForms } from '../../ui/dom';
 import { defineExtension } from '../factories';
@@ -72,6 +74,8 @@ class SourceEditor {
       }),
     );
     this.update(editor.view);
+    // The source session is its own undo history: its edits never join the typing around it.
+    endUndoStep(editor.view);
     editor.content.hidden = true;
     editor.content.after(this.textarea);
     // Tells EditorUI to disable every other control while the HTML is edited directly.
@@ -94,6 +98,7 @@ class SourceEditor {
   /** Leaves the source view; the text is applied only if it was changed after the last sync. */
   close(): void {
     if (this.textarea.value !== this.synced) this.apply();
+    endUndoStep(this.editor.view);
     delete this.editor.root.dataset.lockedExcept;
     this.textarea.remove();
     this.editor.content.hidden = false;
@@ -109,7 +114,9 @@ class SourceEditor {
     const held = holdTransient(this.editor.state.doc);
     this.applying = true;
     try {
-      this.editor.setHTML(this.textarea.value);
+      // An edit like any other, undoable after the view closes (setHTML would load a new document with a fresh history).
+      const { state, schema, view } = this.editor;
+      view.dispatch(replaceDocument(state.tr, parseHTML(schema, this.textarea.value)));
       restoreTransient(this.editor, held);
     } finally {
       this.applying = false;

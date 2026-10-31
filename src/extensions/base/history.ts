@@ -1,5 +1,6 @@
-import { history, redo, undo } from 'prosemirror-history';
+import { closeHistory, history, redo, undo } from 'prosemirror-history';
 import type { EditorState, PluginKey } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
 import { UI_CONTEXTS, type UIItem } from '../../core/types';
 import { defineExtension } from '../factories';
 
@@ -16,6 +17,11 @@ export function withFreshHistory(state: EditorState): EditorState {
   if (!historyPlugin) return state;
   const { plugins } = state;
   return state.reconfigure({ plugins: plugins.filter((plugin) => plugin !== historyPlugin) }).reconfigure({ plugins });
+}
+
+/** Ends the current undo step: the next change starts a new one instead of joining the typing before it. */
+export function endUndoStep(view: EditorView): void {
+  view.dispatch(closeHistory(view.state.tr));
 }
 
 const historyItem = (id: 'undo' | 'redo', shortcut: string): UIItem => ({

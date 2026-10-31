@@ -1,5 +1,5 @@
 import type { Attrs, Mark, MarkType, Node as PMNode, NodeType } from 'prosemirror-model';
-import { NodeSelection, type EditorState } from 'prosemirror-state';
+import { NodeSelection, type EditorState, type Transaction } from 'prosemirror-state';
 
 /** Stand-in character for inline leaf nodes (images, breaks) when reading block text. */
 export const LEAF_CHAR = '\ufffc';
@@ -99,4 +99,22 @@ export function findNodeByAttr(doc: PMNode, attr: string, value: unknown): { nod
     return !result;
   });
   return result;
+}
+
+/**
+ * Makes `tr` turn its document into `doc` by replacing only the range that differs, so the change is a small undo
+ * step and the DOM around it stays in place.
+ */
+export function replaceDocument(tr: Transaction, doc: PMNode): Transaction {
+  const current = tr.doc.content;
+  const start = current.findDiffStart(doc.content);
+  if (start === null) return tr;
+  let { a: endA, b: endB } = current.findDiffEnd(doc.content)!;
+  // Repeated content can make the two ends cross the start; move both back past it.
+  const overlap = start - Math.min(endA, endB);
+  if (overlap > 0) {
+    endA += overlap;
+    endB += overlap;
+  }
+  return tr.replace(start, endA, doc.slice(start, endB));
 }

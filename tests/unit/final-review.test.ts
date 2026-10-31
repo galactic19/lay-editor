@@ -253,3 +253,35 @@ describe('final review: the slash menu and the HTML source view', () => {
     expect(menu.hidden).toBe(false);
   });
 });
+
+/** Types `value` into the open source view as a replacement of its whole text. */
+function typeSource(value: string): void {
+  sourceText()!.value = value;
+  sourceText()!.dispatchEvent(new Event('input'));
+}
+
+describe('final review: edits in the HTML source view are undo steps', () => {
+  it('undo after closing the source view takes back the source edit, then the earlier typing', () => {
+    const editor = makeEditor({ content: '<p>First</p>' });
+    caretAfter(editor, 'First');
+    typeText(editor, ' typed');
+    editor.exec('toggleSourceView');
+    typeSource('<p>x</p>');
+    editor.exec('toggleSourceView');
+    expect(editor.getHTML()).toBe('<p>x</p>');
+    expect(editor.can('undo')).toBe(true);
+    editor.exec('undo');
+    expect(editor.getHTML()).toBe('<p>First typed</p>');
+    editor.exec('undo');
+    expect(editor.getHTML()).toBe('<p>First</p>');
+  });
+
+  it('a source edit replaces only what changed', () => {
+    const editor = makeEditor({ content: '<p>one</p><p>two</p>' });
+    const first = editor.view.dom.firstElementChild;
+    editor.exec('toggleSourceView');
+    typeSource('<p>one</p>\n<p>two!</p>');
+    expect(editor.getHTML()).toBe('<p>one</p><p>two!</p>');
+    expect(editor.view.dom.firstElementChild).toBe(first);
+  });
+});
