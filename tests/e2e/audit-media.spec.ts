@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { contextControl, openEmpty } from './helpers';
+import { contextControl, MOD, openEmpty } from './helpers';
 
 const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
@@ -15,18 +15,25 @@ async function uploadBySize(page: Page): Promise<void> {
   await page.route('**/__upload', (route) => route.fulfill({ json: { url: `/__uploads/size-${route.request().postDataBuffer()!.length}` } }));
 }
 
-/** Fires a paste or drop carrying PNG files of the given sizes at `selector` (drops land at its start). */
-async function sendFiles(page: Page, kind: 'paste' | 'drop', selector: string, sizes: number[]): Promise<void> {
+/** Serves every /demo/*.png as a real (1px) image, so an image can be clicked. */
+async function serveImages(page: Page): Promise<void> {
+  const png = Buffer.from(PNG_DATA_URL.split(',')[1]!, 'base64');
+  await page.route('**/demo/*.png', (route) => route.fulfill({ contentType: 'image/png', body: png }));
+}
+
+/** Fires a paste or drop carrying PNG files of the given sizes (and optional HTML) at `selector` (drops land at its start). */
+async function sendFiles(page: Page, kind: 'paste' | 'drop', selector: string, sizes: number[], html = ''): Promise<void> {
   await page.evaluate(
-    ([eventKind, target, byteSizes]) => {
+    ([eventKind, target, byteSizes, markup]) => {
       const data = new DataTransfer();
       byteSizes.forEach((size, i) => data.items.add(new File([new Uint8Array(size)], `${i + 1}.png`, { type: 'image/png' })));
+      if (markup) data.setData('text/html', markup);
       const el = document.querySelector(target)!;
       const rect = el.getBoundingClientRect();
       const init = { bubbles: true, cancelable: true, clientX: rect.left + 1, clientY: rect.top + rect.height / 2 };
       el.dispatchEvent(eventKind === 'paste' ? new ClipboardEvent('paste', { ...init, clipboardData: data }) : new DragEvent('drop', { ...init, dataTransfer: data }));
     },
-    [kind, selector, sizes] as const,
+    [kind, selector, sizes, html] as const,
   );
 }
 
@@ -67,20 +74,52 @@ test.describe('audit #30: clicking an image', () => {
   });
 });
 
-test('audit #68: pasting a screenshot from inside a caption inserts it after that image', async ({ page }) => {
-  await openEmpty(page);
-  await uploadBySize(page);
-  await page.evaluate(() =>
-    window.__editor.setHTML('<figure data-align="center"><img src="/demo/missing.png" alt="original"><figcaption>My caption</figcaption></figure><p>after</p>'),
-  );
-  await page.locator('#editor .le-image figcaption').click();
+const captionedFigure = (src: string, caption: string) =>
+  `<figure data-align="center" style="width: 25%;"><img src="${src}" alt=""><figcaption>${caption}</figcaption></figure>`;
+
+/** Puts the caret two characters before the end of the nth image caption. */
+async function caretInCaption(page: Page, nth = 0): Promise<void> {
+  await page.locator('#editor .le-image figcaption').nth(nth).click();
   await page.keyboard.press('End');
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowLeft');
   await page.evaluate(() => window.__editor.syncSelection());
-  await sendFiles(page, 'paste', '#editor .ProseMirror', [70]);
-  await expect.poll(() => imageSrcs(page)).toEqual(['/demo/missing.png', '/__uploads/size-70']);
-  await expect(page.locator('#editor .le-image figcaption')).toHaveText(['My caption', '']);
+}
+
+test.describe('audit #68: pasting from inside a caption inserts after that image', () => {
+  test.beforeEach(async ({ page }) => {
+    await serveImages(page);
+    await openEmpty(page);
+    await uploadBySize(page);
+  });
+
+  test('a screenshot', async ({ page }) => {
+    await page.evaluate((html) => window.__editor.setHTML(`${html}<p>after</p>`), captionedFigure('/demo/missing.png', 'My caption'));
+    await caretInCaption(page);
+    await sendFiles(page, 'paste', '#editor .ProseMirror', [70]);
+    await expect.poll(() => imageSrcs(page)).toEqual(['/demo/missing.png', '/__uploads/size-70']);
+    await expect(page.locator('#editor .le-image figcaption')).toHaveText(['My caption', '']);
+  });
+
+  test('an image copied from a web page (HTML plus the image file)', async ({ page }) => {
+    await page.evaluate((html) => window.__editor.setHTML(`${html}<p>after</p>`), captionedFigure('/demo/missing.png', 'My caption'));
+    await caretInCaption(page);
+    await sendFiles(page, 'paste', '#editor .ProseMirror', [70], '<img src="/demo/copied.png">');
+    await expect.poll(() => imageSrcs(page)).toEqual(['/demo/missing.png', '/demo/copied.png']);
+    await expect(page.locator('#editor .le-image figcaption')).toHaveText(['My caption', '']);
+  });
+
+  test('an image copied in the editor with the keyboard', async ({ page }) => {
+    await page.evaluate((html) => window.__editor.setHTML(`${html}<p>after</p>`), captionedFigure('/demo/a.png', 'first') + captionedFigure('/demo/b.png', 'second caption'));
+    // Clicking elsewhere first keeps the image click from counting as a double click with openEmpty's.
+    await page.locator('#editor .ProseMirror p').click();
+    await page.locator('#editor .le-image img').first().click();
+    await page.keyboard.press(`${MOD}+c`);
+    await caretInCaption(page, 1);
+    await page.keyboard.press(`${MOD}+v`);
+    await expect.poll(() => imageSrcs(page)).toEqual(['/demo/a.png', '/demo/b.png', '/demo/a.png']);
+    await expect(page.locator('#editor .le-image figcaption')).toHaveText(['first', 'second caption', 'first']);
+  });
 });
 
 test('audit #69: dropped files keep their order', async ({ page }) => {

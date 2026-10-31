@@ -1,6 +1,6 @@
-import type { Node as PMNode, NodeType } from 'prosemirror-model';
-import { NodeSelection, Plugin, type Command, type EditorState, type Transaction } from 'prosemirror-state';
-import { Decoration, DecorationSet } from 'prosemirror-view';
+import type { Fragment, Node as PMNode, NodeType, Slice } from 'prosemirror-model';
+import { NodeSelection, Plugin, Selection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
+import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import { c } from '../../ui/classes';
 import { insertPoint } from 'prosemirror-transform';
 import type { Editor } from '../../core/Editor';
@@ -84,6 +84,27 @@ function insertImage(type: NodeType, input: ImageInput, pos?: number): Command {
     dispatch((at === null ? state.tr.replaceSelectionWith(node) : state.tr.insert(at, node)).scrollIntoView());
     return true;
   };
+}
+
+/** The pasted content inside the wrappers it was cut from, so a copied line of text is just its text. */
+function openContent(slice: Slice): Fragment {
+  let { content } = slice;
+  for (let depth = 0; depth < Math.min(slice.openStart, slice.openEnd) && content.childCount === 1; depth++) content = content.firstChild!.content;
+  return content;
+}
+
+/**
+ * A caption holds plain text only. Pasting more there (an image, several paragraphs) would split
+ * the captioned image, so it goes right after that image instead.
+ */
+function pasteAfterCaption(view: EditorView, slice: Slice, type: NodeType): boolean {
+  const at = insertPos(view.state, type);
+  if (at === null || type.contentMatch.matchFragment(openContent(slice))) return false;
+  const tr = view.state.tr.replace(at, at, slice);
+  // As with any paste, the cursor ends up after the pasted content.
+  tr.setSelection(Selection.near(tr.doc.resolve(tr.mapping.map(at)), -1));
+  view.dispatch(tr.scrollIntoView().setMeta('paste', true).setMeta('uiEvent', 'paste'));
+  return true;
 }
 
 const imageFiles = (data: DataTransfer | null): File[] => Array.from(data?.files ?? []).filter((file) => file.type.startsWith('image/'));
@@ -230,11 +251,14 @@ export const image = defineExtension<ImageOptions>({
             view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)));
             return true;
           },
-          handlePaste: (_view, event) => {
+          handlePaste: (view, event, slice) => {
             const files = imageFiles(event.clipboardData);
-            if (!files.length || event.clipboardData?.types.includes('text/html')) return false;
-            void uploads().uploadFiles(files);
-            return true;
+            // Files alone (a screenshot) are uploaded; with HTML (an image copied from a page) the HTML is pasted.
+            if (files.length && !event.clipboardData?.types.includes('text/html')) {
+              void uploads().uploadFiles(files);
+              return true;
+            }
+            return pasteAfterCaption(view, slice, type);
           },
           handleDrop: (view, event) => {
             const files = imageFiles(event.dataTransfer);

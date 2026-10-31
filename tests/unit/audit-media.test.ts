@@ -201,6 +201,49 @@ describe('audit #68: inserting an image from inside a caption', () => {
     expect(imageSrcs(ed)).toEqual(['https://x.com/original.png', 'https://cdn.x/shot.png']);
     expect(captions(ed)).toEqual(['My caption', '']);
   });
+
+  it('an image pasted as HTML goes after the captioned image', () => {
+    const ed = makeEditor({ content: CAPTIONED });
+    caretAfter(ed, 'My capti');
+    ed.view.pasteHTML('<img src="https://x.com/new.png">');
+    expect(imageSrcs(ed)).toEqual(['https://x.com/original.png', 'https://x.com/new.png']);
+    expect(captions(ed)).toEqual(['My caption', '']);
+    expect(ed.getHTML()).toMatch(/<\/figure><p>after<\/p>$/);
+  });
+
+  it('a data: image pasted as HTML into a caption is still uploaded', async () => {
+    const upload = cdnUpload();
+    const ed = makeEditor({ upload, content: CAPTIONED });
+    caretAfter(ed, 'My capti');
+    ed.view.pasteHTML(`<img src="${OTHER_PNG}">`);
+    await flushPromises();
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(imageSrcs(ed)).toEqual(['https://x.com/original.png', expect.stringMatching(/^https:\/\/cdn\.x\//)]);
+  });
+
+  it('a copied captioned image pasted into another caption goes after that image', () => {
+    const ed = makeEditor({ content: CAPTIONED });
+    caretAfter(ed, 'My capti');
+    ed.view.pasteHTML(FIGURE('https://x.com/copy.png', 'copied'));
+    expect(imageSrcs(ed)).toEqual(['https://x.com/original.png', 'https://x.com/copy.png']);
+    expect(captions(ed)).toEqual(['My caption', 'copied']);
+  });
+
+  it('several pasted paragraphs go after the captioned image instead of taking the caption tail', () => {
+    const ed = makeEditor({ content: CAPTIONED });
+    caretAfter(ed, 'My capti');
+    ed.view.pasteText('one\n\ntwo');
+    expect(captions(ed)).toEqual(['My caption']);
+    expect(ed.getHTML()).toMatch(/<figcaption>My caption<\/figcaption><\/figure><p>one<\/p><p>two<\/p><p>after<\/p>$/);
+    expect(ed.state.selection.$from.parent.textContent).toBe('two');
+  });
+
+  it('pasted text that fits stays in the caption', () => {
+    const ed = makeEditor({ content: CAPTIONED });
+    caretAfter(ed, 'My capti');
+    ed.view.pasteHTML('<p><strong>bold</strong> words</p>');
+    expect(captions(ed)).toEqual(['My captibold wordson']);
+  });
 });
 
 describe('audit #69: several files keep their order', () => {
