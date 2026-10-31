@@ -43,6 +43,8 @@ export class Editor {
   private readonly changeDebounced: Debounced<[]>;
   private readonly disposers: Array<() => void> = [];
   private editable = true;
+  /** Set when destroy() starts, so a 'destroy' listener that calls destroy() again is ignored. */
+  private destroying = false;
   private destroyed = false;
 
   constructor(config: EditorConfig) {
@@ -146,10 +148,11 @@ export class Editor {
   }
 
   blur(): void {
-    (this.view.dom as HTMLElement).blur();
+    if (!this.destroyed) (this.view.dom as HTMLElement).blur();
   }
 
   setEditable(editable: boolean): void {
+    if (this.destroyed) return;
     this.editable = editable;
     this.view.setProps({ editable: () => this.editable });
     this.root.classList.toggle(c('readonly'), !editable);
@@ -157,7 +160,7 @@ export class Editor {
   }
 
   setTheme(theme: ThemeMode): void {
-    this.ui?.theme.set(theme);
+    if (!this.destroyed) this.ui?.theme.set(theme);
   }
 
   /** Swaps the language pack and rebuilds the UI so every label is re-translated. */
@@ -197,7 +200,8 @@ export class Editor {
   }
 
   destroy(): void {
-    if (this.destroyed) return;
+    if (this.destroying) return;
+    this.destroying = true;
     this.events.emit('destroy');
     this.changeDebounced.cancel();
     if (this.config.textarea) this.config.textarea.value = this.getHTML();
