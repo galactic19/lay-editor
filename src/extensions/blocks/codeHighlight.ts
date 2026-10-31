@@ -86,14 +86,14 @@ export function createHighlightPlugin(load: () => Promise<Highlighter>): Plugin 
     },
     props: { decorations: (state) => key.getState(state) },
     view: (view) => {
-      let destroyed = false;
       const request = (): void => {
         if (requested || highlighter || !hasCode(view.state.doc)) return;
         requested = true;
         load()
           .then((loaded) => {
             highlighter = loaded;
-            if (!destroyed) view.dispatch(view.state.tr.setMeta(key, true));
+            // Plugin views are rebuilt when setHTML resets the history plugin, so ask the editor view, not this one.
+            if (!view.isDestroyed) view.dispatch(view.state.tr.setMeta(key, true));
           })
           .catch((error) => {
             requested = false;
@@ -101,12 +101,7 @@ export function createHighlightPlugin(load: () => Promise<Highlighter>): Plugin 
           });
       };
       request();
-      return {
-        update: request,
-        destroy: () => {
-          destroyed = true;
-        },
-      };
+      return { update: request };
     },
   });
 }

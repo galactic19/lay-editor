@@ -3,13 +3,15 @@ import { EditorState, type Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { createTranslator, type Translate } from '../i18n';
 import { getDefaultExtensions } from '../extensions';
+import { withFreshHistory } from '../extensions/base/history';
 import { parseHTML, serializeHTML, isDocEmpty } from '../io/html';
 import { c } from '../ui/classes';
 import { EditorUI } from '../ui/EditorUI';
-import { EditorError } from './errors';
+import { EditorError, warn } from './errors';
 import { EventEmitter } from './EventEmitter';
 import { ExtensionManager } from './ExtensionManager';
 import { isMarkActive, isNodeActive } from './state-utils';
+import { TextareaBinding } from './TextareaBinding';
 import { debounce, type Debounced } from './timing';
 import type { CommandFactory, DeviceMode, EditorConfig, LocaleInput, ThemeMode } from './types';
 
@@ -22,7 +24,7 @@ export interface EditorEvents {
   uploadStart: [file: File];
   uploadProgress: [file: File, ratio: number];
   uploadSuccess: [file: File, url: string];
-  uploadError: [error: EditorError, file: File];
+  uploadError: [file: File, error: EditorError];
   error: [error: EditorError];
   modeChange: [mode: DeviceMode];
   destroy: [];
@@ -41,8 +43,10 @@ export class Editor {
 
   private readonly events: EventEmitter<EditorEvents>;
   private readonly changeDebounced: Debounced<[]>;
-  private readonly disposers: Array<() => void> = [];
+  private readonly textareaBinding: TextareaBinding | null;
   private editable = true;
+  /** Set when destroy() starts, so a 'destroy' listener that calls destroy() again is ignored. */
+  private destroying = false;
   private destroyed = false;
 
   constructor(config: EditorConfig) {
@@ -63,7 +67,9 @@ export class Editor {
     this.content = document.createElement('div');
     this.content.className = c('content');
     this.root.appendChild(this.content);
-    this.mount();
+    this.textareaBinding = config.textarea ? new TextareaBinding(this, config.textarea) : null;
+    if (this.textareaBinding) this.textareaBinding.mount(this.root);
+    else config.element.appendChild(this.root);
 
     this.commands = this.manager.createCommands(this);
     this.view = new EditorView(this.content, {
@@ -83,6 +89,8 @@ export class Editor {
     });
     this.manager.runCreate(this);
     this.ui = new EditorUI(this);
+    // The form posts the textarea, so it must hold what the editor shows (the content option, sanitized) from the start.
+    this.textareaBinding?.sync();
     this.safeCall('onReady', () => config.onReady?.(this));
   }
 
@@ -98,10 +106,15 @@ export class Editor {
     return serializeHTML(this.schema, this.state.doc);
   }
 
-  /** Replaces the content. Not an undo step: Ctrl+Z after loading content must not empty the editor. */
+  /**
+   * Loads new content. Like the initial content it starts a fresh undo history and is not an
+   * undo step itself, so Ctrl+Z can neither empty the editor nor bring back the previous document.
+   * Other plugin state (an open search) and the DOM of unchanged blocks are kept.
+   */
   setHTML(html: string): void {
     if (this.destroyed) return;
     const doc = parseHTML(this.schema, html);
+    this.view.updateState(withFreshHistory(this.state));
     this.view.dispatch(this.state.tr.replaceWith(0, this.state.doc.content.size, doc.content).setMeta('addToHistory', false));
   }
 
@@ -146,10 +159,11 @@ export class Editor {
   }
 
   blur(): void {
-    (this.view.dom as HTMLElement).blur();
+    if (!this.destroyed) (this.view.dom as HTMLElement).blur();
   }
 
   setEditable(editable: boolean): void {
+    if (this.destroyed) return;
     this.editable = editable;
     this.view.setProps({ editable: () => this.editable });
     this.root.classList.toggle(c('readonly'), !editable);
@@ -157,7 +171,7 @@ export class Editor {
   }
 
   setTheme(theme: ThemeMode): void {
-    this.ui?.theme.set(theme);
+    if (!this.destroyed) this.ui?.theme.set(theme);
   }
 
   /** Swaps the language pack and rebuilds the UI so every label is re-translated. */
@@ -197,34 +211,18 @@ export class Editor {
   }
 
   destroy(): void {
-    if (this.destroyed) return;
+    if (this.destroying) return;
+    this.destroying = true;
     this.events.emit('destroy');
     this.changeDebounced.cancel();
-    if (this.config.textarea) this.config.textarea.value = this.getHTML();
+    this.textareaBinding?.sync();
     this.destroyed = true;
     this.ui?.destroy();
     this.manager.runDestroy();
     this.view.destroy();
-    this.disposers.forEach((dispose) => dispose());
+    this.textareaBinding?.destroy();
     this.root.remove();
     this.events.clear();
-  }
-
-  private mount(): void {
-    const { element, textarea } = this.config;
-    if (!textarea) {
-      element.appendChild(this.root);
-      return;
-    }
-    const previousDisplay = textarea.style.display;
-    textarea.style.display = 'none';
-    textarea.after(this.root);
-    const onSubmit = (): void => this.flushChange();
-    textarea.form?.addEventListener('submit', onSubmit, true);
-    this.disposers.push(() => {
-      textarea.form?.removeEventListener('submit', onSubmit, true);
-      textarea.style.display = previousDisplay;
-    });
   }
 
   private dispatch(tr: Transaction): void {
@@ -239,14 +237,13 @@ export class Editor {
   private emitChange(): void {
     if (this.destroyed) return;
     const html = this.getHTML();
-    if (this.config.textarea) this.config.textarea.value = html;
     this.events.emit('change', html);
     this.safeCall('onChange', () => this.config.onChange?.(html));
   }
 
   private command(name: string): CommandFactory | undefined {
     const factory = this.commands.get(name);
-    if (!factory) console.warn(`[laymaker] unknown command "${name}"`);
+    if (!factory) warn(`unknown command "${name}"`);
     return factory;
   }
 

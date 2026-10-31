@@ -1,28 +1,66 @@
 import { DEFAULTS } from './defaults';
 import { EditorError } from './errors';
-import type { EditorConfig, EditorOptions, ThemeMode } from './types';
+import { isPlainObject } from './merge';
+import type { EditorConfig, EditorOptions, Extension, ThemeMode } from './types';
 import { PRESET_NAMES, type PresetName } from '../ui/presets';
 
 export const THEME_MODES = ['light', 'dark', 'auto'] as const satisfies readonly ThemeMode[];
+const FUNCTION_OPTIONS = ['upload', 'onChange', 'onReady'] as const;
 
-function invalid(name: string, value: unknown): never {
-  throw new EditorError('INVALID_OPTION', `${name}: ${JSON.stringify(value) ?? String(value)}`);
+function describe(value: unknown): string {
+  try {
+    return typeof value === 'number' ? String(value) : (JSON.stringify(value) ?? String(value));
+  } catch {
+    return String(value);
+  }
 }
 
 function check(ok: boolean, name: string, value: unknown): void {
-  if (!ok) invalid(name, value);
+  if (!ok) throw new EditorError('INVALID_OPTION', `${name}: ${describe(value)}`);
 }
 
-function resolveElement(target: EditorOptions['element']): HTMLElement {
-  const element = typeof target === 'string' ? document.querySelector<HTMLElement>(target) : target;
-  if (!(element instanceof HTMLElement)) throw new EditorError('ELEMENT_NOT_FOUND', String(target));
-  return element;
+/** A malformed selector cannot match anything. */
+function query(selector: string): Element | null {
+  try {
+    return document.querySelector(selector);
+  } catch {
+    return null;
+  }
+}
+
+function resolveElement(target: unknown): HTMLElement {
+  const element = typeof target === 'string' ? query(target) : (target as Element | null | undefined);
+  if (element instanceof HTMLElement) return element;
+  if (element?.nodeType === Node.ELEMENT_NODE && element.ownerDocument !== document) {
+    throw new EditorError('INVALID_OPTION', `element: <${element.localName}> belongs to another document (an iframe); load the editor in that document`);
+  }
+  throw new EditorError('ELEMENT_NOT_FOUND', String(target));
 }
 
 const isStringArray = (value: unknown): value is string[] => Array.isArray(value) && value.every((v) => typeof v === 'string');
+const isExtension = (value: unknown): value is Extension =>
+  typeof value === 'object' && value !== null && typeof (value as Extension).name === 'string' && (value as Extension).name !== '';
+/** Comparable kinds of option values; NaN is not a usable number. */
+const kindOf = (value: unknown): string => (Number.isNaN(value) ? 'NaN' : Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value);
+
+/**
+ * Checks extension options against the shape of the extension's defaults: a number stays a number,
+ * a list holds items of the kinds its default items have, a group is an object. Keys without a
+ * default (or a null one) are left to the extension.
+ */
+export function checkOptionShape(name: string, defaults: unknown, value: unknown): void {
+  if (value === undefined || defaults == null) return;
+  check(kindOf(value) === kindOf(defaults), name, value);
+  if (Array.isArray(defaults) && defaults.length) {
+    const modelFor = (item: unknown): unknown => defaults.find((model) => kindOf(model) === kindOf(item)) ?? defaults[0];
+    (value as unknown[]).forEach((item, i) => checkOptionShape(`${name}[${i}]`, modelFor(item), item));
+  }
+  if (isPlainObject(defaults)) Object.entries(value as object).forEach(([key, item]) => checkOptionShape(`${name}.${key}`, defaults[key], item));
+}
 
 /** Validates user options and fills defaults. Throws EditorError on developer mistakes. */
 export function resolveConfig(options: EditorOptions): EditorConfig {
+  check(typeof options === 'object' && options !== null, 'options', options);
   const element = resolveElement(options.element);
   const textarea = element instanceof HTMLTextAreaElement ? element : null;
   const {
@@ -40,9 +78,11 @@ export function resolveConfig(options: EditorOptions): EditorConfig {
   check(PRESET_NAMES.includes(preset as PresetName), 'preset', preset);
   check(THEME_MODES.includes(theme), 'theme', theme);
   check(typeof changeDebounce === 'number' && Number.isFinite(changeDebounce) && changeDebounce >= 0, 'changeDebounce', changeDebounce);
-  check(upload === undefined || typeof upload === 'function', 'upload', upload);
+  // Like content, an optional callback set to null is not set.
+  for (const name of FUNCTION_OPTIONS) check(options[name] == null || typeof options[name] === 'function', name, options[name]);
+  check(options.content == null || typeof options.content === 'string', 'content', options.content);
   check(toolbar === undefined || isStringArray(toolbar), 'toolbar', toolbar);
-  check(Array.isArray(extensions), 'extensions', extensions);
+  check(Array.isArray(extensions) && extensions.every(isExtension), 'extensions', extensions);
   check(isStringArray(disable), 'disable', disable);
   check(typeof locale === 'string' || (typeof locale === 'object' && locale !== null), 'locale', locale);
   check(placeholder === undefined || typeof placeholder === 'string', 'placeholder', placeholder);

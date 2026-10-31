@@ -43,12 +43,19 @@ describe('ExtensionManager', () => {
     expect(m.resolved.map((r) => r.ext.name)).toEqual(['testCore']);
   });
 
-  it('merges options from config.raw[optionsKey ?? name] over defaults, ignoring non-objects', () => {
+  it('merges options from config.raw[optionsKey ?? name] over defaults; without defaults non-objects are ignored', () => {
     const a = defineExtension({ name: 'a', defaults: { x: 1, y: 2 } });
     const b = defineExtension({ name: 'b', optionsKey: 'shared', defaults: { z: 1 } });
-    const c = defineExtension({ name: 'c', defaults: { w: 1 } });
+    const c = defineExtension({ name: 'c' });
     const m = new ExtensionManager([coreNodes, a, b, c], fakeConfig({ a: { y: 3 }, shared: { z: 9 }, c: 'text' }), noop);
-    expect(m.resolved.map((r) => r.options)).toEqual([{}, { x: 1, y: 3 }, { z: 9 }, { w: 1 }]);
+    expect(m.resolved.map((r) => r.options)).toEqual([{}, { x: 1, y: 3 }, { z: 9 }, {}]);
+  });
+
+  it('throws INVALID_OPTION when options do not match the shape of the defaults', () => {
+    const c = defineExtension({ name: 'c', defaults: { w: 1 } });
+    for (const raw of ['text', { w: 'one' }]) {
+      expect(() => new ExtensionManager([coreNodes, c], fakeConfig({ c: raw }), noop)).toThrowError(expect.objectContaining({ code: 'INVALID_OPTION' }));
+    }
   });
 
   it('injects global attributes into parse and render', () => {

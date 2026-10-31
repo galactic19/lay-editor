@@ -44,7 +44,11 @@ const editor = createEditor({ element: '#editor' });
 ```
 
 - textarea는 숨겨지고 그 자리에 에디터가 나타납니다.
-- 내용이 바뀌면 textarea 값이 자동으로 갱신되고, 폼을 전송하는 순간에도 한 번 더 동기화됩니다.
+- 내용이 바뀌면 textarea 값이 자동으로 갱신되고, 폼을 전송하는 순간에도 한 번 더 동기화됩니다. `form.submit()`이나 `new FormData(form)`도 에디터에 보이는 내용을 읽습니다.
+- `content` 옵션을 주면 생성 직후 그 내용이 textarea에 들어갑니다. 고치지 않고 전송해도 화면에 보이던 내용이 전송됩니다.
+- 폼을 초기화(`reset`)하면 에디터도 처음 만들 때의 내용으로 돌아갑니다.
+- textarea에 `required`가 있으면 빈 에디터로는 전송되지 않습니다. 사용자가 전송 버튼을 누르거나 Enter로 전송하면(입력 칸의 Enter, 앱의 Ctrl+Enter 단축키) 에디터가 빨간 테두리(`le-invalid`)와 `aria-invalid`로 표시됩니다. 다른 칸이 먼저 걸리지 않았다면 포커스가 에디터로 오고, 에디터 언어로 "내용을 입력하세요" 토스트가 나옵니다(`setCustomValidity()`로 문구를 정했다면 그 문구). 내용을 고치면 표시가 사라집니다.
+- 앱이 `checkValidity()`를 부르면 사용자가 페이지를 조작한 뒤에만 빨간 테두리가 생기고, 포커스와 토스트는 없습니다. 그래서 저장 버튼 상태를 정하려고 로드할 때나 입력할 때마다 불러도 됩니다. 전송 버튼도 Enter도 아닌 곳에서 `requestSubmit()`을 부를 때(예: `type="button"` 버튼의 클릭 처리)도 같습니다.
 - 서버 코드는 바꿀 필요가 없습니다. `body` 필드로 HTML이 그대로 전송됩니다.
 
 ## 3. 옵션
@@ -90,6 +94,9 @@ createEditor({
 | `table` | `maxGrid`, `mobileMaxGrid`, `defaultRows`, `defaultCols`, `cellColors` | 10, 6, 3, 3, 배경색 팔레트 |
 | `autosave` | `key`, `debounce` | 없음(꺼짐), 1000ms |
 
+- 옵션 타입이 틀리면(예: `image: { maxSize: '5MB' }`, `onChange: 'save'`) 에디터를 만들 때 `INVALID_OPTION` 오류가 납니다. 확장 옵션은 기본값과 같은 형태(숫자, 목록, 객체)여야 하고, 목록의 각 항목은 기본값 목록에 있는 종류 중 하나여야 합니다. `content`, `upload`, `onChange`, `onReady`에 `null`을 주면 지정하지 않은 것으로 봅니다.
+- `element`는 같은 페이지의 요소여야 합니다. iframe 안의 요소에 붙이려면 iframe 페이지에서 에디터를 불러오세요.
+
 ## 4. 이미지 업로드
 
 ```ts
@@ -115,7 +122,7 @@ createEditor({
 
 ```ts
 editor.getHTML();             // 정제된 HTML. 빈 문서면 ''
-editor.setHTML('<p>새 내용</p>');
+editor.setHTML('<p>새 내용</p>'); // 새 문서를 불러온 것으로 보고 실행 취소 기록을 비웁니다
 editor.getText();
 editor.isEmpty();
 editor.exec('toggleBold');    // 명령 실행 → 성공 여부
@@ -135,7 +142,10 @@ editor.destroy();
 | `update` | `transaction` | 모든 편집마다 |
 | `selectionChange` | — | 선택 영역 변경 |
 | `focus`, `blur` | — | 포커스 변화 |
-| `uploadStart` / `uploadProgress` / `uploadSuccess` / `uploadError` | 파일, 진행률/URL/오류 | 업로드 단계 |
+| `uploadStart` | `file` | 업로드 시작 |
+| `uploadProgress` | `file`, `ratio`(0~1) | 업로드 진행 |
+| `uploadSuccess` | `file`, `url` | 업로드 성공 |
+| `uploadError` | `file`, `EditorError` | 업로드 실패(`UPLOAD_FAILED`) 또는 형식·용량 검사 탈락(`UPLOAD_REJECTED`) |
 | `modeChange` | `'desktop' \| 'mobile'` | 기기 모드 전환 |
 | `error` | `EditorError` | 잡힌 내부 오류 (코드: `error.code`) |
 | `destroy` | — | 해제 직전 |
@@ -199,6 +209,7 @@ CSS 변수로 바꿉니다. `.le-editor, .le-portal`(드롭다운·바텀시트 
 | `--le-color-bg`, `--le-color-fg`, `--le-color-muted` | 배경, 글자, 보조 글자 |
 | `--le-color-primary`, `--le-color-primary-fg` | 강조색과 그 위 글자 |
 | `--le-color-border`, `--le-color-surface`, `--le-color-hover`, `--le-color-active` | 테두리, 툴바 배경, 상태 배경 |
+| `--le-color-danger`, `--le-color-danger-ring`, `--le-focus-ring-width` | 오류 알림과 필수 입력 누락 표시, 포커스 테두리 두께 |
 | `--le-font`, `--le-font-mono`, `--le-font-size`, `--le-line-height` | 글꼴 |
 | `--le-radius`, `--le-control-size`, `--le-touch-target` | 모서리, 버튼 크기, 모바일 터치 영역(44px) |
 | `--le-min-height`, `--le-content-padding` | 편집 영역 크기 |
@@ -215,6 +226,8 @@ createEditor({ element: '#editor', locale: 'ja' });
 ```
 
 - 빠진 키는 영어로 대체됩니다.
+- 언어 코드는 대소문자를 가리지 않고, `ko-KR`·`en-US`처럼 지역이 붙은 코드는 등록된 `ko`·`en` 팩을 씁니다.
+- 등록되지 않은 코드(예: `kr`)는 콘솔 경고와 함께 기본 언어(`ko`)로 표시됩니다. `registerLocale`은 `createEditor`보다 먼저 호출하세요.
 - 한 번만 쓰는 문구 수정은 `locale: { placeholder: '댓글을 입력하세요' }`처럼 객체로 넘겨도 됩니다.
 
 ## 10. React와 Vue

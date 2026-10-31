@@ -1,4 +1,5 @@
 import type { Editor, EditorEvents } from '../core/Editor';
+import { listen } from './dom';
 
 /** Base for every UI piece: tracks listeners and editor subscriptions and releases them on destroy. */
 export abstract class UIComponent<E extends HTMLElement = HTMLElement> {
@@ -10,8 +11,7 @@ export abstract class UIComponent<E extends HTMLElement = HTMLElement> {
   ) {}
 
   protected listen(target: EventTarget, type: string, fn: (event: any) => void, options?: AddEventListenerOptions): void {
-    target.addEventListener(type, fn, options);
-    this.disposers.push(() => target.removeEventListener(type, fn, options));
+    this.disposers.push(listen(target, type, fn, options));
   }
 
   protected subscribe<K extends keyof EditorEvents>(event: K, fn: (...args: EditorEvents[K]) => void): void {

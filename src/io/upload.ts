@@ -81,7 +81,7 @@ export class UploadManager {
   reject(file: File): boolean {
     const reason = this.rejection(file);
     if (!reason) return false;
-    this.editor.emit('uploadError', this.validate(file)!, file);
+    this.editor.emit('uploadError', file, this.validate(file)!);
     this.toast(REJECTION_TOAST[reason], { max: `${Math.round(this.options.maxSize / BYTES_PER_MB)}MB` });
     return true;
   }
@@ -122,7 +122,7 @@ export class UploadManager {
     } catch (cause) {
       if (this.destroyed) return;
       this.replace(id, null);
-      this.editor.emit('uploadError', new EditorError('UPLOAD_FAILED', file.name, { cause }), file);
+      this.editor.emit('uploadError', file, new EditorError('UPLOAD_FAILED', file.name, { cause }));
       this.toast('toast.uploadFailed');
     } finally {
       const url = this.objectUrls.get(id);

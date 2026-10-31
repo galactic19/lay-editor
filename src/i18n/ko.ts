@@ -76,6 +76,7 @@ export const ko = {
     uploadTooLarge: '파일이 너무 큽니다 (최대 {max})',
     uploadBadType: '지원하지 않는 이미지 형식입니다',
     uploadNotConfigured: '이미지 업로드가 설정되지 않았습니다',
+    required: '내용을 입력하세요',
   },
   slash: { empty: '일치하는 항목이 없습니다' },
   status: { count: '글자 {chars} · 공백 제외 {charsNoSpace} · 단어 {words}', matchCount: '{current}/{total}', noMatch: '결과 없음' },
