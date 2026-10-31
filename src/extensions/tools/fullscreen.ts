@@ -2,6 +2,7 @@ import type { Command } from 'prosemirror-state';
 import type { Editor } from '../../core/Editor';
 import { UI_CONTEXTS } from '../../core/types';
 import { c } from '../../ui/classes';
+import { listen } from '../../ui/dom';
 import { defineExtension } from '../factories';
 
 const FULLSCREEN = c('fullscreen');
@@ -39,19 +40,25 @@ export const fullscreen = defineExtension({
       command: 'toggleFullscreen',
       contexts: [...UI_CONTEXTS],
       isActive: isFullscreen,
+      viewToggle: true,
     },
   ],
   // ProseMirror claims every Escape pressed in the editor, so it is handled here, after higher-priority
   // handlers such as the slash menu.
   keymap: ({ editor }) => ({ Escape: () => exitFullscreen(editor) }),
   onCreate: ({ editor }) => {
-    // Escape from the toolbar reaches the root unhandled; skip keys another handler used.
+    /**
+     * Escape from the toolbar reaches the root unhandled, and so does Escape on the page itself: read-only content
+     * takes no focus, so a click on it leaves focus on the body. Keys another handler used are skipped.
+     */
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape' && !event.defaultPrevented) exitFullscreen(editor);
+      const target = event.target as Node;
+      const ours = editor.root.contains(target) || target === document.body || target === document.documentElement;
+      if (event.key === 'Escape' && !event.defaultPrevented && ours) exitFullscreen(editor);
     };
-    editor.root.addEventListener('keydown', onKeyDown);
+    const stop = listen(document, 'keydown', onKeyDown);
     return () => {
-      editor.root.removeEventListener('keydown', onKeyDown);
+      stop();
       if (isFullscreen(editor)) document.documentElement.classList.remove(SCROLL_LOCK);
     };
   },

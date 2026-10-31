@@ -116,9 +116,14 @@ export class EditorUI {
     return this.lockOwner !== undefined && !this.holdsLock(item);
   }
 
-  /** Whether an item set the lock; it is the way out, so it stays usable even in read-only mode. */
+  /** Whether an item set the lock (it alone stays usable while the lock holds). */
   holdsLock(item: UIItem): boolean {
     return item.id === this.lockOwner;
+  }
+
+  /** Whether an item is the way out of a mode the user is in (it set the lock, or it is a view toggle that is on); it stays usable in read-only mode. */
+  isWayOut(item: UIItem): boolean {
+    return this.holdsLock(item) || Boolean(item.viewToggle && item.isActive?.(this.editor));
   }
 
   /** Runs pending UI updates now. */

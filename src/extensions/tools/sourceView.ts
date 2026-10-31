@@ -146,6 +146,7 @@ export const sourceView = defineExtension({
       command: 'toggleSourceView',
       contexts: [...UI_CONTEXTS],
       isActive: () => sources.has(editor),
+      viewToggle: true,
     },
   ],
   // Runs before the editor tears down, so pending source edits reach getHTML() and the textarea.

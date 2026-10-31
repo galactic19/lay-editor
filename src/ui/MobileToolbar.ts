@@ -16,7 +16,8 @@ const { scrollGap } = DEFAULTS.mobileBar;
 
 /** One-row toolbar pinned above the on-screen keyboard; its items follow the selection context. */
 export class MobileToolbar extends UIComponent<HTMLDivElement> {
-  private context: UIContext | null = null;
+  /** The item ids the bar shows, to rebuild only when they change. */
+  private shown = '';
   private controls: Array<{ item: UIItem; el: HTMLButtonElement }> = [];
   private readonly roving: RovingFocus;
   private height = -1;
@@ -39,10 +40,24 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
   }
 
   /** Context-only tools first, then the regular tools that also work in this context. */
-  private entries(context: UIContext): ToolbarEntry[] {
+  private contextEntries(context: UIContext): ToolbarEntry[] {
     if (context === 'text') return this.ui.entries;
     const shared = this.ui.entries.filter((entry): entry is UIItem => entry !== SEPARATOR && entry.contexts.includes(context));
     return [...contextOnlyItems(this.ui.registry, context), SEPARATOR, ...shared];
+  }
+
+  /** What the bar offers: while editing, the tools for the context; in read-only mode only the ways out of a mode (full screen, HTML source). */
+  private entries(): ToolbarEntry[] {
+    const entries = this.contextEntries(this.ui.getContext());
+    return this.editor.isEditable ? entries : entries.filter((entry): entry is UIItem => entry !== SEPARATOR && this.ui.isWayOut(entry));
+  }
+
+  /**
+   * While editing the bar follows focus in the editor. Read-only content has nothing to edit and cannot take focus,
+   * so the bar shows exactly when a way out of a mode is on.
+   */
+  private wanted(entries: readonly ToolbarEntry[]): boolean {
+    return this.editor.isEditable ? this.hasFocusWithin() : entries.length > 0;
   }
 
   /** Screen height it and the on-screen keyboard cover at the bottom. */
@@ -51,25 +66,25 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
   }
 
   override update(): void {
-    // A read-only editor has nothing to edit, even when a link or task checkbox in the content takes focus.
-    if (!this.editor.isEditable || !this.hasFocusWithin()) {
+    const entries = this.entries();
+    if (!this.wanted(entries)) {
       this.setVisible(false);
       return;
     }
     copyTheme(this.el, this.editor.root);
     // Shown before rebuilding: a hidden bar has no layout, so it would ignore the scroll reset.
     this.setVisible(true);
-    const context = this.ui.getContext();
-    if (context !== this.context) this.keepingFocus(() => this.rebuild(context));
+    const shown = entries.map((entry) => (entry === SEPARATOR ? entry : entry.id)).join();
+    if (shown !== this.shown) this.keepingFocus(() => this.rebuild(entries, shown));
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
     this.place();
   }
 
-  private rebuild(context: UIContext): void {
-    this.context = context;
+  private rebuild(entries: readonly ToolbarEntry[], shown: string): void {
+    this.shown = shown;
     this.controls = [];
     this.el.replaceChildren(
-      ...this.entries(context).map((entry) => {
+      ...entries.map((entry) => {
         if (entry === SEPARATOR) return createSeparator();
         const el = createControl(entry, this.editor, this.ui);
         this.controls.push({ item: entry, el });

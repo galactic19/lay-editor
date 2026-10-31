@@ -68,6 +68,11 @@ export interface UIItem {
   contexts: UIContext[];
   isActive?(editor: Editor): boolean;
   isEnabled?(editor: Editor): boolean;
+  /**
+   * Switches how the editor is shown (full screen, HTML source) rather than its content. While it is on it is the
+   * way back, so it stays usable in read-only mode, where the mobile bar shows only such items.
+   */
+  viewToggle?: boolean;
   options?: UIItem[];
   panel?: PanelFactory;
   slash?: { keywords: string[] };
