@@ -5,7 +5,7 @@ import type { EditorOptions } from '../../src/core/types';
 import { normalizeHref } from '../../src/extensions/marks/link';
 import { fillContainerStarts } from '../../src/io/html';
 import { onCleanup, setMedia } from '../setup';
-import { caretAfter, makeEditor, toolbarControl, typeText } from '../helpers/editor';
+import { caretAfter, caretAt, findText, makeEditor, toolbarControl, typeText } from '../helpers/editor';
 
 /** An editor in a form: textarea mode, or (`textarea: false`) an element inside the form. */
 function formEditor(content: string, { textarea = true, ...options }: Partial<EditorOptions> & { textarea?: boolean } = {}) {
@@ -283,5 +283,21 @@ describe('final review: edits in the HTML source view are undo steps', () => {
     typeSource('<p>one</p>\n<p>two!</p>');
     expect(editor.getHTML()).toBe('<p>one</p><p>two!</p>');
     expect(editor.view.dom.firstElementChild).toBe(first);
+  });
+});
+
+const FIGURE = '<figure data-align="center"><img src="https://a.com/x.png" alt=""><figcaption>capt</figcaption></figure>';
+
+describe('final review: typing continues below an inserted video', () => {
+  it.each([
+    ['at the end of the document', '<p>intro</p><p></p>', '<p>Next line</p>'],
+    ['before other text, which the caret moves to', '<p>intro</p><p></p><p>tail</p>', '<p>Next linetail</p>'],
+  ])('%s', (_case, content, after) => {
+    const editor = makeEditor({ content });
+    caretAt(editor, findText(editor, 'intro') + 'intro'.length + 2);
+    expect(editor.exec('insertVideo', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
+    typeText(editor, 'Next line');
+    expect(editor.getHTML()).toMatch(/^<p>intro<\/p><div data-video="" data-provider="youtube"/);
+    expect(editor.getHTML().endsWith(`</div>${after}`)).toBe(true);
   });
 });

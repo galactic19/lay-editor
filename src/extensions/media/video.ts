@@ -1,6 +1,7 @@
 import type { Node as PMNode, NodeType } from 'prosemirror-model';
-import { Plugin, type Command } from 'prosemirror-state';
+import { NodeSelection, Plugin, type Command } from 'prosemirror-state';
 import { DEFAULTS } from '../../core/defaults';
+import { caretBelow } from '../../core/state-utils';
 import { c } from '../../ui/classes';
 import { inputForm } from '../../ui/panels/inputForm';
 import { defineExtension } from '../factories';
@@ -13,12 +14,18 @@ function validAttrs(provider: string | undefined, id: string | undefined) {
   return p && id && p.idPattern.test(id) ? { provider, id } : false;
 }
 
+/**
+ * Embeds a video at the selection. With nothing to type in after it, ProseMirror would leave the video selected and the
+ * next key would replace it; the caret goes below it instead (into a new paragraph at the end of the document).
+ */
 const insertVideo =
   (type: NodeType, url: string, allowed: readonly string[]): Command =>
   (state, dispatch) => {
     const parsed = parseVideoUrl(String(url ?? ''), allowed);
     if (!parsed) return false;
-    dispatch?.(state.tr.replaceSelectionWith(type.create(parsed)).scrollIntoView());
+    const tr = state.tr.replaceSelectionWith(type.create(parsed));
+    if (tr.selection instanceof NodeSelection) caretBelow(tr, tr.selection.to);
+    dispatch?.(tr.scrollIntoView());
     return true;
   };
 

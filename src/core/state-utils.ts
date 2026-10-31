@@ -1,5 +1,5 @@
 import type { Attrs, Mark, MarkType, Node as PMNode, NodeType } from 'prosemirror-model';
-import { NodeSelection, type EditorState, type Transaction } from 'prosemirror-state';
+import { NodeSelection, TextSelection, type EditorState, type Transaction } from 'prosemirror-state';
 
 /** Stand-in character for inline leaf nodes (images, breaks) when reading block text. */
 export const LEAF_CHAR = '\ufffc';
@@ -117,4 +117,15 @@ export function replaceDocument(tr: Transaction, doc: PMNode): Transaction {
     endB += overlap;
   }
   return tr.replace(start, endA, doc.slice(start, endB));
+}
+
+/** Inserts an empty paragraph at `pos` (between blocks) and puts the caret in it. */
+export function openParagraph(tr: Transaction, pos: number): Transaction {
+  tr.insert(pos, tr.doc.type.schema.nodes.paragraph!.create());
+  return tr.setSelection(TextSelection.create(tr.doc, pos + 1));
+}
+
+/** Puts the caret in the textblock starting at `pos`, right after an inserted block; when none does, in a new paragraph there. */
+export function caretBelow(tr: Transaction, pos: number): Transaction {
+  return tr.doc.resolve(pos).nodeAfter?.isTextblock ? tr.setSelection(TextSelection.create(tr.doc, pos + 1)) : openParagraph(tr, pos);
 }
