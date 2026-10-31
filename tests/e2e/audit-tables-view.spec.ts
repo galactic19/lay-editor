@@ -1,16 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
 import { DEFAULTS } from '../../src/core/defaults';
-import { compose, control, html, openEmpty, panel } from './helpers';
+import { compose, contextControl, contrast, control, html, openEmpty, panel, pasteHTML, WCAG_AA } from './helpers';
 
 const { maxColspan } = DEFAULTS.tableLimits;
-
-/** Pastes HTML through a real paste event, as copying from another page does. */
-const pasteHTML = (page: Page, content: string): Promise<void> =>
-  page.evaluate((html) => {
-    const data = new DataTransfer();
-    data.setData('text/html', html);
-    window.__editor.view.dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
-  }, content);
 
 test('audit #22: pasting a table with a huge colspan stays within the browser limit', async ({ page }) => {
   await openEmpty(page);
@@ -97,10 +89,6 @@ test('audit #14: column widths dragged in the editor show on the view page', asy
   expect(Math.abs((await width(page, '#view-page th')) - editorWidth)).toBeLessThanOrEqual(PX_TOLERANCE);
 });
 
-/** A table tool: the desktop context toolbar or the mobile keyboard bar in table context. */
-const tableTool = (page: Page, id: string) =>
-  page.locator(`.le-context-toolbar [data-item="${id}"], .le-mobile-bar:not([hidden]) [data-item="${id}"]`).first();
-
 /**
  * Moves the native selection the way touch selection handles do: 'select' spans from the first cell into cell
  * `to`, 'extend' drags the end on into cell `to` from wherever the browser has the selection start.
@@ -129,8 +117,8 @@ test.describe('audit #44: a selection dragged across cells becomes a cell select
   });
 
   test('the Merge tool becomes usable and merges the cells', async ({ page }) => {
-    await expect(tableTool(page, 'tableMerge')).not.toHaveAttribute('aria-disabled', 'true');
-    await tableTool(page, 'tableMerge').click();
+    await expect(contextControl(page, 'tableMerge')).not.toHaveAttribute('aria-disabled', 'true');
+    await contextControl(page, 'tableMerge').click();
     await expect.poll(() => html(page)).toContain('<td colspan="2"><p>aaaa</p><p>bbbb</p></td>');
   });
 
@@ -148,7 +136,7 @@ test('audit #44: dragging a handle on into a third cell keeps the first cell sel
   await page.locator('#editor td').first().click();
   await selectAcrossCells(page);
   await selectInCells(page, 'extend', 2);
-  await tableTool(page, 'tableMerge').click();
+  await contextControl(page, 'tableMerge').click();
   await expect.poll(() => html(page)).toContain('<td colspan="3"><p>aaaa</p><p>bbbb</p><p>cccc</p></td>');
 });
 
@@ -207,18 +195,6 @@ for (const [name, reset] of Object.entries(RESETS)) {
   });
 }
 
-/** WCAG contrast ratio between two computed rgb() colours. */
-function contrast(fg: string, bg: string): number {
-  const luminance = (color: string): number => {
-    const [r, g, b] = color.match(/\d+(\.\d+)?/g)!.slice(0, 3).map((v) => Number(v) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-  };
-  const [light, dark] = [luminance(fg), luminance(bg)].sort((a, b) => b - a);
-  return (light! + 0.05) / (dark! + 0.05);
-}
-
-const WCAG_AA = 4.5;
-
 test.describe('audit #51: highlighted text in dark mode', () => {
   test.use({ colorScheme: 'dark' });
 
@@ -231,7 +207,7 @@ test.describe('audit #51: highlighted text in dark mode', () => {
     for (const root of ROOTS) {
       const colors = await page.locator(`${root} mark`).evaluateAll((els) => els.map((el) => [getComputedStyle(el).color, getComputedStyle(el).backgroundColor]));
       expect(colors).toHaveLength(DEFAULTS.colors.highlight.length);
-      for (const [fg, bg] of colors) expect(contrast(fg!, bg!), `${root} ${fg} on ${bg}`).toBeGreaterThanOrEqual(WCAG_AA);
+      for (const [fg, bg] of colors) expect(contrast(fg!, bg!), `${root} ${fg} on ${bg}`).toBeGreaterThanOrEqual(WCAG_AA.text);
     }
   });
 });

@@ -1,12 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { clickControl, control, html, MOD, openEmpty } from './helpers';
-
-const pastePlainText = (page: Page, text: string) =>
-  page.evaluate((data) => {
-    const transfer = new DataTransfer();
-    transfer.setData('text/plain', data);
-    document.querySelector('#editor .ProseMirror')!.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }));
-  }, text);
+import { expect, test } from '@playwright/test';
+import { clickControl, control, html, MOD, openEmpty, paste } from './helpers';
 
 test.describe('code block lines (#12)', () => {
   test('code lines become paragraphs and selected lines one code block again', async ({ page }) => {
@@ -24,7 +17,7 @@ test.describe('code block lines (#12)', () => {
 
   test('a pasted multi-line snippet keeps its lines when turned into code', async ({ page }) => {
     await openEmpty(page);
-    await pastePlainText(page, 'function f() {\n  return 1;\n}');
+    await paste(page, { 'text/plain': 'function f() {\n  return 1;\n}' });
     await page.keyboard.press(`${MOD}+a`);
     await control(page, 'codeBlock').click();
     expect(await html(page)).toBe('<pre><code>function f() {\n  return 1;\n}</code></pre>');

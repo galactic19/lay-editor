@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
-import { control, html, MOD, openEmpty, panel } from './helpers';
+import { contrast, control, html, MOD, openEmpty, panel, WCAG_AA } from './helpers';
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -21,23 +21,6 @@ test('audit #34: the image panel file picker is focusable and opens the file dia
   await expect.poll(() => html(page)).toMatch(/<img src="\/__uploads\/\d+"/);
 });
 
-/** WCAG 2 contrast ratio of two colors given as `#rrggbb` or `rgb()`. */
-function contrast(a: string, b: string): number {
-  const luminance = (color: string): number => {
-    const hex = color.trim().match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-    const channels = hex ? hex.slice(1).map((part) => parseInt(part, 16)) : color.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number);
-    const [r, g, b] = channels.map((value) => {
-      const c = value / 255;
-      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-    });
-    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-  };
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (hi! + 0.05) / (lo! + 0.05);
-}
-
-const AA_TEXT = 4.5;
-const AA_NON_TEXT = 3;
 
 for (const theme of ['light', 'dark']) {
   test(`audit #65: selected menu items, field borders and code titles meet WCAG AA (${theme})`, async ({ page }) => {
@@ -51,8 +34,8 @@ for (const theme of ['light', 'dark']) {
       label: getComputedStyle(el.querySelector('.le-control-label')!).color,
       hint: getComputedStyle(el.querySelector('.le-control-hint')!).color,
     }));
-    expect(contrast(item.label, item.bg)).toBeGreaterThanOrEqual(AA_TEXT);
-    expect(contrast(item.hint, item.bg)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrast(item.label, item.bg)).toBeGreaterThanOrEqual(WCAG_AA.text);
+    expect(contrast(item.hint, item.bg)).toBeGreaterThanOrEqual(WCAG_AA.text);
 
     await page.keyboard.press('Escape');
     await page.keyboard.press(`${MOD}+f`);
@@ -60,13 +43,13 @@ for (const theme of ['light', 'dark']) {
       .locator('.le-input')
       .first()
       .evaluate((el) => ({ border: getComputedStyle(el).borderTopColor, bg: getComputedStyle(el.closest('.le-portal')!).backgroundColor }));
-    expect(contrast(field.border, field.bg)).toBeGreaterThanOrEqual(AA_NON_TEXT);
+    expect(contrast(field.border, field.bg)).toBeGreaterThanOrEqual(WCAG_AA.nonText);
 
     const code = await page.evaluate(() => {
       const style = getComputedStyle(window.__editor.root);
       return { title: style.getPropertyValue('--le-code-title'), bg: style.getPropertyValue('--le-color-code-bg') };
     });
-    expect(contrast(code.title, code.bg)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrast(code.title, code.bg)).toBeGreaterThanOrEqual(WCAG_AA.text);
   });
 }
 
@@ -90,7 +73,7 @@ test.describe('audit #32/#61: main toolbar tooltips', () => {
     const tip = page.getByText((await bold.getAttribute('data-tooltip'))!, { exact: true });
     await expect(tip).toBeVisible();
     const colors = await tip.evaluate((el) => ({ fg: getComputedStyle(el).color, bg: getComputedStyle(el).backgroundColor }));
-    expect(contrast(colors.fg, colors.bg)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrast(colors.fg, colors.bg)).toBeGreaterThanOrEqual(WCAG_AA.text);
   });
 
   test('a keyboard-focused control shows it too', async ({ page }) => {
