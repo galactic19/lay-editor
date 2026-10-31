@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { control, html, MOD, openEmpty, panel } from './helpers';
 
 const PNG = Buffer.from(
@@ -102,12 +102,17 @@ test.describe('audit #32/#61: main toolbar tooltips', () => {
   });
 });
 
-test('audit #33/#60: Alt+F10 reaches the table tools from the keyboard and Escape returns to the editor', async ({ page }, info) => {
-  const bar = page.locator(info.project.name.startsWith('mobile') ? '.le-mobile-bar:not([hidden])' : '.le-context-toolbar:not([hidden])');
+/** Loads a table followed by a paragraph; returns the bar that holds the table tools on this device and its first control. */
+async function withTable(page: Page, info: TestInfo): Promise<{ bar: Locator; first: Locator }> {
   await openEmpty(page);
   await page.evaluate(() => window.__editor.setHTML('<table><tr><td><p>a</p></td><td><p>b</p></td></tr></table><p>after</p>'));
+  const bar = page.locator(info.project.name.startsWith('mobile') ? '.le-mobile-bar:not([hidden])' : '.le-context-toolbar:not([hidden])');
+  return { bar, first: bar.locator('[data-item="tableAddRowAfter"]') };
+}
+
+test('audit #33/#60: Alt+F10 reaches the table tools from the keyboard and Escape returns to the editor', async ({ page }, info) => {
+  const { bar, first } = await withTable(page, info);
   await page.click('#editor td >> nth=1');
-  const first = bar.locator('[data-item="tableAddRowAfter"]');
   await expect(first).toBeVisible();
   await page.keyboard.press('Alt+F10');
   await expect(first).toBeFocused();
@@ -120,4 +125,14 @@ test('audit #33/#60: Alt+F10 reaches the table tools from the keyboard and Escap
   await page.keyboard.press('Escape');
   await expect(page.locator('#editor .ProseMirror')).toBeFocused();
   await expect(bar).toBeVisible();
+});
+
+test('audit #33/#60 review: Alt+F10 pressed right after the caret moves into the table reaches the table tools', async ({ page }, info) => {
+  const { first } = await withTable(page, info);
+  await page.click('#editor p >> text=after');
+  await page.keyboard.press('Home');
+  // No wait between the keys: the caret move and Alt+F10 land in the same frame.
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Alt+F10');
+  await expect(first).toBeFocused();
 });

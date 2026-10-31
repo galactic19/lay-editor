@@ -250,6 +250,20 @@ describe('audit a11y #33/#60: the context toolbar works from the keyboard', () =
     expect(ed.view.hasFocus()).toBe(true);
   });
 
+  it.each([
+    ['a selection the UI has not drawn yet', (ed: Editor) => ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, findText(ed, 'b'))))],
+    ['a DOM selection the editor has not read yet', (ed: Editor) => document.getSelection()!.collapse(ed.view.dom.querySelectorAll('td p')[1]!.firstChild, 0)],
+  ])('Alt+F10 pressed in the same frame as the move into the table reaches the table tools (%s)', (_, moveIntoTable) => {
+    const ed = makeEditor({ content: TABLE });
+    ed.focus();
+    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, findText(ed, 'after'))));
+    ed.ui!.flush();
+    expect(contextBar().hidden).toBe(true);
+    moveIntoTable(ed);
+    expect(press(ed, 'Alt-F10')).toBe(true);
+    expect(document.activeElement).toBe(items()[0]);
+  });
+
   it('Alt+F10 in plain text moves to the main toolbar', () => {
     const ed = makeEditor({ content: '<p>a</p>' });
     ed.focus();

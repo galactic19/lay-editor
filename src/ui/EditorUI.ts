@@ -85,8 +85,14 @@ export class EditorUI {
   /**
    * Alt+F10: moves focus to the floating toolbar next to the selection (context toolbar or
    * bubble), else the main toolbar. False when no toolbar is showing; `dryRun` only checks.
+   * A real run first applies a selection change the editor or the UI has not caught up with,
+   * so a key pressed in the same frame as the caret move reaches the toolbar for the new selection.
    */
   focusToolbar(dryRun = false): boolean {
+    if (!dryRun) {
+      this.editor.syncSelection();
+      this.batch.flush();
+    }
     const stop = this.modeComponents.map((component) => component.tabStop()).find(Boolean);
     if (stop && !dryRun) stop.focus();
     return Boolean(stop);
