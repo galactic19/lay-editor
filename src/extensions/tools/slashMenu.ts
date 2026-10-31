@@ -27,6 +27,8 @@ export function slashItems(editor: Editor): UIItem[] {
   return all.filter((item) => item.slash);
 }
 
+const WHITESPACE = /\s/;
+
 export function filterSlashItems(items: UIItem[], query: string, t: Translate): UIItem[] {
   const needle = query.trim().toLowerCase();
   const matches = (item: UIItem): boolean =>
@@ -63,7 +65,7 @@ function opened(state: EditorState): SlashState | null {
   return before.endsWith(trigger) && atBoundary ? { active: true, from: $from.pos - trigger.length, query: '', index: 0 } : null;
 }
 
-/** Keeps an open menu while the cursor stays after the trigger in the same block. */
+/** Keeps an open menu while the cursor stays after the trigger in the same block and the query has no space. */
 function continued(prev: SlashState, tr: Transaction, state: EditorState): SlashState {
   const from = tr.mapping.map(prev.from);
   const { $from, empty } = state.selection;
@@ -72,6 +74,8 @@ function continued(prev: SlashState, tr: Transaction, state: EditorState): Slash
   const text = state.doc.textBetween(from, $from.pos, undefined, LEAF_CHAR);
   if (!text.startsWith(trigger) || text.includes(LEAF_CHAR)) return INACTIVE;
   const query = text.slice(trigger.length);
+  // A space means the user is typing prose ("A / B"), not naming a block.
+  if (WHITESPACE.test(query)) return INACTIVE;
   return { active: true, from, query, index: query === prev.query ? prev.index : 0 };
 }
 
@@ -87,12 +91,7 @@ export const slashMenu = defineExtension({
           const meta = tr.getMeta(slashKey) as SlashMeta | undefined;
           if (meta?.type === 'close') return INACTIVE;
           if (meta?.type === 'index') return { ...prev, index: meta.index };
-          if (prev.active) {
-            const next = continued(prev, tr, state);
-            // A query with a space that matches nothing means the user is just typing prose.
-            const abandoned = next.active && /\s/.test(next.query) && !filterSlashItems(slashItems(editor), next.query, editor.t).length;
-            return abandoned ? INACTIVE : next;
-          }
+          if (prev.active) return continued(prev, tr, state);
           return tr.docChanged ? (opened(state) ?? INACTIVE) : INACTIVE;
         },
       },

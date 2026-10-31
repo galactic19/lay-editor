@@ -1,6 +1,8 @@
 import { DOMParser as PMDOMParser, Fragment, Slice } from 'prosemirror-model';
 import { Plugin } from 'prosemirror-state';
 import { EditorError } from '../../core/errors';
+import { fillContainerStarts } from '../../io/html';
+import { withDocument } from '../../io/paste/dom';
 import { PastePipeline } from '../../io/paste/pipeline';
 import { cleanHwp } from '../../io/paste/cleaners/cleanHwp';
 import { cleanWord } from '../../io/paste/cleaners/cleanWord';
@@ -28,7 +30,8 @@ const htmlToText = (html: string): string => new window.DOMParser().parseFromStr
 export const clipboard = defineExtension({
   name: 'clipboard',
   plugins: ({ editor, schema }) => {
-    const pipeline = new PastePipeline([...BUILT_IN_CLEANERS, ...editor.manager.pasteCleaners()]);
+    const keepContainers = (html: string): string => withDocument(html, (doc) => fillContainerStarts(doc.body, schema));
+    const pipeline = new PastePipeline([...BUILT_IN_CLEANERS, ...editor.manager.pasteCleaners(), keepContainers]);
     const parser = PMDOMParser.fromSchema(schema);
     return [
       new Plugin({

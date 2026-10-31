@@ -2,11 +2,11 @@ import { chainCommands } from 'prosemirror-commands';
 import { InputRule, wrappingInputRule } from 'prosemirror-inputrules';
 import type { Node as PMNode, NodeType, Schema } from 'prosemirror-model';
 import { liftListItem, sinkListItem, splitListItem, wrapInList } from 'prosemirror-schema-list';
-import type { Command, Transaction } from 'prosemirror-state';
-import { findWrapping } from 'prosemirror-transform';
+import type { Command } from 'prosemirror-state';
+import { findWrapping, StepMap } from 'prosemirror-transform';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import type { Editor } from '../../core/Editor';
-import { findParent } from '../../core/state-utils';
+import { findParent, type FoundNode } from '../../core/state-utils';
 import type { UIItem } from '../../core/types';
 import { c } from '../../ui/classes';
 import { commandName, defineExtension } from '../factories';
@@ -18,14 +18,20 @@ const LIST_NAMES = Object.keys(ITEM_OF) as ListName[];
 const isList = (node: PMNode): boolean => node.type.name in ITEM_OF;
 export const listItemTypes = (schema: Schema): NodeType[] => [schema.nodes.listItem!, schema.nodes.taskItem!];
 
-/** Runs `first`, then `second` on the resulting state, as one transaction. */
-function sequence(first: Command, second: Command): Command {
+/**
+ * Rebuilds the whole list as `listType` with every item as `itemType` (a nested list included).
+ * Item content and sizes stay the same, so the selection keeps its positions.
+ */
+function retypeList(list: FoundNode, listType: NodeType, itemType: NodeType): Command {
   return (state, dispatch) => {
-    let tr: Transaction | null = null;
-    if (!first(state, (t) => (tr = t))) return false;
-    const combined = tr as unknown as Transaction;
-    if (!second(state.apply(combined), (t) => t.steps.forEach((step) => combined.step(step)))) return false;
-    dispatch?.(combined.scrollIntoView());
+    const $list = state.doc.resolve(list.pos);
+    if (!$list.parent.canReplaceWith($list.index(), $list.index() + 1, listType)) return false;
+    if (dispatch) {
+      const items: PMNode[] = [];
+      list.node.forEach((item) => items.push(itemType.create(null, item.content, item.marks)));
+      const tr = state.tr.replaceWith(list.pos, list.pos + list.node.nodeSize, listType.create(null, items));
+      dispatch(tr.setSelection(state.selection.map(tr.doc, StepMap.empty)).scrollIntoView());
+    }
     return true;
   };
 }
@@ -43,7 +49,7 @@ export function toggleList(schema: Schema, listName: ListName): Command {
       dispatch?.(state.tr.setNodeMarkup(current.pos, listType));
       return true;
     }
-    return sequence(liftListItem(currentItem), wrapInList(listType))(state, dispatch);
+    return retypeList(current, listType, itemType)(state, dispatch);
   };
 }
 

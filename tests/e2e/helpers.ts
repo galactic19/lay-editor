@@ -23,3 +23,11 @@ export const control = (page: Page, id: string) =>
 
 /** The open panel: a dropdown on desktop, a bottom sheet on mobile. */
 export const panel = (page: Page) => page.locator('.le-dropdown, .le-sheet');
+
+/** Clicks a toolbar control, through the desktop toolbar's "more" menu when the control has overflowed into it. */
+export async function clickControl(page: Page, id: string): Promise<void> {
+  const target = control(page, id);
+  if (await target.isVisible()) return target.click();
+  await page.locator('#editor .le-toolbar [data-item="more"]').click();
+  await panel(page).locator(`[data-item="${id}"]`).click();
+}

@@ -89,7 +89,7 @@ createEditor({
 |---|---|---|
 | `image` | `maxSize`, `accept`, `widths`, `aligns` | 10MB, png/jpeg/gif/webp, `[25, 50, 75, 100]`, `['left','center','right']` |
 | `video` | `providers` | `['youtube', 'vimeo']` |
-| `codeBlock` | `languages`, `indent` | 10개 언어, 공백 2칸 |
+| `codeBlock` | `languages`, `indent`, `exitBlankLines` | 10개 언어, 공백 2칸, 빈 줄 2개(끝의 빈 줄이 이만큼일 때 Enter로 블록을 나감, `0`처럼 양의 정수가 아니면 끔) |
 | `colors` | `text`, `highlight` | 각 10색 |
 | `table` | `maxGrid`, `mobileMaxGrid`, `defaultRows`, `defaultCols`, `cellColors` | 10, 6, 3, 3, 배경색 팔레트 |
 | `autosave` | `key`, `debounce` | 없음(꺼짐), 1000ms |
@@ -165,6 +165,7 @@ off(); // 구독 해제
 ```
 
 - `content.css`는 에디터 화면과 같은 모양으로 본문을 보여줍니다. 에디터 UI 스타일은 들어 있지 않습니다.
+- 연속된 공백과 줄 앞뒤의 공백은 `&nbsp;`와 번갈아 저장됩니다(예: `a &nbsp; &nbsp;b`). 그래서 다시 불러와도, 보기 페이지에서도 입력한 공백이 그대로 보입니다. 다시 불러올 때는 이런 `&nbsp;`를 일반 공백으로 되돌리므로, 끝에 남긴 공백 뒤에 이어 쓴 단어도 찾기에 걸립니다. 단어 사이에 홀로 있는 `&nbsp;`(예: `10&nbsp;km`)는 그대로 둡니다.
 - 다크 모드는 `<div class="le-prose" data-theme="dark">`처럼 지정합니다.
 
 > **보안 주의.** 에디터는 입력과 출력을 모두 허용 목록 기준으로 정제하지만, 클라이언트 정제는 서버 정제를 대신하지 못합니다. 요청은 에디터를 거치지 않고도 만들 수 있기 때문입니다. 서버에서도 허용 목록 기반 정제를 하세요(예: DOMPurify, bleach, OWASP Java HTML Sanitizer). 브라우저에서 한 번 더 정제하려면 `sanitizeHTML(html)`을 쓸 수 있습니다.
@@ -325,5 +326,6 @@ createEditor({ element: '#editor', extensions: [mention], toolbar: ['bold', 'men
 | 정렬 왼쪽 / 가운데 / 오른쪽 / 양쪽 | Ctrl+Shift+L / E / R / J | ⌘⇧L / E / R / J |
 | 찾기와 바꾸기 | Ctrl+F | ⌘F |
 | 줄바꿈 (문단 나누지 않음) | Shift+Enter | ⇧↩ |
+| 코드 블록 나가기 | Ctrl+Enter, 블록 끝에서 ↓ / →, 끝의 빈 줄 두 개에서 Enter | ⌘↩, 블록 끝에서 ↓ / →, 끝의 빈 줄 두 개에서 ↩ |
 
 마크다운식 입력: `# `~`#### ` 제목, `- ` 글머리 목록, `1. ` 번호 목록, `[] `·`[x] ` 체크리스트, `> ` 인용, ```` ``` ```` + 언어 + 공백 코드블록, `---` 구분선, `**굵게**`, `*기울임*`, `~~취소선~~`, `` `코드` ``, URL 뒤 공백 자동 링크, `/` 블록 삽입 메뉴.

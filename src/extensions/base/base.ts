@@ -11,7 +11,8 @@ export const base = defineExtension({
     doc: { content: 'block+' },
     paragraph: { group: 'block', content: 'inline*', parseDOM: [{ tag: 'p' }], toDOM: () => ['p', 0] },
     text: { group: 'inline' },
-    hardBreak: { inline: true, group: 'inline', selectable: false, parseDOM: [{ tag: 'br' }], toDOM: () => ['br'] },
+    // linebreakReplacement: block type changes turn breaks into code newlines and back instead of dropping them.
+    hardBreak: { inline: true, group: 'inline', selectable: false, linebreakReplacement: true, parseDOM: [{ tag: 'br' }], toDOM: () => ['br'] },
   },
   commands: ({ schema }) => {
     const insertBreak: Command = (state, dispatch) => {

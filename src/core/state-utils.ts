@@ -4,6 +4,9 @@ import { NodeSelection, type EditorState } from 'prosemirror-state';
 /** Stand-in character for inline leaf nodes (images, breaks) when reading block text. */
 export const LEAF_CHAR = '\ufffc';
 
+/** A line break as text: a code block's line separator and a hard break when reading block text. */
+export const NEWLINE = '\n';
+
 export function attrsMatch(actual: Attrs, expected?: Attrs | null): boolean {
   if (!expected) return true;
   return Object.entries(expected).every(([key, value]) => actual[key] === value);
