@@ -54,6 +54,17 @@ describe('setLocale keeps the runtime theme (#3, #63)', () => {
     expect(themes()).toEqual(every('light'));
   });
 
+  it('a showing toast (a body portal since the floating fixes) follows setTheme() and the OS scheme', () => {
+    const ed = makeEditor({ theme: 'auto' });
+    ed.ui!.toaster.show('saved');
+    const region = document.querySelector<HTMLElement>('.le-toasts')!;
+    expect(region.dataset.theme).toBe('light');
+    setMedia('(prefers-color-scheme: dark)', true);
+    expect(region.dataset.theme).toBe('dark');
+    ed.setTheme('light');
+    expect(region.dataset.theme).toBe('light');
+  });
+
   it('React: a locale prop change keeps the current theme prop', () => {
     const { ref, rerender, unmount } = mountReact({ theme: 'light', locale: 'ko' });
     rerender({ theme: 'dark', locale: 'ko' });

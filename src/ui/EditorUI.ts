@@ -182,6 +182,7 @@ export class EditorUI {
   /** Portals copy the root's theme only when they update, so repaint them now rather than on the next transaction. */
   private syncTheme(): void {
     this.panels.syncTheme();
+    this.toaster.place();
     this.flush();
   }
 
