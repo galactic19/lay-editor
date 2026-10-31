@@ -297,6 +297,7 @@ createEditor({ element: '#editor', extensions: [mention], toolbar: ['bold', 'men
 - 확장 하나가 스키마, 명령, 단축키(`keymap`), 입력 규칙(`inputRules`), 플러그인, UI 항목, 컴포넌트를 선언합니다.
 - 글자 서식처럼 단순한 기능은 `markExtension`, 문단 단위는 `blockExtension`을 쓰면 한 번에 생성됩니다.
 - 사용자 확장의 노드도 `sanitizeHTML(html, { extensions: [mention] })`로 정제할 수 있습니다.
+- `registerIcon`의 SVG 문자열은 HTML 페이지에 넣은 SVG처럼 해석합니다(xmlns 생략, 닫히지 않은 태그 허용). `<svg>`가 없으면 콘솔 경고와 함께 기본 아이콘을 씁니다.
 
 ## 12. 단축키
 

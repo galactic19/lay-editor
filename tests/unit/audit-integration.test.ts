@@ -6,6 +6,8 @@ import { LayEditor as VueLayEditor } from '../../src/adapters/vue';
 import { Editor } from '../../src/core/Editor';
 import type { LocaleInput, ThemeMode } from '../../src/core/types';
 import { makeEditor } from '../helpers/editor';
+import { DEFAULT_ICONS } from '../../src/ui/icon-set';
+import { FALLBACK_ICON, registerIcon, renderIcon } from '../../src/ui/icons';
 import { setMedia } from '../setup';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -114,5 +116,50 @@ describe('an inline locale object does not rebuild the UI on every render (#71)'
     await nextTick();
     expect(setLocale).toHaveBeenCalledTimes(1);
     unmount();
+  });
+});
+
+describe('registerIcon with markup that is not well-formed XML (#57)', () => {
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const isCleanSvg = (svg: Element) => svg.localName === 'svg' && svg.namespaceURI === SVG_NS && !svg.querySelector('parsererror');
+
+  it('renders SVG copied from an HTML page like the page did (unclosed tags, BOM, &nbsp;, unquoted attributes)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const cases = {
+      unclosed: '<svg viewBox="0 0 24 24"><path d="M6 4h8"><path d="M6 12h9"></svg>',
+      bom: '﻿<?xml version="1.0"?>\n<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg>',
+      entity: '<svg viewBox="0 0 24 24"><title>a&nbsp;b</title><rect width=24 height=24 /></svg>',
+    };
+    for (const [name, markup] of Object.entries(cases)) {
+      registerIcon(`audit-${name}`, markup);
+      const svg = renderIcon(`audit-${name}`);
+      expect(isCleanSvg(svg), name).toBe(true);
+      expect(svg.querySelector('path, circle, rect')!.namespaceURI, name).toBe(SVG_NS);
+      expect(svg.getAttribute('viewBox'), name).toBe('0 0 24 24');
+    }
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('warns once and uses the fallback icon when the markup has no <svg>', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    registerIcon('audit-broken', '<div>not an icon</div>');
+    const svg = renderIcon('audit-broken');
+    renderIcon('audit-broken');
+    expect(isCleanSvg(svg)).toBe(true);
+    expect(svg.outerHTML).toBe(renderIcon(FALLBACK_ICON).outerHTML);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toContain('"audit-broken"');
+  });
+
+  it('the toolbar button holds the icon, not a parser error page', () => {
+    registerIcon('bold', '<svg viewBox="0 0 24 24"><path d="M6 4h8"><path d="M6 12h9"></svg>');
+    try {
+      const ed = makeEditor({ toolbar: ['bold'] });
+      const icon = ed.root.querySelector('[data-item="bold"]')!.firstElementChild!;
+      expect(isCleanSvg(icon)).toBe(true);
+      expect(icon.classList.contains('le-icon')).toBe(true);
+    } finally {
+      registerIcon('bold', DEFAULT_ICONS.bold!);
+    }
   });
 });
