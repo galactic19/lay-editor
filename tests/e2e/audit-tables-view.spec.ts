@@ -138,3 +138,25 @@ test('audit #15: the view page stacks nested task lists and extra paragraphs lik
     expect(Math.abs(view[text]!.top - editor[text]!.top), `${text} top`).toBeLessThanOrEqual(1);
   }
 });
+
+const LISTS = '<ul><li><p>bullet</p><ul><li><p>nested</p></li></ul></li></ul><ol><li><p>number</p></li></ol><ul data-type="taskList"><li data-checked="false"><p>task</p></li></ul>';
+const MARKERS = { 'ul:not([data-type])': 'disc', 'ul ul': 'circle', ol: 'decimal', "ul[data-type='taskList']": 'none' };
+const RESETS = {
+  'Tailwind v3 preflight': 'ol, ul, menu { list-style: none; margin: 0; padding: 0; }',
+  'Tailwind v4 preflight (layered)': '@layer base { ol, ul, menu { list-style: none; margin: 0; padding: 0; } }',
+};
+
+for (const [name, reset] of Object.entries(RESETS)) {
+  test(`audit #50: list markers survive a CSS reset (${name})`, async ({ page }) => {
+    await openEmpty(page);
+    await page.addStyleTag({ content: reset });
+    await page.evaluate((content) => window.__editor.setHTML(content), LISTS);
+    await renderViewPage(page, LISTS);
+    for (const root of ['#editor .ProseMirror', '#view-page']) {
+      for (const [selector, type] of Object.entries(MARKERS)) {
+        const actual = await page.locator(`${root} ${selector}`).first().evaluate((el) => getComputedStyle(el).listStyleType);
+        expect(actual, `${root} ${selector}`).toBe(type);
+      }
+    }
+  });
+}
