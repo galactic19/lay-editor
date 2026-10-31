@@ -3,7 +3,7 @@ import { keymap } from 'prosemirror-keymap';
 import type { Command } from 'prosemirror-state';
 import { defineExtension } from '../factories';
 
-/** doc, paragraph, text and hard breaks plus ProseMirror's base keymap (lowest priority). */
+/** doc, paragraph, text and hard breaks, Alt+F10 to the toolbar, plus ProseMirror's base keymap (lowest priority). */
 export const base = defineExtension({
   name: 'base',
   priority: 0,
@@ -13,13 +13,16 @@ export const base = defineExtension({
     text: { group: 'inline' },
     hardBreak: { inline: true, group: 'inline', selectable: false, parseDOM: [{ tag: 'br' }], toDOM: () => ['br'] },
   },
-  commands: ({ schema }) => {
+  commands: ({ schema, editor }) => {
     const insertBreak: Command = (state, dispatch) => {
       dispatch?.(state.tr.replaceSelectionWith(schema.nodes.hardBreak!.create()).scrollIntoView());
       return true;
     };
-    return { insertHardBreak: () => chainCommands(exitCode, insertBreak) };
+    return {
+      insertHardBreak: () => chainCommands(exitCode, insertBreak),
+      focusToolbar: (): Command => (_state, dispatch) => Boolean(editor.ui?.focusToolbar(!dispatch)),
+    };
   },
-  keymap: () => ({ 'Shift-Enter': 'insertHardBreak', 'Mod-Enter': 'insertHardBreak' }),
+  keymap: () => ({ 'Shift-Enter': 'insertHardBreak', 'Mod-Enter': 'insertHardBreak', 'Alt-F10': 'focusToolbar' }),
   plugins: () => [keymap(baseKeymap)],
 });

@@ -11,9 +11,13 @@ test('audit #34: the image panel file picker is focusable and opens the file dia
   await control(page, 'image').click();
   const picker = panel(page).locator('.le-file-button');
   await expect(picker).toBeFocused();
-  const chooser = page.waitForEvent('filechooser');
+  // Record that Enter asks the hidden input for the native file dialog. Playwright's
+  // 'filechooser' event is skipped here: under load it intermittently never arrives.
+  const input = panel(page).locator('input[type="file"]');
+  await input.evaluate((el) => el.addEventListener('click', () => (el.dataset.opened = 'true'), { once: true }));
   await page.keyboard.press('Enter');
-  await (await chooser).setFiles({ name: 'dot.png', mimeType: 'image/png', buffer: PNG });
+  await expect(input).toHaveAttribute('data-opened', 'true');
+  await input.setInputFiles({ name: 'dot.png', mimeType: 'image/png', buffer: PNG });
   await expect.poll(() => html(page)).toMatch(/<img src="\/__uploads\/\d+"/);
 });
 
@@ -96,4 +100,24 @@ test.describe('audit #32/#61: main toolbar tooltips', () => {
     await expect(page.locator('#editor .le-toolbar [data-item="undo"]')).toBeFocused();
     await expect.poll(async () => (await underControl(page, 'undo')).equals(before)).toBe(false);
   });
+});
+
+test('audit #33/#60: Alt+F10 reaches the table tools from the keyboard and Escape returns to the editor', async ({ page }, info) => {
+  const bar = page.locator(info.project.name.startsWith('mobile') ? '.le-mobile-bar:not([hidden])' : '.le-context-toolbar:not([hidden])');
+  await openEmpty(page);
+  await page.evaluate(() => window.__editor.setHTML('<table><tr><td><p>a</p></td><td><p>b</p></td></tr></table><p>after</p>'));
+  await page.click('#editor td >> nth=1');
+  const first = bar.locator('[data-item="tableAddRowAfter"]');
+  await expect(first).toBeVisible();
+  await page.keyboard.press('Alt+F10');
+  await expect(first).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(bar.locator('[data-item="tableAddColumnAfter"]')).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#editor tr')).toHaveCount(2);
+  await expect(first).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#editor .ProseMirror')).toBeFocused();
+  await expect(bar).toBeVisible();
 });

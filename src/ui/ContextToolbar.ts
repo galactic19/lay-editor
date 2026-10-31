@@ -36,13 +36,13 @@ export class ContextToolbar extends UIComponent<HTMLDivElement> {
     const items = context === 'text' || yields ? [] : contextOnlyItems(this.ui.registry, context);
     const anchor = items.length && this.hasFocusWithin() && this.ui.device.mode === 'desktop' ? contextAnchor(this.editor.view, context) : null;
     if (!anchor) {
-      this.el.hidden = true;
+      this.setVisible(false);
       return;
     }
-    if (context !== this.context || items.length !== this.controls.length) this.rebuild(context, items);
+    if (context !== this.context || items.length !== this.controls.length) this.keepingFocus(() => this.rebuild(context, items));
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
     this.el.dataset.theme = this.editor.root.dataset.theme;
-    this.el.hidden = false;
+    this.setVisible(true);
     void placeFloating(anchor, this.el, 'top', 'toolbar');
   }
 

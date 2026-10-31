@@ -17,14 +17,20 @@ export class RovingFocus {
     this.refresh();
   }
 
+  /** Re-reads the items. Only items hidden inside the group are skipped: the group itself may still be hidden while it is built. */
   refresh(): void {
-    this.items = Array.from(this.container.querySelectorAll<HTMLElement>(this.selector)).filter((el) => !el.closest('[hidden]'));
+    this.items = Array.from(this.container.querySelectorAll<HTMLElement>(this.selector)).filter((el) => !this.hiddenInside(el));
     const current = this.items.findIndex((el) => el.tabIndex === 0);
     this.items.forEach((el, i) => (el.tabIndex = i === Math.max(0, current) ? 0 : -1));
   }
 
   destroy(): void {
     this.container.removeEventListener('keydown', this.onKeyDown);
+  }
+
+  private hiddenInside(el: HTMLElement): boolean {
+    for (let node: HTMLElement | null = el; node && node !== this.container; node = node.parentElement) if (node.hidden) return true;
+    return false;
   }
 
   private handleKey(event: KeyboardEvent): void {

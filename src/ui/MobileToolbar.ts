@@ -45,14 +45,14 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
 
   override update(): void {
     if (!this.hasFocusWithin()) {
-      this.el.hidden = true;
+      this.setVisible(false);
       return;
     }
     const context = this.ui.getContext();
-    if (context !== this.context) this.rebuild(context);
+    if (context !== this.context) this.keepingFocus(() => this.rebuild(context));
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
     this.el.dataset.theme = this.editor.root.dataset.theme;
-    this.el.hidden = false;
+    this.setVisible(true);
     this.place();
   }
 

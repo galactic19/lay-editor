@@ -82,6 +82,16 @@ export class EditorUI {
     return resolveContext(this.editor.state);
   }
 
+  /**
+   * Alt+F10: moves focus to the floating toolbar next to the selection (context toolbar or
+   * bubble), else the main toolbar. False when no toolbar is showing; `dryRun` only checks.
+   */
+  focusToolbar(dryRun = false): boolean {
+    const stop = this.modeComponents.map((component) => component.tabStop()).find(Boolean);
+    if (stop && !dryRun) stop.focus();
+    return Boolean(stop);
+  }
+
   /** Whether an item is temporarily unavailable regardless of state (e.g. while editing source). */
   isLocked(item: UIItem): boolean {
     const except = this.editor.root.dataset.lockedExcept;
@@ -118,7 +128,8 @@ export class EditorUI {
     }
     this.toolbar = new Toolbar(this.editor, this, this.entries);
     this.slots.top.prepend(this.toolbar.el);
-    this.modeComponents = [this.toolbar, new ContextToolbar(this.editor, this), new BubbleMenu(this.editor, this)];
+    // In focusToolbar() order: the floating toolbars next to the selection come first.
+    this.modeComponents = [new ContextToolbar(this.editor, this), new BubbleMenu(this.editor, this), this.toolbar];
     this.toolbar.layout();
   }
 

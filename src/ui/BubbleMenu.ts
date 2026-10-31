@@ -57,12 +57,12 @@ export class BubbleMenu extends UIComponent<HTMLDivElement> {
 
   override update(): void {
     if (this.pointerDown || !this.hasFocusWithin() || !BubbleMenu.wanted(this.editor, this.ui)) {
-      this.el.hidden = true;
+      this.setVisible(false);
       return;
     }
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
     this.el.dataset.theme = this.editor.root.dataset.theme;
-    this.el.hidden = false;
+    this.setVisible(true);
     const { from, to } = this.editor.state.selection;
     void placeFloating(rangeReference(this.editor.view, from, to), this.el, 'top', 'toolbar');
   }

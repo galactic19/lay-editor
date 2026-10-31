@@ -1,8 +1,9 @@
-import { AllSelection } from 'prosemirror-state';
+import { AllSelection, TextSelection } from 'prosemirror-state';
 import type { Editor } from '../../src/core/Editor';
 import { findKey } from '../../src/extensions/tools/findReplace';
+import { h } from '../../src/ui/dom';
 import { focusables } from '../../src/ui/focus';
-import { makeEditor, press, selectText, typeText } from '../helpers/editor';
+import { findText, flushPromises, makeEditor, press, selectText, typeText } from '../helpers/editor';
 import { setMedia, triggerResize } from '../setup';
 
 const toolbarControl = (ed: Editor, id: string): HTMLButtonElement => ed.root.querySelector<HTMLButtonElement>(`.le-toolbar [data-item="${id}"]`)!;
@@ -202,5 +203,84 @@ describe('audit a11y #32/#61: toolbar tooltips are drawn outside the clipping to
     expect(document.querySelectorAll('.le-tooltip')).toHaveLength(1);
     ed.destroy();
     expect(tooltip()).toBeNull();
+  });
+});
+
+describe('audit a11y #33/#60: the context toolbar works from the keyboard', () => {
+  const TABLE = '<table><tbody><tr><td><p>a</p></td><td><p>b</p></td></tr></tbody></table><p>after</p>';
+  const contextBar = (): HTMLElement => document.querySelector<HTMLElement>('.le-context-toolbar')!;
+  const items = (): HTMLButtonElement[] => Array.from(contextBar().querySelectorAll<HTMLButtonElement>('.le-control'));
+  const key = (key: string): boolean => document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+
+  function inTable(): Editor {
+    const ed = makeEditor({ content: TABLE });
+    ed.focus();
+    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, findText(ed, 'b'))));
+    ed.ui!.flush();
+    expect(contextBar().hidden).toBe(false);
+    return ed;
+  }
+
+  it('has a single tab stop', () => {
+    inTable();
+    expect(items().map((el) => el.tabIndex).filter((index) => index === 0)).toHaveLength(1);
+  });
+
+  it('Alt+F10 moves focus into it, arrows move inside, Escape returns to the editor', async () => {
+    const ed = inTable();
+    expect(press(ed, 'Alt-F10')).toBe(true);
+    expect(document.activeElement).toBe(items()[0]);
+    key('ArrowRight');
+    expect(document.activeElement).toBe(items()[1]);
+    await flushPromises();
+    expect(contextBar().hidden).toBe(false);
+    key('Escape');
+    expect(ed.view.hasFocus()).toBe(true);
+    ed.ui!.flush();
+    expect(contextBar().hidden).toBe(false);
+  });
+
+  it('hides when focus leaves it, and hands focus back to the editor when its context goes away', async () => {
+    const ed = inTable();
+    press(ed, 'Alt-F10');
+    await flushPromises();
+    expect(contextBar().contains(document.activeElement)).toBe(true);
+    document.body.appendChild(h('button')).focus();
+    await flushPromises();
+    expect(contextBar().hidden).toBe(true);
+    ed.focus();
+    ed.ui!.flush();
+    press(ed, 'Alt-F10');
+    const remove = contextBar().querySelector<HTMLButtonElement>('[data-item="tableDelete"]')!;
+    remove.focus();
+    remove.click();
+    ed.ui!.flush();
+    expect(contextBar().hidden).toBe(true);
+    expect(ed.view.hasFocus()).toBe(true);
+  });
+
+  it('Alt+F10 in plain text moves to the main toolbar', () => {
+    const ed = makeEditor({ content: '<p>a</p>' });
+    ed.focus();
+    ed.ui!.flush();
+    expect(press(ed, 'Alt-F10')).toBe(true);
+    expect(document.activeElement).toBe(toolbarControl(ed, 'undo'));
+  });
+});
+
+describe('audit a11y #33/#60: keyboard focus survives a mobile bar rebuild', () => {
+  it('moves focus to the new tab stop when the focused control is rebuilt away', () => {
+    setMedia('(pointer: coarse)', true);
+    const ed = makeEditor({ content: '<table><tbody><tr><td><p>a</p></td></tr></tbody></table>' });
+    ed.focus();
+    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, findText(ed, 'a'))));
+    ed.ui!.flush();
+    expect(press(ed, 'Alt-F10')).toBe(true);
+    const bar = document.querySelector<HTMLElement>('.le-mobile-bar')!;
+    bar.querySelector<HTMLButtonElement>('[data-item="tableDelete"]')!.click();
+    ed.ui!.flush();
+    expect(bar.hidden).toBe(false);
+    expect(bar.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement!.getAttribute('tabindex')).toBe('0');
   });
 });
