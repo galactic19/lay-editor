@@ -1,7 +1,7 @@
 import type { Editor } from '../core/Editor';
 import { UI_CONTEXTS, type UIItem } from '../core/types';
 import { c } from './classes';
-import { createControl, createSeparator, syncControl } from './controls';
+import { createControl, createSeparator, syncControl, syncMenuControl } from './controls';
 import { h } from './dom';
 import type { EditorUI } from './EditorUI';
 import { listPanel } from './panels/listPanel';
@@ -54,6 +54,7 @@ export class Toolbar extends UIComponent<HTMLDivElement> {
 
   override update(): void {
     for (const { item, el } of this.controls) syncControl(el, item, this.editor, this.ui);
+    syncMenuControl(this.more, this.overflow, this.editor, this.ui);
   }
 
   /**
@@ -77,6 +78,7 @@ export class Toolbar extends UIComponent<HTMLDivElement> {
       const lastVisible = children.filter((el) => !el.hidden).pop();
       if (lastVisible?.classList.contains(c('separator'))) lastVisible.hidden = true;
     }
+    syncMenuControl(this.more, this.overflow, this.editor, this.ui);
     this.roving.refresh();
   }
 }

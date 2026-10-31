@@ -2,6 +2,7 @@ import { TextSelection } from 'prosemirror-state';
 import type { Editor } from '../../src/core/Editor';
 import { DEFAULTS } from '../../src/core/defaults';
 import { findText, flushPromises, makeEditor } from '../helpers/editor';
+import { triggerResize } from '../setup';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 const OTHER_PNG = 'data:image/png;base64,iVBORw0KGgo=';
@@ -192,6 +193,46 @@ describe('audit #9: read-only mode with the source view open', () => {
     expect(source(ed)!.readOnly).toBe(true);
     ed.setEditable(true);
     expect(source(ed)!.readOnly).toBe(false);
+  });
+});
+
+describe('audit #9: the toolbar more menu follows its items', () => {
+  const TOOLBAR = ['bold', 'italic', 'underline', 'strike', 'code', 'sourceView'];
+  const BAR_WIDTH = 200;
+  const CONTROL_WIDTH = 40;
+
+  /** Leaves the toolbar room for five controls (the more button included); the rest go into the more menu. */
+  function narrowToolbar(ed: Editor): HTMLButtonElement {
+    const bar = ed.root.querySelector<HTMLElement>('.le-toolbar')!;
+    const visible = () => Array.from(bar.children).filter((el) => !(el as HTMLElement).hidden).length;
+    Object.defineProperty(bar, 'clientWidth', { configurable: true, get: () => BAR_WIDTH });
+    Object.defineProperty(bar, 'scrollWidth', { configurable: true, get: () => visible() * CONTROL_WIDTH });
+    triggerResize();
+    return bar.querySelector<HTMLButtonElement>('[data-item="more"]')!;
+  }
+
+  it('stays usable to leave the source view after a UI rebuild in read-only mode', () => {
+    const ed = makeEditor({ content: '<p>abc</p>', toolbar: TOOLBAR });
+    ed.exec('toggleSourceView');
+    ed.setEditable(false);
+    ed.setLocale('en');
+    const more = narrowToolbar(ed);
+    expect(more.hidden).toBe(false);
+    expect(more.getAttribute('aria-disabled')).toBe('false');
+    more.click();
+    document.querySelector<HTMLButtonElement>('.le-dropdown [data-item="sourceView"]')!.click();
+    expect(source(ed)).toBeNull();
+    expect(ed.getHTML()).toBe('<p>abc</p>');
+    expect(more.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('is disabled in read-only mode and enabled again with the editor', () => {
+    const ed = makeEditor({ content: '<p>abc</p>', toolbar: TOOLBAR });
+    const more = narrowToolbar(ed);
+    ed.setEditable(false);
+    expect(more.getAttribute('aria-disabled')).toBe('true');
+    ed.setEditable(true);
+    expect(more.getAttribute('aria-disabled')).toBe('false');
   });
 });
 
