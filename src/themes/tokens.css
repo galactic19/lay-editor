@@ -14,6 +14,8 @@
   --le-color-selection: rgba(31, 111, 235, 0.18);
   --le-color-code-bg: #eff2f5;
   --le-color-quote: #d1d9e0;
+  /* Highlighter colours are light in both themes, so the text on them stays dark (not redefined for dark). */
+  --le-color-highlight-fg: #1f2328;
   --le-color-mark-match: rgba(255, 196, 0, 0.45);
   --le-color-mark-current: rgba(255, 140, 0, 0.75);
   --le-shadow: 0 8px 24px rgba(31, 35, 40, 0.14), 0 2px 6px rgba(31, 35, 40, 0.08);

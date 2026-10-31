@@ -200,6 +200,7 @@ CSS 변수로 바꿉니다. `.le-editor, .le-portal`(드롭다운·바텀시트 
 | `--le-color-bg`, `--le-color-fg`, `--le-color-muted` | 배경, 글자, 보조 글자 |
 | `--le-color-primary`, `--le-color-primary-fg` | 강조색과 그 위 글자 |
 | `--le-color-border`, `--le-color-surface`, `--le-color-hover`, `--le-color-active` | 테두리, 툴바 배경, 상태 배경 |
+| `--le-color-highlight-fg` | 형광펜을 칠한 글자색. 형광펜 색이 밝은 색이라 다크 테마에서도 어두운 색을 씀 |
 | `--le-font`, `--le-font-mono`, `--le-font-size`, `--le-line-height` | 글꼴 |
 | `--le-radius`, `--le-control-size`, `--le-touch-target` | 모서리, 버튼 크기, 모바일 터치 영역(44px) |
 | `--le-min-height`, `--le-content-padding` | 편집 영역 크기 |

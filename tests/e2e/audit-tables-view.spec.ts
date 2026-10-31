@@ -160,3 +160,33 @@ for (const [name, reset] of Object.entries(RESETS)) {
     }
   });
 }
+
+/** WCAG contrast ratio between two computed rgb() colours. */
+function contrast(fg: string, bg: string): number {
+  const luminance = (color: string): number => {
+    const [r, g, b] = color.match(/\d+(\.\d+)?/g)!.slice(0, 3).map((v) => Number(v) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+  const [light, dark] = [luminance(fg), luminance(bg)].sort((a, b) => b - a);
+  return (light! + 0.05) / (dark! + 0.05);
+}
+
+const WCAG_AA = 4.5;
+
+test.describe('audit #51: highlighted text in dark mode', () => {
+  test.use({ colorScheme: 'dark' });
+
+  test('every default highlight colour keeps readable text in the editor and on a dark view page', async ({ page }) => {
+    const marks = DEFAULTS.colors.highlight.map((color) => `<mark style="background-color: ${color}">형광펜 텍스트</mark>`).join(' ');
+    await openEmpty(page);
+    expect(await page.evaluate(() => window.__editor.root.dataset.theme)).toBe('dark');
+    await page.evaluate((content) => window.__editor.setHTML(content), `<p>${marks}</p>`);
+    await renderViewPage(page, `<p>${marks}</p>`);
+    await page.locator('#view-page').evaluate((el) => el.setAttribute('data-theme', 'dark'));
+    for (const root of ['#editor .ProseMirror', '#view-page']) {
+      const colors = await page.locator(`${root} mark`).evaluateAll((els) => els.map((el) => [getComputedStyle(el).color, getComputedStyle(el).backgroundColor]));
+      expect(colors).toHaveLength(DEFAULTS.colors.highlight.length);
+      for (const [fg, bg] of colors) expect(contrast(fg!, bg!), `${root} ${fg} on ${bg}`).toBeGreaterThanOrEqual(WCAG_AA);
+    }
+  });
+});
