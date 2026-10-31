@@ -1,4 +1,4 @@
-import { makeEditor } from '../helpers/editor';
+import { makeEditor, typeText } from '../helpers/editor';
 
 describe('audit core: every public method is safe after destroy', () => {
   it('setEditable, setTheme and the other methods are no-ops on a destroyed editor', () => {
@@ -36,5 +36,47 @@ describe('audit core: every public method is safe after destroy', () => {
     expect(onError).not.toHaveBeenCalled();
     expect(consoleError).not.toHaveBeenCalled();
     expect(document.querySelector('.le-editor')).toBeNull();
+  });
+});
+
+describe('audit core: setHTML starts a fresh undo history', () => {
+  it('undo after loading cannot bring back a deleted paragraph of the previous document', () => {
+    const ed = makeEditor({ content: '<p>first A</p><p>second A</p>' });
+    ed.view.dispatch(ed.state.tr.delete(0, ed.state.doc.firstChild!.nodeSize));
+    ed.setHTML('<p>B only</p>');
+    expect(ed.can('undo')).toBe(false);
+    ed.exec('undo');
+    expect(ed.getHTML()).toBe('<p>B only</p>');
+  });
+
+  it('undo after loading cannot replace the new document with a cleared one', () => {
+    const ed = makeEditor({ content: '<p>old post A</p><p>more A</p>' });
+    ed.view.dispatch(ed.state.tr.delete(0, ed.state.doc.content.size));
+    ed.setHTML('<p>post B</p>');
+    ed.exec('undo');
+    expect(ed.getHTML()).toBe('<p>post B</p>');
+  });
+
+  it('edits after loading are still undoable, back to the loaded content', () => {
+    const ed = makeEditor({ content: '<p>A</p>' });
+    typeText(ed, 'x');
+    ed.setHTML('<p>B</p>');
+    typeText(ed, 'y');
+    expect(ed.getHTML()).toBe('<p>By</p>');
+    ed.exec('undo');
+    expect(ed.getHTML()).toBe('<p>B</p>');
+    expect(ed.can('undo')).toBe(false);
+  });
+
+  it('still emits update and change for the load', () => {
+    vi.useFakeTimers();
+    const onChange = vi.fn();
+    const ed = makeEditor({ content: '<p>A</p>', onChange });
+    const onUpdate = vi.fn();
+    ed.on('update', onUpdate);
+    ed.setHTML('<p>B</p>');
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ docChanged: true }));
+    vi.advanceTimersByTime(300);
+    expect(onChange).toHaveBeenCalledWith('<p>B</p>');
   });
 });

@@ -100,10 +100,15 @@ export class Editor {
     return serializeHTML(this.schema, this.state.doc);
   }
 
-  /** Replaces the content. Not an undo step: Ctrl+Z after loading content must not empty the editor. */
+  /**
+   * Loads new content. Like the initial content it starts a fresh undo history and is not an
+   * undo step itself, so Ctrl+Z can neither empty the editor nor bring back the previous document.
+   */
   setHTML(html: string): void {
     if (this.destroyed) return;
     const doc = parseHTML(this.schema, html);
+    const { selection, plugins } = this.state;
+    this.view.updateState(EditorState.create({ doc: this.state.doc, selection, plugins }));
     this.view.dispatch(this.state.tr.replaceWith(0, this.state.doc.content.size, doc.content).setMeta('addToHistory', false));
   }
 

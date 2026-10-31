@@ -115,7 +115,7 @@ createEditor({
 
 ```ts
 editor.getHTML();             // 정제된 HTML. 빈 문서면 ''
-editor.setHTML('<p>새 내용</p>');
+editor.setHTML('<p>새 내용</p>'); // 새 문서를 불러온 것으로 보고 실행 취소 기록을 비웁니다
 editor.getText();
 editor.isEmpty();
 editor.exec('toggleBold');    // 명령 실행 → 성공 여부
