@@ -8,7 +8,8 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
 const OTHER_PNG = 'data:image/png;base64,iVBORw0KGgo=';
 const FIGURE = (src: string, caption = 'caption') => `<figure data-align="center"><img src="${src}" alt="logo"><figcaption>${caption}</figcaption></figure>`;
 
-const toasts = (ed: Editor): string => ed.root.querySelector('.le-toasts')!.textContent ?? '';
+/** Toasts live in a body portal, outside the editor root. */
+const toasts = (): string => document.querySelector('.le-toasts')!.textContent ?? '';
 const caretAfter = (ed: Editor, text: string): void => {
   const pos = findText(ed, text) + text.length;
   ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, pos)));
@@ -23,7 +24,7 @@ describe('audit #21: paste and drop only touch the images they bring in', () => 
     ed.view.pasteText('pasted words');
     await flushPromises();
     expect(ed.getHTML()).toBe(`<p>first</p>${FIGURE(PNG)}<p>lastpasted words</p>`);
-    expect(toasts(ed)).toBe('');
+    expect(toasts()).toBe('');
   });
 
   it('does not re-upload existing data: images when text is pasted', async () => {
@@ -44,7 +45,7 @@ describe('audit #21: paste and drop only touch the images they bring in', () => 
     ed.view.dispatch(tr.setMeta('uiEvent', 'drop'));
     await flushPromises();
     expect(ed.getHTML()).toBe(`<p>first</p><p>last</p>${FIGURE(PNG)}`);
-    expect(toasts(ed)).toBe('');
+    expect(toasts()).toBe('');
   });
 
   it('uploads only the data: image inside the pasted content', async () => {
