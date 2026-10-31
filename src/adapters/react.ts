@@ -15,6 +15,12 @@ export interface LayEditorProps extends Omit<CoreEditorOptions, 'element' | 'con
 }
 
 /**
+ * The mount effect: a layout effect in the browser, so the editor exists before paint. On the server effects never run,
+ * and React 18 warns about every useLayoutEffect it renders there, so server rendering gets useEffect.
+ */
+const useMountEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
+/**
  * Runs `effect` when `key` differs from the last applied one; the editor got the mount value,
  * and StrictMode's effect replay must not count as a change.
  */
@@ -37,7 +43,7 @@ export const LayEditor = forwardRef<Editor | null, LayEditorProps>(function LayE
   const controlled = useRef(props.value !== undefined);
   if (props.value !== undefined) controlled.current = true;
 
-  useLayoutEffect(() => {
+  useMountEffect(() => {
     const { value, defaultValue, onChange: _onChange, className: _className, options, ...core } = props;
     synced.current = createSyncedEditor(host.current!, { ...options, ...core }, value ?? defaultValue, (html) => onChange.current?.(html));
     return () => {

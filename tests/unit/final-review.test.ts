@@ -505,3 +505,22 @@ describe("final review: an app's jsdom tests without matchMedia or ResizeObserve
     editor.destroy();
   });
 });
+
+describe('final review: React server rendering', () => {
+  it('the wrapper mounts through useEffect where there is no window (no useLayoutEffect warning on React 18)', async () => {
+    const layout = vi.fn();
+    vi.resetModules();
+    vi.doMock('react', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('react')>();
+      return { ...actual, useLayoutEffect: (...args: Parameters<typeof actual.useLayoutEffect>) => (layout(), actual.useLayoutEffect(...args)) };
+    });
+    onCleanup(() => vi.doUnmock('react'));
+    vi.stubGlobal('window', undefined);
+    const { LayEditor } = await import('../../src/adapters/react');
+    vi.unstubAllGlobals();
+    const { createElement } = await import('react');
+    const { renderToString } = await import('react-dom/server');
+    expect(renderToString(createElement(LayEditor, { value: '<p>x</p>', className: 'ed' }))).toBe('<div class="ed"></div>');
+    expect(layout).not.toHaveBeenCalled();
+  });
+});
