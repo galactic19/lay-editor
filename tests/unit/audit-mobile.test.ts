@@ -1,5 +1,5 @@
 import { TextSelection } from 'prosemirror-state';
-import { onCleanup, setMedia, triggerResize } from '../setup';
+import { setMedia, triggerResize } from '../setup';
 import { findText, flushPromises, makeEditor, selectText } from '../helpers/editor';
 
 const COARSE = '(pointer: coarse)';
@@ -152,10 +152,9 @@ describe('audit: panel forms validate through the editor, not the browser', () =
 describe('audit: find scrolls to the match', () => {
   it('scrolls the current match into view even while focus sits in the find panel', () => {
     const scrolled: Element[] = [];
-    Element.prototype.scrollIntoView = function (this: Element) {
+    vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(function (this: Element) {
       scrolled.push(this);
-    };
-    onCleanup(() => delete (Element.prototype as Partial<Element>).scrollIntoView);
+    });
     const ed = makeEditor({ content: '<p>NEEDLE one</p><p>two</p><p>NEEDLE three</p>' });
     ed.ui!.openPanelFor('findReplace');
     expect(ed.view.hasFocus()).toBe(false);

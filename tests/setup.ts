@@ -72,6 +72,8 @@ const emptyRect = (): DOMRect =>
 Range.prototype.getBoundingClientRect = emptyRect;
 Range.prototype.getClientRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as unknown as DOMRectList;
 document.elementFromPoint = () => null;
+// jsdom has no scrolling; tests spy on this no-op to see what was scrolled into view.
+Element.prototype.scrollIntoView = () => {};
 
 const viewportListeners = new Set<() => void>();
 export const visualViewportStub = {

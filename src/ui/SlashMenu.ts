@@ -57,7 +57,7 @@ export class SlashMenu extends UIComponent<HTMLDivElement> {
         : [h('div', { class: c('slash-empty') }, t('slash.empty'))]),
     );
     this.setActiveDescendant(items.length ? `${this.id}-${index}` : null);
-    this.el.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest' });
+    this.el.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
   }
 
   private hide(): void {

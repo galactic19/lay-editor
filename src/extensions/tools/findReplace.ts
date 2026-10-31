@@ -56,7 +56,7 @@ const getState = (state: EditorState): FindState => findKey.getState(state) ?? E
  */
 function dispatchToMatch(tr: Transaction, dispatch: (tr: Transaction) => void, view?: EditorView): void {
   dispatch(tr.scrollIntoView());
-  view?.dom.querySelector(`.${c('find-current')}`)?.scrollIntoView?.({ block: 'center' });
+  view?.dom.querySelector(`.${c('find-current')}`)?.scrollIntoView({ block: 'center' });
 }
 
 /** Selects match `index` and remembers it as current. */
