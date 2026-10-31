@@ -1,4 +1,5 @@
 import { createEditor } from '../../src/core/createEditor';
+import type { Editor } from '../../src/core/Editor';
 import { createTranslator, registerLocale } from '../../src/i18n';
 import { onCleanup } from '../setup';
 import { flushPromises, makeEditor, typeText } from '../helpers/editor';
@@ -224,5 +225,54 @@ describe('audit core: form.reset() resets the editor', () => {
     typeText(ed, 'b');
     form.reset();
     expect(ed.getHTML()).toBe('<p>ba</p>');
+  });
+});
+
+describe('audit core: a required textarea reports an empty editor visibly', () => {
+  const invalidMark = (ed: Editor) => [ed.root.classList.contains('le-invalid'), ed.view.dom.getAttribute('aria-invalid')];
+
+  it('blocks the submit, focuses the editor and marks it invalid until the content changes', () => {
+    const { form, ed } = formEditor('<textarea name="body" required></textarea>');
+    const onSubmit = vi.fn((event: Event) => event.preventDefault());
+    form.addEventListener('submit', onSubmit);
+    let reported = true;
+    form.querySelector('textarea')!.addEventListener('invalid', (event) => (reported = !event.defaultPrevented));
+    form.requestSubmit();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(reported).toBe(false);
+    expect(invalidMark(ed)).toEqual([true, 'true']);
+    expect(ed.root.contains(document.activeElement)).toBe(true);
+    expect(ed.root.querySelector('.le-toast-error')?.textContent).toBe(form.querySelector('textarea')!.validationMessage);
+    typeText(ed, 'a');
+    expect(invalidMark(ed)).toEqual([false, null]);
+    form.requestSubmit();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('judges an editor emptied a moment ago, inside the change debounce', () => {
+    vi.useFakeTimers();
+    const { form, ed } = formEditor('<textarea name="body" required><p>원래 내용</p></textarea>');
+    const onSubmit = vi.fn((event: Event) => event.preventDefault());
+    form.addEventListener('submit', onSubmit);
+    ed.view.dispatch(ed.state.tr.delete(0, ed.state.doc.content.size));
+    form.requestSubmit();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(invalidMark(ed)).toEqual([true, 'true']);
+  });
+
+  it('does not take focus from an earlier invalid field the browser reports first', () => {
+    const { form, ed } = formEditor('<textarea name="body" required></textarea>', {}, '<input name="title" required>');
+    form.requestSubmit();
+    expect(invalidMark(ed)).toEqual([true, 'true']);
+    expect(ed.root.contains(document.activeElement)).toBe(false);
+  });
+
+  it('does not take focus from a field the user is typing in when the app calls checkValidity()', () => {
+    const { form, ed } = formEditor('<textarea name="body" required></textarea>', {}, '<input name="title" value="t">');
+    const title = form.querySelector('input')!;
+    title.focus();
+    expect(form.checkValidity()).toBe(false);
+    expect(document.activeElement).toBe(title);
+    expect(ed.root.querySelector('.le-toast-error')).toBeNull();
   });
 });

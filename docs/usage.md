@@ -47,6 +47,7 @@ const editor = createEditor({ element: '#editor' });
 - 내용이 바뀌면 textarea 값이 자동으로 갱신되고, 폼을 전송하는 순간에도 한 번 더 동기화됩니다. `form.submit()`이나 `new FormData(form)`도 에디터에 보이는 내용을 읽습니다.
 - `content` 옵션을 주면 생성 직후 그 내용이 textarea에 들어갑니다. 고치지 않고 전송해도 화면에 보이던 내용이 전송됩니다.
 - 폼을 초기화(`reset`)하면 에디터도 처음 만들 때의 내용으로 돌아갑니다.
+- textarea에 `required`가 있으면 빈 에디터로는 전송되지 않습니다. 에디터가 빨간 테두리(`le-invalid`)와 `aria-invalid`로 표시되고, 다른 칸이 먼저 걸리지 않았다면 포커스와 브라우저 안내 문구 토스트가 나옵니다. 내용을 고치면 표시가 사라집니다.
 - 서버 코드는 바꿀 필요가 없습니다. `body` 필드로 HTML이 그대로 전송됩니다.
 
 ## 3. 옵션
@@ -204,6 +205,7 @@ CSS 변수로 바꿉니다. `.le-editor, .le-portal`(드롭다운·바텀시트 
 | `--le-color-bg`, `--le-color-fg`, `--le-color-muted` | 배경, 글자, 보조 글자 |
 | `--le-color-primary`, `--le-color-primary-fg` | 강조색과 그 위 글자 |
 | `--le-color-border`, `--le-color-surface`, `--le-color-hover`, `--le-color-active` | 테두리, 툴바 배경, 상태 배경 |
+| `--le-color-danger`, `--le-color-danger-ring`, `--le-focus-ring-width` | 오류 알림과 필수 입력 누락 표시, 포커스 테두리 두께 |
 | `--le-font`, `--le-font-mono`, `--le-font-size`, `--le-line-height` | 글꼴 |
 | `--le-radius`, `--le-control-size`, `--le-touch-target` | 모서리, 버튼 크기, 모바일 터치 영역(44px) |
 | `--le-min-height`, `--le-content-padding` | 편집 영역 크기 |

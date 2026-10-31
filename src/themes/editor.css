@@ -16,7 +16,10 @@
 .le-content { flex: 1; min-height: var(--le-min-height); padding: var(--le-content-padding); cursor: text; }
 .le-content .ProseMirror { outline: none; min-height: calc(var(--le-min-height) - 32px); white-space: pre-wrap; word-wrap: break-word; caret-color: var(--le-color-primary); }
 .le-content .ProseMirror ::selection { background: var(--le-color-selection); }
-.le-editor:focus-within { border-color: var(--le-color-primary); box-shadow: 0 0 0 3px var(--le-color-selection); }
+.le-editor:focus-within { border-color: var(--le-color-primary); box-shadow: 0 0 0 var(--le-focus-ring-width) var(--le-color-selection); }
+/* Textarea mode: the replaced <textarea> failed its form check (e.g. required and empty). */
+.le-editor.le-invalid { border-color: var(--le-color-danger); }
+.le-editor.le-invalid:focus-within { box-shadow: 0 0 0 var(--le-focus-ring-width) var(--le-color-danger-ring); }
 .le-readonly .le-content { cursor: default; }
 
 .le-placeholder::before { content: attr(data-placeholder); color: var(--le-color-muted); pointer-events: none; float: left; height: 0; }

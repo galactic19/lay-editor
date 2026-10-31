@@ -109,4 +109,33 @@ test.describe('textarea mode in a real form', () => {
     await page.click('#save');
     await expect.poll(() => form.posted).toEqual(['<p>원래 내용</p>']);
   });
+
+  test('a required, empty editor blocks the submit with visible feedback', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
+    const form = await mountForm(page, '<textarea name="body" required></textarea>');
+    await page.click('#save');
+    const root = page.locator('#f .le-editor');
+    await expect(root).toHaveClass(/le-invalid/);
+    await expect(page.locator(content)).toBeFocused();
+    await expect(page.locator(content)).toHaveAttribute('aria-invalid', 'true');
+    await expect(root.locator('.le-toast-error')).toBeVisible();
+    const border = await root.evaluate((el) => getComputedStyle(el).borderColor);
+    const danger = await root.evaluate((el) => {
+      const probe = document.createElement('i');
+      probe.style.color = 'var(--le-color-danger)';
+      el.appendChild(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    });
+    expect(border).toBe(danger);
+    expect(form.posted).toEqual([]);
+    expect(errors.filter((text) => text.includes('not focusable'))).toEqual([]);
+
+    await page.keyboard.type('본문');
+    await expect(root).not.toHaveClass(/le-invalid/);
+    await page.click('#save');
+    await expect.poll(() => form.posted).toEqual(['<p>본문</p>']);
+  });
 });
