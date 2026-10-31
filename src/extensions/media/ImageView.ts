@@ -66,6 +66,8 @@ export class ImageView implements NodeView {
     this.dom.dataset.align = align;
     this.dom.style.width = width ? `${width}%` : '';
     this.dom.classList.toggle(c('uploading'), uploadId !== null);
+    // An empty caption still holds ProseMirror's trailing <br>, so CSS :empty cannot tell.
+    this.dom.classList.toggle(c('caption-empty'), this.node.content.size === 0);
   }
 
   private startResize(event: PointerEvent, side: (typeof HANDLE_SIDES)[number]): void {

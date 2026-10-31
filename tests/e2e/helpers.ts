@@ -41,3 +41,7 @@ export async function clickControl(page: Page, id: string): Promise<void> {
   await page.locator('#editor .le-toolbar [data-item="more"]').click();
   await panel(page).locator(`[data-item="${id}"]`).click();
 }
+
+/** A tool for the current context (image, table...): the desktop context toolbar or the mobile keyboard bar. */
+export const contextControl = (page: Page, id: string) =>
+  page.locator(`.le-context-toolbar:not([hidden]) [data-item="${id}"], .le-mobile-bar:not([hidden]) [data-item="${id}"]`).first();

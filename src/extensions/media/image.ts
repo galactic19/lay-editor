@@ -1,6 +1,6 @@
-import type { Node as PMNode, NodeType } from 'prosemirror-model';
-import { NodeSelection, Plugin, type Command, type EditorState, type Transaction } from 'prosemirror-state';
-import { Decoration, DecorationSet } from 'prosemirror-view';
+import type { Fragment, Node as PMNode, NodeType, Slice } from 'prosemirror-model';
+import { NodeSelection, Plugin, Selection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
+import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import { c } from '../../ui/classes';
 import { insertPoint } from 'prosemirror-transform';
 import type { Editor } from '../../core/Editor';
@@ -66,16 +66,45 @@ const updateImage =
     return true;
   };
 
+/** Where a new image goes: near `pos`, after the image whose caption holds the cursor, or null for the selection. */
+function insertPos(state: EditorState, type: NodeType, pos?: number): number | null {
+  if (pos !== undefined) return insertPoint(state.doc, pos, type);
+  // A caption only holds text; replacing the selection there would split its image in two.
+  const captioned = findParent(state, (node) => node.type === type);
+  return captioned ? captioned.pos + captioned.node.nodeSize : null;
+}
+
 function insertImage(type: NodeType, input: ImageInput, pos?: number): Command {
   return (state, dispatch) => {
     const src = input.uploadId ? input.src : safeUrl(input.src, { allowDataImage: true });
     if (!src) return false;
     const node = type.create({ src, alt: input.alt ?? '', uploadId: input.uploadId ?? null });
     if (!dispatch) return true;
-    const at = pos === undefined ? null : insertPoint(state.doc, pos, type);
+    const at = insertPos(state, type, pos);
     dispatch((at === null ? state.tr.replaceSelectionWith(node) : state.tr.insert(at, node)).scrollIntoView());
     return true;
   };
+}
+
+/** The pasted content inside the wrappers it was cut from, so a copied line of text is just its text. */
+function openContent(slice: Slice): Fragment {
+  let { content } = slice;
+  for (let depth = 0; depth < Math.min(slice.openStart, slice.openEnd) && content.childCount === 1; depth++) content = content.firstChild!.content;
+  return content;
+}
+
+/**
+ * A caption holds plain text only. Pasting more there (an image, several paragraphs) would split
+ * the captioned image, so it goes right after that image instead.
+ */
+function pasteAfterCaption(view: EditorView, slice: Slice, type: NodeType): boolean {
+  const at = insertPos(view.state, type);
+  if (at === null || type.contentMatch.matchFragment(openContent(slice))) return false;
+  const tr = view.state.tr.replace(at, at, slice);
+  // As with any paste, the cursor ends up after the pasted content.
+  tr.setSelection(Selection.near(tr.doc.resolve(tr.mapping.map(at)), -1));
+  view.dispatch(tr.scrollIntoView().setMeta('paste', true).setMeta('uiEvent', 'paste'));
+  return true;
 }
 
 const imageFiles = (data: DataTransfer | null): File[] => Array.from(data?.files ?? []).filter((file) => file.type.startsWith('image/'));
@@ -88,15 +117,23 @@ function readDataImage(src: string): File | null {
   }
 }
 
-/**
- * After a paste or drop, hands data: images to the uploader. Images that cannot be decoded,
- * fail validation, or arrive while uploads are off are removed with a notice.
- */
-function adoptDataImages(tr: Transaction, state: EditorState, type: NodeType, uploads: UploadManager): Transaction | null {
+/** Images whose src is still an inline data: URL (not uploaded, not being uploaded). */
+function dataImages(doc: PMNode, type: NodeType): Array<{ pos: number; node: PMNode }> {
   const found: Array<{ pos: number; node: PMNode }> = [];
-  state.doc.descendants((node, pos) => {
+  doc.descendants((node, pos) => {
     if (node.type === type && node.attrs.uploadId === null && String(node.attrs.src).startsWith('data:')) found.push({ node, pos });
   });
+  return found;
+}
+
+/**
+ * After a paste or drop, hands the data: images it brought in to the uploader. Images that cannot
+ * be decoded, fail validation, or arrive while uploads are off are removed with a notice.
+ * Images the document already had (including ones a drop only moved) are left alone.
+ */
+function adoptDataImages(tr: Transaction, old: EditorState, state: EditorState, type: NodeType, uploads: UploadManager): Transaction | null {
+  const existing = new Set(dataImages(old.doc, type).map(({ node }) => node.attrs.src));
+  const found = dataImages(state.doc, type).filter(({ node }) => !existing.has(node.attrs.src));
   if (!found.length) return null;
   const next = state.tr.setMeta('addToHistory', tr.getMeta('addToHistory'));
   const notices: Array<() => void> = [];
@@ -208,11 +245,20 @@ export const image = defineExtension<ImageOptions>({
               ? DecorationSet.create(state.doc, [Decoration.node(target.pos, target.pos + target.node.nodeSize, { class: c('image-active') })])
               : null;
           },
-          handlePaste: (_view, event) => {
-            const files = imageFiles(event.clipboardData);
-            if (!files.length || event.clipboardData?.types.includes('text/html')) return false;
-            void uploads().uploadFiles(files);
+          // The caption makes the image a non-leaf node, which ProseMirror does not select on a plain click.
+          handleClickOn: (view, _pos, node, nodePos, event, direct) => {
+            if (!direct || node.type !== type || !(event.target as Element).closest(`.${c('image-frame')}`)) return false;
+            view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)));
             return true;
+          },
+          handlePaste: (view, event, slice) => {
+            const files = imageFiles(event.clipboardData);
+            // Files alone (a screenshot) are uploaded; with HTML (an image copied from a page) the HTML is pasted.
+            if (files.length && !event.clipboardData?.types.includes('text/html')) {
+              void uploads().uploadFiles(files);
+              return true;
+            }
+            return pasteAfterCaption(view, slice, type);
           },
           handleDrop: (view, event) => {
             const files = imageFiles(event.dataTransfer);
@@ -222,9 +268,9 @@ export const image = defineExtension<ImageOptions>({
             return true;
           },
         },
-        appendTransaction: (trs, _old, state) => {
+        appendTransaction: (trs, old, state) => {
           const pasted = trs.find((tr) => tr.docChanged && ['paste', 'drop'].includes(tr.getMeta('uiEvent')));
-          return pasted ? adoptDataImages(pasted, state, type, uploads()) : null;
+          return pasted ? adoptDataImages(pasted, old, state, type, uploads()) : null;
         },
       }),
     ];

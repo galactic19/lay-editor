@@ -77,7 +77,7 @@ export function isDocEmpty(doc: PMNode): boolean {
   return empty;
 }
 
-const isTransient = (node: PMNode): boolean => Boolean((node.type.spec as ExtNodeSpec).transient?.(node));
+export const isTransient = (node: PMNode): boolean => Boolean((node.type.spec as ExtNodeSpec).transient?.(node));
 
 const SPACE_PAIR = / {2}/g;
 const LINE_START_SPACE = /(^|\n) /g;

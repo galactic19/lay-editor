@@ -63,6 +63,7 @@ export function createSeparator(): HTMLSpanElement {
 }
 
 function isItemEnabled(item: UIItem, editor: Editor, ui: EditorUI): boolean {
+  if (ui.holdsLock(item)) return true;
   if (!editor.isEditable || ui.isLocked(item)) return false;
   if (item.isEnabled) return item.isEnabled(editor);
   // The current state (e.g. "Normal text" while in a paragraph) never looks disabled.
@@ -70,7 +71,14 @@ function isItemEnabled(item: UIItem, editor: Editor, ui: EditorUI): boolean {
   return item.kind === 'button' && item.command ? editor.can(item.command, ...(item.args ?? [])) : true;
 }
 
+const setEnabled = (el: HTMLElement, enabled: boolean): void => el.setAttribute('aria-disabled', String(!enabled));
+
 export function syncControl(el: HTMLElement, item: UIItem, editor: Editor, ui: EditorUI): void {
   if (item.isActive) el.setAttribute('aria-pressed', String(item.isActive(editor)));
-  el.setAttribute('aria-disabled', String(!isItemEnabled(item, editor, ui)));
+  setEnabled(el, isItemEnabled(item, editor, ui));
+}
+
+/** A control that opens a menu of other items (the toolbar's more button) is usable while any of them is. */
+export function syncMenuControl(el: HTMLElement, items: readonly UIItem[], editor: Editor, ui: EditorUI): void {
+  setEnabled(el, items.some((item) => isItemEnabled(item, editor, ui)));
 }
