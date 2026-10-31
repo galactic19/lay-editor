@@ -41,6 +41,7 @@ const editor = createEditor({
 
 - [사용 가이드](docs/usage.md): 옵션, 업로드, 이벤트, 보기 페이지, 테마, 언어팩, React/Vue, 사용자 확장, 단축키
 - [실기기 체크리스트](docs/device-checklist.md)
+- [구현 중 내린 판단과 남은 과제](docs/decisions.md)
 - [설계 스펙](docs/superpowers/specs/2026-10-30-laymaker-editor-design.md)
 
 ## 개발
