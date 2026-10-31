@@ -1,6 +1,7 @@
 import type { Editor } from '../../src/core/Editor';
 import { h } from '../../src/ui/dom';
 import { visibleOr, type Anchor } from '../../src/ui/floating';
+import { setMedia, setViewport } from '../setup';
 import { makeEditor, typeText } from '../helpers/editor';
 
 const isFullscreen = (ed: Editor): boolean => ed.root.classList.contains('le-fullscreen');
@@ -61,5 +62,33 @@ describe('audit #29/#59: a panel anchor that hides or goes away hands over to th
     shown.mockReturnValue([rect(100)] as unknown as DOMRectList);
     el.remove();
     expect(anchor.getBoundingClientRect().top).toBe(300);
+  });
+});
+
+describe('audit #45: toasts stay in view whatever the document length', () => {
+  const region = () => document.querySelector<HTMLElement>('.le-toasts')!;
+
+  it('renders in a themed body portal, not at the bottom of the editor', () => {
+    const ed = makeEditor({ theme: 'dark' });
+    ed.ui!.toaster.show('x', 'error');
+    expect(region().parentElement).toBe(document.body);
+    expect(region().classList.contains('le-portal')).toBe(true);
+    expect(region().dataset.theme).toBe('dark');
+    expect(ed.root.querySelector('.le-toasts')).toBeNull();
+    ed.destroy();
+    expect(document.querySelector('.le-toasts')).toBeNull();
+  });
+
+  it('sits above the on-screen keyboard and the mobile bar', () => {
+    setMedia('(pointer: coarse)', true);
+    const ed = makeEditor();
+    ed.focus();
+    ed.ui!.flush();
+    const bar = document.querySelector<HTMLElement>('.le-mobile-bar')!;
+    expect(bar.hidden).toBe(false);
+    Object.defineProperty(bar, 'offsetHeight', { value: 52 });
+    setViewport({ height: window.innerHeight - 300, offsetTop: 0 });
+    ed.ui!.toaster.show('x', 'error');
+    expect(region().style.getPropertyValue('--le-toast-offset')).toBe('352px');
   });
 });

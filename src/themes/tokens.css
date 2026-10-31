@@ -66,6 +66,7 @@
   --le-z-sticky: 2;
   --le-z-fullscreen: 9999;
   --le-z-overlay: 10000;
+  --le-z-toast: 10001;
   --le-transition: 120ms ease;
 }
 

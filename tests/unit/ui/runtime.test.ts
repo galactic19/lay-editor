@@ -114,14 +114,18 @@ describe('Toaster', () => {
   it('announces with role=status and removes after the duration', () => {
     vi.useFakeTimers();
     const host = h('div');
-    document.body.appendChild(host);
-    const toaster = new Toaster(host);
+    host.dataset.theme = 'dark';
+    const toaster = new Toaster(host, () => 48);
     toaster.show('업로드 실패', 'error');
-    const region = host.querySelector('[role="status"]')!;
+    const region = document.querySelector<HTMLElement>('.le-portal.le-toasts[role="status"]')!;
+    expect(region.parentElement).toBe(document.body);
+    expect(region.dataset.theme).toBe('dark');
+    expect(region.style.getPropertyValue('--le-toast-offset')).toBe('48px');
     expect(region.textContent).toBe('업로드 실패');
     expect(region.querySelector('.le-toast-error')).not.toBeNull();
     vi.advanceTimersByTime(DEFAULTS.toast.duration);
     expect(region.textContent).toBe('');
     toaster.destroy();
+    expect(region.isConnected).toBe(false);
   });
 });

@@ -38,6 +38,7 @@ export class EditorUI {
   private readonly extensionComponents: UIComponent[] = [];
   private modeComponents: UIComponent[] = [];
   private toolbar: Toolbar | null = null;
+  private mobileBar: MobileToolbar | null = null;
   private readonly batch = rafBatch(() => this.updateAll());
   private readonly disposers: Array<() => void> = [];
 
@@ -50,7 +51,7 @@ export class EditorUI {
     this.device = new DeviceWatcher(editor.root, DEFAULTS.mobileBreakpoint);
     this.theme = new ThemeController(() => [editor.root], editor.config.theme);
     this.panels = new PanelHost(editor, () => this.device.mode);
-    this.toaster = new Toaster(editor.root);
+    this.toaster = new Toaster(editor.root, () => this.mobileBar?.coveredHeight ?? this.viewport.bottomInset);
 
     for (const spec of editor.manager.createComponents(editor)) {
       const component = spec.create(editor, this);
@@ -108,9 +109,11 @@ export class EditorUI {
     this.editor.root.dataset.mode = mode;
     if (mode === 'mobile') {
       this.toolbar = null;
-      this.modeComponents = [new MobileToolbar(this.editor, this)];
+      this.mobileBar = new MobileToolbar(this.editor, this);
+      this.modeComponents = [this.mobileBar];
       return;
     }
+    this.mobileBar = null;
     this.toolbar = new Toolbar(this.editor, this, this.entries);
     this.slots.top.prepend(this.toolbar.el);
     this.modeComponents = [this.toolbar, new ContextToolbar(this.editor, this), new BubbleMenu(this.editor, this)];

@@ -94,7 +94,7 @@ describe('upload flow', () => {
     await flushPromises();
     expect(onError).toHaveBeenCalledWith(expect.objectContaining({ code: 'UPLOAD_REJECTED', message: expect.stringContaining(reason) }), file);
     expect(upload).not.toHaveBeenCalled();
-    expect(ed.root.querySelector('.le-toast-error')).not.toBeNull();
+    expect(document.querySelector('.le-toast-error')).not.toBeNull();
   });
 
   it('removes the placeholder and emits uploadError(UPLOAD_FAILED) on failure', async () => {
@@ -159,13 +159,13 @@ describe('upload flow', () => {
     ed.view.pasteHTML(`<p>a</p><img src="${PNG_DATA}">`);
     await flushPromises();
     expect(ed.getHTML()).not.toContain('data:');
-    expect(ed.root.querySelector('.le-toasts')!.textContent).toBe(ed.t('toast.uploadNotConfigured'));
+    expect(document.querySelector('.le-toasts')!.textContent).toBe(ed.t('toast.uploadNotConfigured'));
   });
 
   it('uploadImages without an upload function shows a toast', () => {
     const ed = makeEditor();
     ed.exec('uploadImages', [png()]);
-    expect(ed.root.querySelector('.le-toasts')!.textContent).toBe(ed.t('toast.uploadNotConfigured'));
+    expect(document.querySelector('.le-toasts')!.textContent).toBe(ed.t('toast.uploadNotConfigured'));
   });
 });
 

@@ -187,3 +187,21 @@ test('a dropdown taller than the viewport fits it and scrolls inside (#37)', asy
   expect(item.y + item.height).toBeLessThanOrEqual(520);
   await expect(last).toBeInViewport({ ratio: 1 });
 });
+
+test('an upload error toast shows in the viewport, above the keyboard bar, in a long document (#45)', async ({ page }, info) => {
+  await openEmpty(page);
+  await page.evaluate(() => window.__editor.setHTML('<p>first</p>' + '<p>filler</p>'.repeat(60)));
+  const first = page.locator('#editor .ProseMirror p').first();
+  await (isMobile(info.project.name) ? first.tap() : first.click());
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await control(page, 'image').click();
+  await panel(page).locator('input[type="file"]').setInputFiles({ name: 'note.txt', mimeType: 'text/plain', buffer: Buffer.from('x') });
+  const toast = page.locator('.le-toast-error');
+  await expect(toast).toBeVisible();
+  await expect(toast).toBeInViewport({ ratio: 1 });
+  const bar = page.locator('.le-mobile-bar:not([hidden])');
+  if (await bar.count()) {
+    const box = (await toast.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual((await bar.boundingBox())!.y);
+  }
+});

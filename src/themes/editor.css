@@ -98,7 +98,8 @@
 .le-swatch[aria-pressed='true'] { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
 
 /* Toasts */
-.le-toasts { position: absolute; left: 50%; bottom: var(--le-space-3); transform: translateX(-50%); z-index: var(--le-z-overlay); display: flex; flex-direction: column; gap: var(--le-space-2); pointer-events: none; }
+/* --le-toast-offset: screen height covered at the bottom (keyboard, mobile bar), set when a toast shows. */
+.le-toasts { position: fixed; left: 50%; bottom: calc(var(--le-space-3) + max(var(--le-toast-offset, 0px), env(safe-area-inset-bottom, 0px))); transform: translateX(-50%); z-index: var(--le-z-toast); display: flex; flex-direction: column; gap: var(--le-space-2); pointer-events: none; }
 .le-toast { padding: var(--le-space-2) var(--le-space-3); border-radius: var(--le-radius-sm); background: var(--le-color-fg); color: var(--le-color-bg); box-shadow: var(--le-shadow); }
 .le-toast-error { background: var(--le-color-danger); color: #ffffff; }
 
