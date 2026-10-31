@@ -17,15 +17,16 @@ export function imagePanel(getUploads: () => UploadManager, accept: readonly str
             close();
             if (files.length) void uploads.uploadFiles(files);
           });
-          return h(
-            'label',
-            { class: c('button', 'button-primary', 'file-button') },
+          // A real button keeps the picker in the keyboard tab order; the file input itself stays hidden.
+          const button = h(
+            'button',
+            { class: c('button', 'button-primary', 'file-button'), attrs: { type: 'button' }, on: { click: () => input.click() } },
             renderIcon('upload'),
             t('panel.image.file'),
-            input,
           );
+          return [button, input];
         })()
-      : null;
+      : [];
     const urlForm = inputForm({
       t,
       type: 'url',
@@ -38,7 +39,7 @@ export function imagePanel(getUploads: () => UploadManager, accept: readonly str
         return ok;
       },
     });
-    return h('div', { class: c('panel') }, picker, urlForm);
+    return h('div', { class: c('panel') }, ...picker, urlForm);
   };
 }
 

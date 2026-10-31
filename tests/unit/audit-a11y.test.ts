@@ -1,5 +1,6 @@
 import type { Editor } from '../../src/core/Editor';
 import { findKey } from '../../src/extensions/tools/findReplace';
+import { focusables } from '../../src/ui/focus';
 import { makeEditor } from '../helpers/editor';
 import { triggerResize } from '../setup';
 
@@ -55,5 +56,21 @@ describe('audit a11y #36: the overflow button follows the editor state', () => {
     more.click();
     dialog().querySelector<HTMLButtonElement>('[data-item="sourceView"]')!.click();
     expect(ed.root.dataset.lockedExcept).toBeUndefined();
+  });
+});
+
+describe('audit a11y #34: the image panel file picker works from the keyboard', () => {
+  it('is a focusable button in the panel tab cycle that opens the file dialog', () => {
+    const ed = makeEditor({ upload: async () => ({ url: 'https://cdn.x/a.png' }) });
+    ed.ui!.openPanelFor('image');
+    const picker = dialog().querySelector<HTMLButtonElement>('button.le-file-button')!;
+    expect(picker).not.toBeNull();
+    expect(picker.type).toBe('button');
+    expect(focusables(dialog())[0]).toBe(picker);
+    expect(document.activeElement).toBe(picker);
+    const input = dialog().querySelector<HTMLInputElement>('input[type="file"]')!;
+    const open = vi.spyOn(input, 'click');
+    picker.click();
+    expect(open).toHaveBeenCalledTimes(1);
   });
 });
