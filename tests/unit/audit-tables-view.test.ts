@@ -1,7 +1,7 @@
 import { TextSelection } from 'prosemirror-state';
 import { DEFAULTS } from '../../src/core/defaults';
 import { sanitizeHTML } from '../../src/io/sanitize';
-import { findText, makeEditor } from '../helpers/editor';
+import { findText, makeEditor, press, typeText } from '../helpers/editor';
 
 const { maxColspan, maxRowspan, maxColumnWidth } = DEFAULTS.tableLimits;
 const cell = (attrs: string): string => `<table><tbody><tr><td ${attrs}><p>a</p></td></tr></tbody></table>`;
@@ -33,5 +33,40 @@ describe('audit #22: cell spans are parsed as clamped integers', () => {
     expect(() => ed.exec('addColumnAfter')).not.toThrow();
     expect(ed.getHTML()).not.toMatch(/colspan="(0|NaN)"/);
     expect(ed.view.dom.querySelectorAll('tr:last-child td')).toHaveLength(3);
+  });
+});
+
+const CELL_ROLES = new Set(['cell', 'header_cell']);
+
+/** [row, column] of the cell holding the caret. */
+function caretCell(ed: ReturnType<typeof makeEditor>): [number, number] {
+  const { $from } = ed.state.selection;
+  for (let depth = $from.depth; depth > 0; depth--) {
+    if (CELL_ROLES.has($from.node(depth).type.spec.tableRole)) return [$from.index(depth - 2), $from.index(depth - 1)];
+  }
+  throw new Error('caret is not in a table cell');
+}
+
+describe('audit #13/#62: inserting a table puts the caret in the first cell', () => {
+  it.each([
+    ['an empty document', '', 0],
+    ['an empty paragraph after text', '<p>Intro</p><p></p>', 'end'],
+    ['the middle of a paragraph', '<p>before after</p>', 'before'.length + 1],
+    ['a paragraph followed by more content', '<p>a</p><p>b</p>', 2],
+  ] as const)('in %s', (_, content, caret) => {
+    const ed = makeEditor({ content });
+    const pos = caret === 'end' ? ed.state.doc.content.size - 1 : Math.max(1, caret);
+    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.near(ed.state.doc.resolve(pos))));
+    ed.exec('insertTable', 3, 3);
+    expect(caretCell(ed)).toEqual([0, 0]);
+  });
+
+  it('typing then Tab fills the header row from the left', () => {
+    const ed = makeEditor();
+    ed.exec('insertTable', 2, 2);
+    typeText(ed, 'Name');
+    press(ed, 'Tab');
+    typeText(ed, 'Age');
+    expect(ed.getHTML()).toContain('<tr><th><p>Name</p></th><th><p>Age</p></th></tr>');
   });
 });

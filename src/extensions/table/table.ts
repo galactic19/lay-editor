@@ -1,5 +1,5 @@
 import type { Attrs, NodeSpec, Node as PMNode, Schema } from 'prosemirror-model';
-import type { Command } from 'prosemirror-state';
+import { type Command, Selection, type Transaction } from 'prosemirror-state';
 import {
   addColumnAfter,
   addColumnBefore,
@@ -74,6 +74,18 @@ function createTable(schema: Schema, rows: number, cols: number, withHeader: boo
   return schema.nodes.table!.create(null, Array.from({ length: rows }, (_, i) => row(withHeader && i === 0)));
 }
 
+/**
+ * replaceSelectionWith leaves the caret after the new table (in its last cell, or in the next block);
+ * start typing in its first cell instead. The table may land beside the selection, so find it by identity.
+ */
+function caretToFirstCell(tr: Transaction, table: PMNode): Transaction {
+  tr.doc.descendants((node, pos) => {
+    if (node === table) tr.setSelection(Selection.near(tr.doc.resolve(pos + 1)));
+    return node !== table && !node.isTextblock;
+  });
+  return tr;
+}
+
 const TABLE_COMMANDS: Record<string, Command> = {
   addRowBefore,
   addRowAfter,
@@ -107,7 +119,8 @@ export const table = defineExtension<TableOptions>({
     insertTable:
       (rows = options.defaultRows, cols = options.defaultCols, withHeader = true): Command =>
       (state, dispatch) => {
-        dispatch?.(state.tr.replaceSelectionWith(createTable(schema, rows, cols, withHeader)).scrollIntoView());
+        const table = createTable(schema, rows, cols, withHeader);
+        dispatch?.(caretToFirstCell(state.tr.replaceSelectionWith(table), table).scrollIntoView());
         return true;
       },
     setCellBackground: (value: string) => {
