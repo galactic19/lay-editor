@@ -5,7 +5,7 @@ import { c } from '../../ui/classes';
 import { insertPoint } from 'prosemirror-transform';
 import type { Editor } from '../../core/Editor';
 import { DEFAULTS } from '../../core/defaults';
-import { findParent } from '../../core/state-utils';
+import { findParent, openParagraph } from '../../core/state-utils';
 import type { ExtensionContext, UIItem } from '../../core/types';
 import { clampWidth, oneOf, safeUrl } from '../../io/sanitize';
 import { dataUrlToFile, UploadManager } from '../../io/upload';
@@ -85,6 +85,20 @@ function insertImage(type: NodeType, input: ImageInput, pos?: number): Command {
     return true;
   };
 }
+
+/**
+ * Enter (and the line break keys) in a caption: a caption is one line of text, so the caret leaves it for a new
+ * paragraph after the image and the caption stays whole. Without this Enter did nothing, and on a touch keyboard
+ * an image at the end of the document had no way past it.
+ */
+const leaveCaption =
+  (type: NodeType): Command =>
+  (state, dispatch) => {
+    const { $from } = state.selection;
+    if ($from.parent.type !== type) return false;
+    dispatch?.(openParagraph(state.tr, $from.after()).scrollIntoView());
+    return true;
+  };
 
 /** The pasted content inside the wrappers it was cut from, so a copied line of text is just its text. */
 function openContent(slice: Slice): Fragment {
@@ -231,6 +245,10 @@ export const image = defineExtension<ImageOptions>({
         return true;
       },
     };
+  },
+  keymap: ({ schema }) => {
+    const leave = leaveCaption(schema.nodes.image!);
+    return { Enter: leave, 'Shift-Enter': leave, 'Mod-Enter': leave };
   },
   plugins: (ctx) => {
     const type = ctx.schema.nodes.image!;

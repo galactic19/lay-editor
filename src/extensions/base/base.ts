@@ -15,8 +15,12 @@ export const base = defineExtension({
     hardBreak: { inline: true, group: 'inline', selectable: false, linebreakReplacement: true, parseDOM: [{ tag: 'br' }], toDOM: () => ['br'] },
   },
   commands: ({ schema, editor }) => {
+    const hardBreak = schema.nodes.hardBreak!;
+    // Only where a break may go: forced into text-only content (a caption), it would split the block around it.
     const insertBreak: Command = (state, dispatch) => {
-      dispatch?.(state.tr.replaceSelectionWith(schema.nodes.hardBreak!.create()).scrollIntoView());
+      const { $from } = state.selection;
+      if (!$from.parent.canReplaceWith($from.index(), $from.index(), hardBreak)) return false;
+      dispatch?.(state.tr.replaceSelectionWith(hardBreak.create()).scrollIntoView());
       return true;
     };
     return {

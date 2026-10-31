@@ -5,7 +5,7 @@ import type { EditorOptions } from '../../src/core/types';
 import { normalizeHref } from '../../src/extensions/marks/link';
 import { fillContainerStarts } from '../../src/io/html';
 import { onCleanup, setMedia } from '../setup';
-import { caretAfter, caretAt, findText, makeEditor, toolbarControl, typeText } from '../helpers/editor';
+import { caretAfter, caretAt, findText, makeEditor, press, toolbarControl, typeText } from '../helpers/editor';
 
 /** An editor in a form: textarea mode, or (`textarea: false`) an element inside the form. */
 function formEditor(content: string, { textarea = true, ...options }: Partial<EditorOptions> & { textarea?: boolean } = {}) {
@@ -299,5 +299,29 @@ describe('final review: typing continues below an inserted video', () => {
     typeText(editor, 'Next line');
     expect(editor.getHTML()).toMatch(/^<p>intro<\/p><div data-video="" data-provider="youtube"/);
     expect(editor.getHTML().endsWith(`</div>${after}`)).toBe(true);
+  });
+});
+
+describe('final review: Enter, Shift+Enter and Mod+Enter in an image caption', () => {
+  it.each(['Enter', 'Shift-Enter', 'Mod-Enter'])('%s leaves the caption whole and starts a paragraph after the image', (key) => {
+    const editor = makeEditor({ content: `<p>before</p>${FIGURE}` });
+    caretAfter(editor, 'ca');
+    expect(press(editor, key)).toBe(true);
+    typeText(editor, 'next');
+    expect(editor.getHTML()).toBe(`<p>before</p>${FIGURE}<p>next</p>`);
+  });
+
+  it('works for an image in a list item too', () => {
+    const editor = makeEditor({ content: `<ul><li><p>item</p>${FIGURE}</li></ul>` });
+    caretAfter(editor, 'capt');
+    press(editor, 'Enter');
+    typeText(editor, 'next');
+    expect(editor.getHTML()).toBe(`<ul><li><p>item</p>${FIGURE}<p>next</p></li></ul>`);
+  });
+
+  it('a line break goes nowhere a line break cannot be', () => {
+    const editor = makeEditor({ content: `<p>before</p>${FIGURE}` });
+    caretAfter(editor, 'ca');
+    expect(editor.can('insertHardBreak')).toBe(false);
   });
 });
