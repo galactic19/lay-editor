@@ -3,6 +3,7 @@ import { DEFAULTS } from '../core/defaults';
 import { EditorError } from '../core/errors';
 import { rafBatch } from '../core/timing';
 import type { DeviceMode, UIContext, UIItem, UISlot } from '../core/types';
+import { itemLabel } from '../i18n';
 import { c } from './classes';
 import { BubbleMenu } from './BubbleMenu';
 import { resolveContext } from './context';
@@ -73,7 +74,7 @@ export class EditorUI {
     const item = this.registry.get(itemId);
     if (!item) return;
     const at = anchor ?? this.toolbar?.anchorFor(itemId) ?? rangeReference(this.editor.view, this.editor.state.selection.from);
-    const label = this.editor.t(item.label, item.labelParams);
+    const label = itemLabel(this.editor.t, item);
     if (item.panel) this.panels.openPanel(item.panel, at, label);
     else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at, label);
   }

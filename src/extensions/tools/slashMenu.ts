@@ -3,7 +3,7 @@ import type { Editor } from '../../core/Editor';
 import { DEFAULTS } from '../../core/defaults';
 import { LEAF_CHAR } from '../../core/state-utils';
 import type { UIItem } from '../../core/types';
-import type { Translate } from '../../i18n';
+import { itemLabel, type Translate } from '../../i18n';
 import { SlashMenu } from '../../ui/SlashMenu';
 import { defineExtension } from '../factories';
 
@@ -30,7 +30,7 @@ export function slashItems(editor: Editor): UIItem[] {
 export function filterSlashItems(items: UIItem[], query: string, t: Translate): UIItem[] {
   const needle = query.trim().toLowerCase();
   const matches = (item: UIItem): boolean =>
-    [t(item.label, item.labelParams), ...(item.slash?.keywords ?? [])].some((text) => text.toLowerCase().includes(needle));
+    [itemLabel(t, item), ...(item.slash?.keywords ?? [])].some((text) => text.toLowerCase().includes(needle));
   return items.filter(matches).slice(0, maxItems);
 }
 

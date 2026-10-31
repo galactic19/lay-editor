@@ -1,4 +1,4 @@
-import { createTranslator, flattenKeys, registerLocale } from '../../src/i18n';
+import { createTranslator, flattenKeys, itemLabel, registerLocale } from '../../src/i18n';
 import { ko } from '../../src/i18n/ko';
 import { en } from '../../src/i18n/en';
 
@@ -19,6 +19,12 @@ describe('i18n', () => {
     const t = createTranslator({ toolbar: { more: '…' } });
     expect(t('toolbar.more')).toBe('…');
     expect(t('placeholder')).toBe('내용을 입력하세요');
+  });
+
+  it('translates a UI item label with its params', () => {
+    const t = createTranslator('en');
+    expect(itemLabel(t, { label: 'toolbar.more' })).toBe('More');
+    expect(itemLabel(t, { label: 'toolbar.imageWidth', labelParams: { n: 50 } })).toBe('Width 50%');
   });
 
   it('uses ko by code', () => {

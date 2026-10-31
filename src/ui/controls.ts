@@ -1,5 +1,6 @@
 import type { Editor } from '../core/Editor';
 import type { UIItem } from '../core/types';
+import { itemLabel } from '../i18n';
 import { c } from './classes';
 import { h } from './dom';
 import type { EditorUI } from './EditorUI';
@@ -26,7 +27,7 @@ export function activateItem(item: UIItem, editor: Editor, ui: EditorUI, anchor:
 
 /** One button for a UI item. Shared by the toolbar, menus, bubble and mobile bars. */
 export function createControl(item: UIItem, editor: Editor, ui: EditorUI, options: ControlOptions = {}): HTMLButtonElement {
-  const label = editor.t(item.label, item.labelParams);
+  const label = itemLabel(editor.t, item);
   const shortcut = item.shortcut ? formatShortcut(item.shortcut) : null;
   const button: HTMLButtonElement = h(
     'button',

@@ -1,5 +1,6 @@
 import { DEFAULTS } from '../core/defaults';
 import { deepMerge } from '../core/merge';
+import type { UIItem } from '../core/types';
 import { en } from './en';
 import { ko } from './ko';
 
@@ -27,6 +28,9 @@ export function createTranslator(locale: string | LocalePack): Translate {
       : deepMerge<LocalePack>(registry.get(FALLBACK)!, registry.get(DEFAULTS.locale), locale);
   return (key, params) => interpolate(lookup(pack, key) ?? key, params);
 }
+
+/** The translated label of a UI item, for its control, the dialog it opens and the slash menu. */
+export const itemLabel = (t: Translate, item: Pick<UIItem, 'label' | 'labelParams'>): string => t(item.label, item.labelParams);
 
 export function flattenKeys(pack: LocalePack, prefix = ''): string[] {
   return Object.entries(pack).flatMap(([key, value]) =>

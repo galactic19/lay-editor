@@ -1,5 +1,6 @@
 import type { Editor } from '../core/Editor';
 import { UI_CONTEXTS, type UIItem } from '../core/types';
+import { itemLabel } from '../i18n';
 import { c } from './classes';
 import { createControl, createSeparator, isDisabled, syncControl } from './controls';
 import { h } from './dom';
@@ -36,7 +37,7 @@ export class Toolbar extends UIComponent<HTMLDivElement> {
       this.el.appendChild(el);
     }
     this.more = createControl(MORE_ITEM, editor, ui, {
-      onActivate: () => ui.panels.openPanel(listPanel(() => this.overflow), this.more, editor.t(MORE_ITEM.label)),
+      onActivate: () => ui.panels.openPanel(listPanel(() => this.overflow), this.more, itemLabel(editor.t, MORE_ITEM)),
     });
     this.more.hidden = true;
     this.el.appendChild(this.more);
