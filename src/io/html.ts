@@ -1,12 +1,68 @@
-import { DOMParser as PMDOMParser, DOMSerializer, Fragment, type Node as PMNode, type Schema } from 'prosemirror-model';
+import { DOMParser as PMDOMParser, DOMSerializer, Fragment, type Node as PMNode, type NodeType, type Schema, type TagParseRule } from 'prosemirror-model';
 import { LEAF_CHAR } from '../core/state-utils';
 import type { ExtNodeSpec } from '../core/types';
 
 const NBSP = '\u00a0';
 const NEWLINE = '\n';
 
+/** Node types whose content must open with a textblock while other blocks may follow (a list item: `paragraph block*`). */
+function textblockFirstTypes(schema: Schema): Set<NodeType> {
+  const blocks = Object.values(schema.nodes).filter((type) => type.isBlock);
+  const textblockFirst = (type: NodeType): boolean => {
+    const start = type.contentMatch;
+    const rest = start.defaultType?.isTextblock ? start.matchType(start.defaultType) : null;
+    return Boolean(rest) && blocks.some((block) => rest!.matchType(block) && !start.matchType(block));
+  };
+  return new Set(blocks.filter(textblockFirst));
+}
+
+const contentChild = (node: ChildNode): boolean => node.nodeType === Node.ELEMENT_NODE || (node.nodeType === Node.TEXT_NODE && /\S/.test(node.textContent ?? ''));
+
+/**
+ * An element of such a type that starts with another block (`<li><h3>`, `<li><img>`) gets an empty textblock in front.
+ * Without it the parser closes the list there, moves the block out and re-wraps the remaining items in another list type.
+ */
+export function fillContainerStarts(root: Element, schema: Schema): void {
+  const types = textblockFirstTypes(schema);
+  if (!types.size) return;
+  const parser = PMDOMParser.fromSchema(schema);
+  const tagRules = parser.rules.filter((rule): rule is TagParseRule => 'tag' in rule);
+  const nodeOf = (rule?: TagParseRule): NodeType | undefined => (rule?.node ? schema.nodes[rule.node] : undefined);
+  const selectorFor = (wanted: (type: NodeType) => boolean): string =>
+    tagRules
+      .filter((rule) => {
+        const type = nodeOf(rule);
+        return type !== undefined && wanted(type);
+      })
+      .map((rule) => rule.tag)
+      .join(',');
+  const containers = selectorFor((type) => types.has(type));
+  // Fast path for the usual `<li><p>`: a node every such container accepts first.
+  const fineStart = selectorFor((type) => [...types].every((container) => container.contentMatch.matchType(type)));
+  /** The rule the parser would use for `el` (rules are in priority order). */
+  const ruleFor = (el: Element) => tagRules.find((rule) => el.matches(rule.tag) && rule.getAttrs?.(el as HTMLElement) !== false);
+  /** What `first` parses to: its own rule's node, or (no rule, or a skipped wrapper) the first node parsed from it. */
+  const leadingType = (first: Element): NodeType | undefined => {
+    const rule = ruleFor(first);
+    if (rule && !rule.skip) return nodeOf(rule);
+    const probe = first.ownerDocument.createElement('div');
+    probe.append(first.cloneNode(true));
+    return parser.parseSlice(probe).content.firstChild?.type;
+  };
+  for (const el of root.querySelectorAll(containers)) {
+    const first = Array.from(el.childNodes).find(contentChild);
+    if (!(first instanceof Element) || (fineStart && first.matches(fineStart))) continue;
+    const type = nodeOf(ruleFor(el));
+    const leading = leadingType(first);
+    if (!type || !types.has(type) || !leading?.isBlock || type.contentMatch.matchType(leading)) continue;
+    const filler = type.contentMatch.defaultType!.create();
+    el.insertBefore(DOMSerializer.fromSchema(schema).serializeNode(filler, { document: el.ownerDocument }), first);
+  }
+}
+
 export function parseHTML(schema: Schema, html: string | null | undefined): PMNode {
   const dom = new window.DOMParser().parseFromString(`<!doctype html><body>${html ?? ''}</body>`, 'text/html');
+  fillContainerStarts(dom.body, schema);
   return PMDOMParser.fromSchema(schema).parse(dom.body);
 }
 

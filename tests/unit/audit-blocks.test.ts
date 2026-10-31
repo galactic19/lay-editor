@@ -205,3 +205,33 @@ describe('typed spaces survive saving (#18)', () => {
     expect(roundTrip(ed)).toBe('<p>a b c</p><pre><code>  a\n    b</code></pre>');
   });
 });
+
+describe('list items that start with a block stay in the list (#17)', () => {
+  it.each([
+    [
+      '<ol><li><h3>Install</h3><p>Run the installer.</p></li><li><h3>Configure</h3><p>Edit the file.</p></li></ol>',
+      '<ol><li><p></p><h3>Install</h3><p>Run the installer.</p></li><li><p></p><h3>Configure</h3><p>Edit the file.</p></li></ol>',
+    ],
+    [
+      '<ol><li><img src="https://x.com/1.png">Photo one</li><li>Second</li></ol>',
+      '<ol><li><p></p><figure data-align="center"><img src="https://x.com/1.png" alt=""><figcaption></figcaption></figure><p>Photo one</p></li><li><p>Second</p></li></ol>',
+    ],
+    [
+      '<ol start="3"><li><blockquote><p>q</p></blockquote></li><li> <pre><code>x=1</code></pre></li><li>z</li></ol>',
+      '<ol start="3"><li><p></p><blockquote><p>q</p></blockquote></li><li><p></p><pre><code>x=1</code></pre></li><li><p>z</p></li></ol>',
+    ],
+    [
+      '<ul data-type="taskList"><li data-checked="true"><h3>Done</h3></li><li data-checked="false">Todo</li></ul>',
+      '<ul data-type="taskList"><li data-checked="true"><p></p><h3>Done</h3></li><li data-checked="false"><p>Todo</p></li></ul>',
+    ],
+    ['<ul><li><strong>a</strong> b</li><li><p>c</p><h3>d</h3></li></ul>', '<ul><li><p><strong>a</strong> b</p></li><li><p>c</p><h3>d</h3></li></ul>'],
+  ])('setHTML %s', (input, expected) => {
+    expect(makeEditor({ content: input }).getHTML()).toBe(expected);
+  });
+
+  it('pasted HTML keeps every item in the ordered list', () => {
+    const ed = makeEditor();
+    ed.view.pasteHTML('<ol><li><h3>Install</h3><p>Run.</p></li><li><h3>Configure</h3><p>Edit.</p></li></ol>');
+    expect(ed.getHTML()).toBe('<ol><li><p></p><h3>Install</h3><p>Run.</p></li><li><p></p><h3>Configure</h3><p>Edit.</p></li></ol>');
+  });
+});
