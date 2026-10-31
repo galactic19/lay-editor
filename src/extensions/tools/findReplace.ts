@@ -1,6 +1,6 @@
 import type { Node as PMNode } from 'prosemirror-model';
-import { Plugin, PluginKey, TextSelection, type Command, type EditorState } from 'prosemirror-state';
-import { Decoration, DecorationSet } from 'prosemirror-view';
+import { Plugin, PluginKey, TextSelection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
+import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import { LEAF_CHAR } from '../../core/state-utils';
 import { c } from '../../ui/classes';
 import { findPanel } from '../../ui/panels/findPanel';
@@ -50,18 +50,26 @@ export function findMatches(doc: PMNode, query: string, caseSensitive: boolean):
 
 const getState = (state: EditorState): FindState => findKey.getState(state) ?? EMPTY;
 
+/**
+ * Dispatches a move to another match and brings it into view. ProseMirror drops tr.scrollIntoView()
+ * while focus sits outside the editor (in the find panel), so the current match is scrolled directly too.
+ */
+function dispatchToMatch(tr: Transaction, dispatch: (tr: Transaction) => void, view?: EditorView): void {
+  dispatch(tr.scrollIntoView());
+  view?.dom.querySelector(`.${c('find-current')}`)?.scrollIntoView({ block: 'center' });
+}
+
 /** Selects match `index` and remembers it as current. */
 const select =
   (index: number): Command =>
-  (state, dispatch) => {
+  (state, dispatch, view) => {
     const match = getState(state).matches[index];
     if (!match) return false;
-    dispatch?.(
-      state.tr
-        .setSelection(TextSelection.create(state.doc, match.from, match.to))
-        .setMeta(findKey, { type: 'current', current: index } satisfies FindMeta)
-        .scrollIntoView(),
-    );
+    if (!dispatch) return true;
+    const tr = state.tr
+      .setSelection(TextSelection.create(state.doc, match.from, match.to))
+      .setMeta(findKey, { type: 'current', current: index } satisfies FindMeta);
+    dispatchToMatch(tr, dispatch, view);
     return true;
   };
 
@@ -100,7 +108,7 @@ export const findReplace = defineExtension({
       if (next >= 0) {
         tr.setSelection(TextSelection.create(tr.doc, remaining[next]!.from, remaining[next]!.to)).setMeta(findKey, { type: 'current', current: next } satisfies FindMeta);
       }
-      dispatch(tr.scrollIntoView());
+      dispatchToMatch(tr, dispatch, view);
       return true;
     },
     replaceAll: (text: string): Command => (state, dispatch) => {

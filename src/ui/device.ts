@@ -1,23 +1,7 @@
 import type { DeviceMode } from '../core/types';
+import { Signal, type Listener } from './signal';
 
 const COARSE_POINTER = '(pointer: coarse)';
-
-type Listener<T> = (value: T) => void;
-
-/** Small subscription helper shared by the watchers below. */
-class Signal<T> {
-  private readonly listeners = new Set<Listener<T>>();
-  on(fn: Listener<T>): () => void {
-    this.listeners.add(fn);
-    return () => this.listeners.delete(fn);
-  }
-  emit(value: T): void {
-    this.listeners.forEach((fn) => fn(value));
-  }
-  clear(): void {
-    this.listeners.clear();
-  }
-}
 
 /** Mobile = coarse pointer and a container no wider than the breakpoint. */
 export class DeviceWatcher {

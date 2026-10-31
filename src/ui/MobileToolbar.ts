@@ -31,9 +31,10 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
     this.addDisposer(ui.viewport.onChange(() => this.place()));
     this.addDisposer(() => {
       editor.root.style.removeProperty('--le-mobile-bar-height');
-      editor.view.setProps({ scrollMargin: undefined });
+      editor.view.setProps({ scrollMargin: undefined, scrollThreshold: undefined });
     });
-    this.followEditorFocus();
+    // The bar is the only chrome on mobile, so while editing, focus anywhere in the editor keeps it, the HTML source textarea included.
+    this.followEditorFocus(editor.root);
   }
 
   /** Context-only tools first, then the regular tools that also work in this context. */
@@ -44,15 +45,17 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
   }
 
   override update(): void {
-    if (!this.hasFocusWithin()) {
+    // A read-only editor has nothing to edit, even when a link or task checkbox in the content takes focus.
+    if (!this.editor.isEditable || !this.hasFocusWithin()) {
       this.el.hidden = true;
       return;
     }
+    this.el.dataset.theme = this.editor.root.dataset.theme;
+    // Shown before rebuilding: a hidden bar has no layout, so it would ignore the scroll reset.
+    this.el.hidden = false;
     const context = this.ui.getContext();
     if (context !== this.context) this.rebuild(context);
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
-    this.el.dataset.theme = this.editor.root.dataset.theme;
-    this.el.hidden = false;
     this.place();
   }
 
@@ -67,6 +70,8 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
         return el;
       }),
     );
+    // The context-only tools lead the new set, so show the start instead of the old scroll position.
+    this.el.scrollLeft = 0;
     this.roving.refresh();
   }
 
@@ -78,6 +83,8 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
     if (height === this.height) return;
     this.height = height;
     this.editor.root.style.setProperty('--le-mobile-bar-height', `${height}px`);
-    this.editor.view.setProps({ scrollMargin: { top: scrollGap, left: scrollGap, right: scrollGap, bottom: height + scrollGap } });
+    const edge = { top: scrollGap, left: scrollGap, right: scrollGap, bottom: height + scrollGap };
+    // ProseMirror applies the margin only to a caret past the threshold, so the bar must count for both.
+    this.editor.view.setProps({ scrollMargin: edge, scrollThreshold: edge });
   }
 }

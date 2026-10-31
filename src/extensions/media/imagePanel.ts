@@ -32,6 +32,7 @@ export function imagePanel(getUploads: () => UploadManager, accept: readonly str
       labelKey: 'panel.image.url',
       placeholderKey: 'panel.link.placeholder',
       submitKey: 'panel.image.insert',
+      errorKey: 'panel.image.invalid',
       onSubmit: (src) => {
         const ok = editor.exec('insertImage', { src });
         if (ok) close();

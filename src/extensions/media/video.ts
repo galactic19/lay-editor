@@ -75,6 +75,7 @@ export const video = defineExtension<VideoOptions>({
           type: 'url',
           labelKey: 'panel.video.url',
           submitKey: 'panel.video.insert',
+          errorKey: 'panel.video.invalid',
           onSubmit: (url) => {
             const ok = editor.exec('insertVideo', url);
             if (ok) close();

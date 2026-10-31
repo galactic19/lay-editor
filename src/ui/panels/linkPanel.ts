@@ -1,6 +1,7 @@
 import type { PanelFactory } from '../../core/types';
 import { c } from '../classes';
 import { h } from '../dom';
+import { inputError, panelForm } from './inputForm';
 
 function currentLink(editor: Parameters<PanelFactory>[0]['editor']): { href: string; newTab: boolean } | null {
   const { $from, from, to } = editor.state.selection;
@@ -19,24 +20,17 @@ export const linkPanel: PanelFactory = ({ editor, t, close }) => {
   input.value = existing?.href ?? '';
   const newTab = h('input', { attrs: { type: 'checkbox' } });
   newTab.checked = existing?.newTab ?? false;
-  const error = h('div', { class: c('panel-error'), attrs: { role: 'alert', hidden: true } }, t('panel.link.invalid'));
+  const error = inputError(input, t('panel.link.invalid'));
 
-  const form = h(
-    'form',
-    {
-      class: c('panel'),
-      on: {
-        submit: (event) => {
-          event.preventDefault();
-          const ok = editor.exec('setLink', { href: input.value, newTab: newTab.checked });
-          input.setAttribute('aria-invalid', String(!ok));
-          error.hidden = ok;
-          if (ok) close();
-        },
-      },
+  return panelForm(
+    c('panel'),
+    () => {
+      const ok = editor.exec('setLink', { href: input.value, newTab: newTab.checked });
+      error.report(ok);
+      if (ok) close();
     },
     input,
-    error,
+    error.el,
     h('label', {}, newTab, t('panel.link.newTab')),
     h(
       'div',
@@ -60,5 +54,4 @@ export const linkPanel: PanelFactory = ({ editor, t, close }) => {
         : null,
     ),
   );
-  return form;
 };
