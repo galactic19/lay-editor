@@ -42,8 +42,6 @@ export const DEFAULTS = {
   paste: {
     keepStyles: [...COLOR_STYLES, 'text-align'],
     colorStyles: COLOR_STYLES,
-    /** Shorthands kept as the style they set; Word writes highlights and cell shading as `background:yellow`. */
-    styleAliases: { background: 'background-color' },
     /** CSS 2.1 color keywords, which Word uses for its standard colors and its highlight palette. */
     namedColors: {
       black: '#000000',

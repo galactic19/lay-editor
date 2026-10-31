@@ -84,4 +84,15 @@ test.describe('paste from other pages (audit)', () => {
     expect(weights.slice(0, 2).every((weight) => weight >= 600)).toBe(true);
     expect(weights.slice(2).every((weight) => weight < 600)).toBe(true);
   });
+
+  test('colors written in any CSS syntax survive (#24)', async ({ page }) => {
+    await pasteHTML(
+      page,
+      '<p><span style="color: hsl(0,100%,40%)">hsl</span> <span style="color: rgb(200 0 0)">space</span> <span style="color: #c00000ff">hex8</span> <span style="color: #c00000 !important">imp</span></p>',
+    );
+    await expect.poll(() => html(page)).toContain('imp');
+    expect(await html(page)).toBe(
+      '<p><span style="color: rgb(204, 0, 0);">hsl</span> <span style="color: rgb(200, 0, 0);">space</span> <span style="color: rgb(192, 0, 0);">hex8</span> <span style="color: rgb(192, 0, 0);">imp</span></p>',
+    );
+  });
 });

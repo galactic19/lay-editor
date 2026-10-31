@@ -87,6 +87,17 @@ describe('Word colors, highlights and cell shading (audit #24)', () => {
   });
 });
 
+describe('colors in any CSS syntax (audit #24)', () => {
+  it('keeps hsl, space-separated rgb, 8-digit hex and !important colors, as the browser resolves them', () => {
+    const out = paste(
+      '<p><span style="color: hsl(0,100%,40%)">hsl</span> <span style="color: rgb(200 0 0)">space</span> <span style="color: #c00000ff">hex8</span> <span style="color: #c00000 !important">imp</span> <span style="background: hsl(50, 100%, 80%) !important">hl</span></p>',
+    );
+    expect(out).toBe(
+      '<p><span style="color: rgb(204, 0, 0);">hsl</span> <span style="color: rgb(200, 0, 0);">space</span> <span style="color: rgb(192, 0, 0);">hex8</span> <span style="color: rgb(192, 0, 0);">imp</span> <mark style="background-color: rgb(255, 238, 153);">hl</mark></p>',
+    );
+  });
+});
+
 describe('pasted code blocks keep their language (audit #25)', () => {
   it('keeps the language class, as setHTML does', () => {
     expect(paste('<pre><code class="language-js">const a = 1;</code></pre>')).toBe('<pre><code class="language-js">const a = 1;</code></pre>');

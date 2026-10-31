@@ -1,6 +1,6 @@
 import { DEFAULTS } from '../../../core/defaults';
 import { classLanguage, languageClass, safeColor } from '../../sanitize';
-import { mapStyle, styleDeclarations, withDocument, type StyleDeclaration } from '../dom';
+import { setStyle, styleDeclarations, withDocument, type StyleDeclaration } from '../dom';
 
 /** An inline style that means a semantic tag; `implied` matches elements that already render that way. */
 interface StyleTag {
@@ -20,7 +20,7 @@ const STYLE_TAGS: StyleTag[] = [
 ];
 /** Elements whose children are rows, cells or items: a wrapper cannot go inside them, so it goes into each child. */
 const STRUCTURE_TAGS = /^(UL|OL|TABLE|THEAD|TBODY|TFOOT|TR|COLGROUP)$/;
-const { keepStyles, colorStyles, styleAliases, namedColors, keepDataAttrs, pageColors } = DEFAULTS.paste;
+const { keepStyles, colorStyles, namedColors, keepDataAttrs, pageColors } = DEFAULTS.paste;
 const includes = (list: readonly string[], value: string): boolean => list.includes(value);
 
 /** Red, green and blue (0-255) of a color in safeColor's output format. */
@@ -59,13 +59,26 @@ function stylesToTags(el: HTMLElement): void {
   new Set(STYLE_TAGS.filter(implies).map((s) => s.tag)).forEach((tag) => wrapContent(el, tag));
 }
 
-/** A declaration the schema can read: shorthand resolved, color validated, page colors and other styles dropped. */
-function cleanDeclaration(prop: string, value: string): StyleDeclaration | null {
-  const name = (styleAliases as Record<string, string>)[prop] ?? prop;
-  if (!includes(keepStyles, name)) return null;
-  if (!includes(colorStyles, name)) return [name, value];
+/**
+ * A kept style's value, read through the CSSOM so shorthands (`background:`), `!important` and every color syntax
+ * arrive resolved; colors are validated and page colors dropped.
+ */
+function cleanValue(el: HTMLElement, prop: string): string | null {
+  const value = el.style.getPropertyValue(prop);
+  if (!includes(colorStyles, prop)) return value || null;
   const color = safeColor((namedColors as Record<string, string>)[value.toLowerCase()] ?? value);
-  return color && !isPageColor(name, color) ? [name, color] : null;
+  return color && !isPageColor(prop, color) ? color : null;
+}
+
+/** Rewrites the style attribute with only the styles the schema reads. */
+function cleanStyle(el: HTMLElement): void {
+  setStyle(
+    el,
+    keepStyles.flatMap((prop): StyleDeclaration[] => {
+      const value = cleanValue(el, prop);
+      return value ? [[prop, value]] : [];
+    }),
+  );
 }
 
 /** Drops classes, ids and unknown data attributes; a code element keeps only the class naming its language. */
@@ -85,7 +98,7 @@ export function normalizeStyles(html: string): string {
     for (const el of Array.from(doc.body.querySelectorAll<HTMLElement>('*'))) {
       if (el.hasAttribute('style')) {
         stylesToTags(el);
-        mapStyle(el, cleanDeclaration);
+        cleanStyle(el);
       }
       cleanAttributes(el);
     }

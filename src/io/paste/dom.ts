@@ -27,27 +27,22 @@ export function styleDeclarations(el: HTMLElement): Array<[string, string]> {
 /** A style declaration as [property, value]. */
 export type StyleDeclaration = [string, string];
 
-/**
- * Rewrites the style attribute declaration by declaration; `map` returns the declaration to write or null to drop it.
- * Reads the raw attribute so shorthands and vendor properties arrive exactly as the source wrote them.
- */
-export function mapStyle(el: HTMLElement, map: (prop: string, value: string) => StyleDeclaration | null): void {
-  const raw = el.getAttribute('style');
-  if (raw === null) return;
-  const kept = raw
-    .split(';')
-    .map((decl) => {
-      const colon = decl.indexOf(':');
-      const prop = decl.slice(0, Math.max(colon, 0)).trim().toLowerCase();
-      return prop ? map(prop, decl.slice(colon + 1).trim()) : null;
-    })
-    .filter((decl): decl is StyleDeclaration => decl !== null)
-    .map(([prop, value]) => `${prop}:${value}`);
-  if (kept.length) el.setAttribute('style', kept.join(';'));
+/** Writes `decls` as the style attribute, or removes the attribute when none are left. */
+export function setStyle(el: HTMLElement, decls: StyleDeclaration[]): void {
+  if (decls.length) el.setAttribute('style', decls.map(([prop, value]) => `${prop}:${value}`).join(';'));
   else el.removeAttribute('style');
 }
 
-/** Rewrites the style attribute keeping only declarations for which `keep` is true. */
+/**
+ * Rewrites the style attribute keeping only declarations for which `keep` is true.
+ * Reads the raw attribute so vendor properties (mso-*) arrive exactly as the source wrote them.
+ */
 export function filterStyle(el: HTMLElement, keep: (prop: string, value: string) => boolean): void {
-  mapStyle(el, (prop, value) => (keep(prop, value) ? [prop, value] : null));
+  const raw = el.getAttribute('style');
+  if (raw === null) return;
+  const decls = raw.split(';').map((decl): StyleDeclaration => {
+    const colon = decl.indexOf(':');
+    return [decl.slice(0, Math.max(colon, 0)).trim().toLowerCase(), decl.slice(colon + 1).trim()];
+  });
+  setStyle(el, decls.filter(([prop, value]) => prop && keep(prop, value)));
 }
