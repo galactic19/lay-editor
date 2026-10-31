@@ -42,6 +42,35 @@ export function onPageLeave(fn: () => void): () => void {
   return () => stops.forEach((stop) => stop());
 }
 
+/** A media query the UI follows; `stop()` ends the following. */
+export interface MediaWatch {
+  readonly matches: boolean;
+  stop(): void;
+}
+
+/**
+ * Reads `query` and calls `onChange` when it changes. Where matchMedia is missing (jsdom in an app's own tests)
+ * the query never matches, so the editor runs in its desktop, light-theme defaults.
+ */
+export function watchMedia(query: string, onChange: () => void): MediaWatch {
+  const media = typeof window.matchMedia === 'function' ? window.matchMedia(query) : null;
+  media?.addEventListener('change', onChange);
+  return {
+    get matches() {
+      return media?.matches ?? false;
+    },
+    stop: () => media?.removeEventListener('change', onChange),
+  };
+}
+
+/** Calls `onResize` when `target` changes size; nothing where ResizeObserver is missing (jsdom). Returns the stop function. */
+export function observeResize(target: Element, onResize: () => void): () => void {
+  if (typeof ResizeObserver === 'undefined') return () => {};
+  const observer = new ResizeObserver(() => onResize());
+  observer.observe(target);
+  return () => observer.disconnect();
+}
+
 /** Creates an element; `true` attributes are set empty, false/null ones are skipped. */
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: ElementProps = {}, ...children: Child[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);

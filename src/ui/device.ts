@@ -1,4 +1,5 @@
 import type { DeviceMode } from '../core/types';
+import { observeResize, watchMedia } from './dom';
 import { Signal, type Listener } from './signal';
 
 const COARSE_POINTER = '(pointer: coarse)';
@@ -7,18 +8,15 @@ const COARSE_POINTER = '(pointer: coarse)';
 export class DeviceWatcher {
   private current: DeviceMode;
   private readonly signal = new Signal<DeviceMode>();
-  private readonly media = window.matchMedia(COARSE_POINTER);
-  private readonly observer: ResizeObserver;
-  private readonly onMedia = (): void => this.check();
+  private readonly media = watchMedia(COARSE_POINTER, () => this.check());
+  private readonly stopResize: () => void;
 
   constructor(
     private readonly container: HTMLElement,
     private readonly breakpoint: number,
   ) {
     this.current = this.compute();
-    this.media.addEventListener('change', this.onMedia);
-    this.observer = new ResizeObserver(() => this.check());
-    this.observer.observe(container);
+    this.stopResize = observeResize(container, () => this.check());
   }
 
   get mode(): DeviceMode {
@@ -30,8 +28,8 @@ export class DeviceWatcher {
   }
 
   destroy(): void {
-    this.media.removeEventListener('change', this.onMedia);
-    this.observer.disconnect();
+    this.media.stop();
+    this.stopResize();
     this.signal.clear();
   }
 

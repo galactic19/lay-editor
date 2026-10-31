@@ -3,7 +3,7 @@ import { UI_CONTEXTS, type UIItem } from '../core/types';
 import { itemLabel } from '../i18n';
 import { c } from './classes';
 import { createControl, createSeparator, syncControl, syncMenuControl } from './controls';
-import { h } from './dom';
+import { h, observeResize } from './dom';
 import type { EditorUI } from './EditorUI';
 import { listPanel } from './panels/listPanel';
 import { SEPARATOR } from './presets';
@@ -43,9 +43,7 @@ export class Toolbar extends UIComponent<HTMLDivElement> {
     this.el.appendChild(this.more);
     this.roving = new RovingFocus(this.el, `.${c('control')}`);
     this.addDisposer(() => this.roving.destroy());
-    const observer = new ResizeObserver(() => this.layout());
-    observer.observe(this.el);
-    this.addDisposer(() => observer.disconnect());
+    this.addDisposer(observeResize(this.el, () => this.layout()));
   }
 
   /** The visible control for an item, used to anchor panels. */

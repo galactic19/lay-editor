@@ -1,6 +1,6 @@
 import { DEFAULTS } from '../core/defaults';
 import { c } from './classes';
-import { h } from './dom';
+import { h, observeResize } from './dom';
 import { PortalPanel, type PortalParts } from './PortalPanel';
 
 /** The open sheet's height, published on the editor root; `.le-find-current` scrolls clear of it. */
@@ -21,10 +21,9 @@ export class BottomSheet extends PortalPanel {
   }
 
   private publishHeight(dialog: HTMLElement): () => void {
-    const sizer = new ResizeObserver(() => this.root.style.setProperty(HEIGHT_VAR, `${dialog.offsetHeight}px`));
-    sizer.observe(dialog);
+    const stop = observeResize(dialog, () => this.root.style.setProperty(HEIGHT_VAR, `${dialog.offsetHeight}px`));
     return () => {
-      sizer.disconnect();
+      stop();
       this.root.style.removeProperty(HEIGHT_VAR);
     };
   }

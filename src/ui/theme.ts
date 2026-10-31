@@ -1,4 +1,5 @@
 import type { ThemeMode } from '../core/types';
+import { watchMedia } from './dom';
 import { Signal, type Listener } from './signal';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
@@ -18,15 +19,13 @@ export interface ThemedPortal {
 
 /** Applies data-theme to its targets; 'auto' follows the OS. onChange lets portals follow along. */
 export class ThemeController {
-  private readonly media = window.matchMedia(DARK_QUERY);
+  private readonly media = watchMedia(DARK_QUERY, () => this.apply());
   private readonly signal = new Signal<ResolvedTheme>();
-  private readonly onMedia = (): void => this.apply();
 
   constructor(
     private readonly getTargets: () => HTMLElement[],
     private mode: ThemeMode,
   ) {
-    this.media.addEventListener('change', this.onMedia);
     this.apply();
   }
 
@@ -51,7 +50,7 @@ export class ThemeController {
   }
 
   destroy(): void {
-    this.media.removeEventListener('change', this.onMedia);
+    this.media.stop();
     this.signal.clear();
   }
 }

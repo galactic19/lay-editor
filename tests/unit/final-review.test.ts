@@ -489,3 +489,19 @@ describe('final review: the Vue wrapper hands out a raw editor', () => {
     expect(mounted.editor().getHTML()).toContain('<table>');
   });
 });
+
+describe("final review: an app's jsdom tests without matchMedia or ResizeObserver", () => {
+  it('createEditor works, with the desktop mode and the light theme', () => {
+    const saved = { matchMedia: window.matchMedia, ResizeObserver: globalThis.ResizeObserver };
+    onCleanup(() => {
+      window.matchMedia = saved.matchMedia;
+      globalThis.ResizeObserver = saved.ResizeObserver;
+    });
+    Reflect.deleteProperty(window, 'matchMedia');
+    Reflect.deleteProperty(globalThis, 'ResizeObserver');
+    const editor = makeEditor({ content: '<p>x</p>' });
+    expect(editor.getHTML()).toBe('<p>x</p>');
+    expect([editor.root.dataset.mode, editor.root.dataset.theme]).toEqual(['desktop', 'light']);
+    editor.destroy();
+  });
+});
