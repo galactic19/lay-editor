@@ -48,6 +48,8 @@ export const DEFAULTS = {
     languages: ['plaintext', 'javascript', 'typescript', 'html', 'css', 'json', 'python', 'java', 'sql', 'bash'],
   },
   paste: {
+    /** Spaces a tab in pasted plain text becomes outside code (HTML would collapse a tab to one space). */
+    tabWidth: 4,
     keepStyles: [...COLOR_STYLES, 'text-align'],
     colorStyles: COLOR_STYLES,
     /** CSS 2.1 color keywords, which Word uses for its standard colors and its highlight palette. */

@@ -205,3 +205,14 @@ describe('final review: getHTML() is stable across a reload after pasting no-bre
     expect(second.root.querySelector<HTMLElement>('.le-restore-bar')!.hidden).toBe(true);
   });
 });
+
+describe('final review: tabs in pasted plain text', () => {
+  it('survive a reload and read the same on a view page', () => {
+    const editor = makeEditor();
+    editor.view.pasteText('Name\tScore\n\tindented line');
+    const html = editor.getHTML();
+    expect(html).not.toContain('\t');
+    expect(reloaded(html)).toBe(html);
+    expect(editor.getText()).toBe(makeEditor({ content: html }).getText());
+  });
+});

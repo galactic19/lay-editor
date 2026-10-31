@@ -1,5 +1,6 @@
 import { DOMParser as PMDOMParser, Fragment, Slice } from 'prosemirror-model';
 import { Plugin } from 'prosemirror-state';
+import { DEFAULTS } from '../../core/defaults';
 import { EditorError } from '../../core/errors';
 import { fillContainerStarts } from '../../io/html';
 import { withDocument } from '../../io/paste/dom';
@@ -16,10 +17,13 @@ const INTERNAL_CLIPBOARD = 'data-pm-slice';
 
 const escapeHTML = (text: string): string => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Blank lines separate paragraphs; single newlines become line breaks. */
+const TAB_SPACES = ' '.repeat(DEFAULTS.paste.tabWidth);
+
+/** Blank lines separate paragraphs; single newlines become line breaks; tabs become spaces, which the saved HTML keeps. */
 export function textToHTML(text: string): string {
   return text
     .replace(/\r\n?/g, '\n')
+    .replace(/\t/g, TAB_SPACES)
     .split(/\n\s*\n/)
     .map((para) => `<p>${para.split('\n').map(escapeHTML).join('<br>')}</p>`)
     .join('');
