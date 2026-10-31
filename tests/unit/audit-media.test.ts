@@ -119,6 +119,24 @@ describe('audit #70: the source view keeps images that are still uploading', () 
     expect(ed.getHTML()).toContain('src="https://cdn.x/a.png"');
     expect(ed.getHTML()).toContain('<p>z</p>');
   });
+
+  it('keeps the caret on the same text when an upload finishes above it', async () => {
+    const { upload, finish } = heldUpload();
+    const ed = makeEditor({ upload, content: '<p>x</p><p>y</p>' });
+    caretAfter(ed, 'x');
+    ed.exec('uploadImages', [file()]);
+    await flushPromises();
+    ed.exec('toggleSourceView');
+    const textarea = source(ed)!;
+    const before = textarea.value.indexOf('<p>x');
+    const at = textarea.value.indexOf('y</p>');
+    textarea.setSelectionRange(before, at);
+    finish('https://cdn.x/a.png');
+    await flushPromises();
+    expect(textarea.value).toContain('https://cdn.x/a.png');
+    expect(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd)).toMatch(/^<p>x<\/p>\n<figure[^]*<p>$/);
+    expect(textarea.value.slice(textarea.selectionEnd)).toMatch(/^y<\/p>/);
+  });
 });
 
 describe('audit #8: content set while the source view is open is kept', () => {
@@ -154,6 +172,17 @@ describe('audit #9: read-only mode with the source view open', () => {
     expect(source(ed)).toBeNull();
     expect(ed.getHTML()).toBe('<p>abc</p>');
     expect(sourceButton(ed).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('ignores text set by a script while read-only', () => {
+    const ed = makeEditor({ content: '<p>abc</p>' });
+    ed.exec('toggleSourceView');
+    ed.setEditable(false);
+    typeSource(ed, '<p>HACKED</p>');
+    expect(ed.getHTML()).toBe('<p>abc</p>');
+    expect(source(ed)!.value).toBe('<p>abc</p>');
+    ed.exec('toggleSourceView');
+    expect(ed.getHTML()).toBe('<p>abc</p>');
   });
 
   it('opens read-only when the editor already is, and becomes editable again with it', () => {

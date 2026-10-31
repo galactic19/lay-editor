@@ -43,6 +43,18 @@ function restoreTransient(editor: Editor, held: HeldNode[]): void {
   editor.view.dispatch(tr.setMeta('addToHistory', false));
 }
 
+/** Where an offset in `before` lands in `after`: it stays put before the changed text and moves with the text after it. */
+function mapOffset(before: string, after: string, offset: number): number {
+  const shortest = Math.min(before.length, after.length);
+  let start = 0;
+  while (start < shortest && before[start] === after[start]) start++;
+  let end = 0;
+  while (end < shortest - start && before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
+  if (offset <= start) return offset;
+  // An offset inside the changed text goes to the end of its replacement.
+  return Math.max(offset, before.length - end) + after.length - before.length;
+}
+
 /** The raw HTML textarea shown in place of the content while the source view is on. */
 class SourceEditor {
   private readonly textarea: HTMLTextAreaElement;
@@ -65,13 +77,16 @@ class SourceEditor {
     this.textarea.focus();
   }
 
-  /** Follows the editor: read-only mode locks the text, and changes made elsewhere (setHTML, finished uploads) show up. */
+  /**
+   * Follows the editor: read-only mode locks the text, and changes made elsewhere (setHTML, finished uploads)
+   * show up with the caret kept on the same text.
+   */
   update(view: EditorView, prev?: EditorState): void {
     this.textarea.readOnly = !view.editable;
     if (this.applying || view.state.doc === prev?.doc) return;
-    const { selectionStart, selectionEnd } = this.textarea;
+    const { value, selectionStart, selectionEnd } = this.textarea;
     this.synced = this.textarea.value = formatHTML(this.editor.getHTML());
-    this.textarea.setSelectionRange(selectionStart, selectionEnd);
+    this.textarea.setSelectionRange(mapOffset(value, this.synced, selectionStart), mapOffset(value, this.synced, selectionEnd));
   }
 
   /** Leaves the source view; the text is applied only if it was changed after the last sync. */
@@ -84,6 +99,11 @@ class SourceEditor {
   }
 
   private apply(): void {
+    // Read-only text cannot be typed into, but a script or autofill can still set it.
+    if (!this.editor.isEditable) {
+      this.textarea.value = this.synced;
+      return;
+    }
     const held = holdTransient(this.editor.state.doc);
     this.applying = true;
     try {
