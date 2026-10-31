@@ -1,15 +1,18 @@
 import type { Attrs, NodeSpec, Node as PMNode, Schema } from 'prosemirror-model';
-import { type Command, Selection, type Transaction } from 'prosemirror-state';
+import { type Command, Plugin, Selection, TextSelection, type Transaction } from 'prosemirror-state';
 import {
   addColumnAfter,
   addColumnBefore,
   addRowAfter,
   addRowBefore,
+  CellSelection,
+  cellAround,
   columnResizing,
   deleteColumn,
   deleteRow,
   deleteTable,
   goToNextCell,
+  inSameTable,
   mergeCells,
   setCellAttr,
   splitCell,
@@ -108,6 +111,22 @@ function caretToFirstCell(tr: Transaction, table: PMNode): Transaction {
   return tr;
 }
 
+/**
+ * Only a mouse drag or Shift makes a cell selection. Touch selection handles dragged across cells leave a
+ * TextSelection, so Merge stays disabled and typing moves text between cells. Turn it into a CellSelection.
+ * Runs after tableEditing, which first shrinks a selection ending at the next cell's start (triple click).
+ */
+const textToCellSelection = (): Plugin =>
+  new Plugin({
+    appendTransaction: (_trs, _old, state) => {
+      if (!(state.selection instanceof TextSelection)) return null;
+      const $anchor = cellAround(state.selection.$anchor);
+      const $head = cellAround(state.selection.$head);
+      if (!$anchor || !$head || $anchor.pos === $head.pos || !inSameTable($anchor, $head)) return null;
+      return state.tr.setSelection(new CellSelection($anchor, $head));
+    },
+  });
+
 const TABLE_COMMANDS: Record<string, Command> = {
   addRowBefore,
   addRowAfter,
@@ -152,7 +171,7 @@ export const table = defineExtension<TableOptions>({
     clearCellBackground: () => setCellAttr('background', null),
   }),
   keymap: () => ({ Tab: goToNextCell(1), 'Shift-Tab': goToNextCell(-1) }),
-  plugins: () => [columnResizing(), tableEditing()],
+  plugins: () => [columnResizing(), tableEditing(), textToCellSelection()],
   ui: ({ options, editor }) => [
     {
       id: 'table',

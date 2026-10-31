@@ -1,4 +1,5 @@
 import { TextSelection } from 'prosemirror-state';
+import { CellSelection } from 'prosemirror-tables';
 import { DEFAULTS } from '../../src/core/defaults';
 import { sanitizeHTML } from '../../src/io/sanitize';
 import { findText, makeEditor, press, typeText } from '../helpers/editor';
@@ -94,5 +95,31 @@ describe('audit #14: column widths reach saved HTML', () => {
     const ed = makeEditor();
     ed.view.pasteHTML(sanitizeHTML(RESIZED));
     expect(ed.getHTML()).toContain(COLGROUP);
+  });
+});
+
+describe('audit #44: a text selection across cells becomes a cell selection', () => {
+  const TABLE = '<table><tbody><tr><td><p>aaaa</p></td><td><p>bbbb</p></td></tr></tbody></table>';
+  const selectText = (ed: ReturnType<typeof makeEditor>, anchor: number, head: number) =>
+    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, anchor, head)));
+
+  it('spanning two cells, so Merge works', () => {
+    const ed = makeEditor({ content: TABLE });
+    selectText(ed, findText(ed, 'aaaa') + 1, findText(ed, 'bbbb') + 2);
+    expect(ed.state.selection).toBeInstanceOf(CellSelection);
+    expect(ed.can('mergeCells')).toBe(true);
+  });
+
+  it('but a selection that ends at the start of the next cell (triple click) stays in its cell', () => {
+    const ed = makeEditor({ content: TABLE });
+    selectText(ed, findText(ed, 'aaaa'), findText(ed, 'bbbb'));
+    expect(ed.state.selection).toBeInstanceOf(TextSelection);
+    expect(ed.state.selection.$to.parent.textContent).toBe('aaaa');
+  });
+
+  it('and one that starts outside the table is left alone', () => {
+    const ed = makeEditor({ content: `<p>intro</p>${TABLE}` });
+    selectText(ed, findText(ed, 'intro') + 1, findText(ed, 'bbbb') + 2);
+    expect(ed.state.selection).toBeInstanceOf(TextSelection);
   });
 });

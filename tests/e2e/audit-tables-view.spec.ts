@@ -68,3 +68,40 @@ test('audit #14: column widths dragged in the editor show on the view page', asy
   await renderViewPage(page, await html(page));
   expect(Math.abs((await width(page, '#view-page th')) - editorWidth)).toBeLessThanOrEqual(2);
 });
+
+/** A table tool: the desktop context toolbar or the mobile keyboard bar in table context. */
+const tableTool = (page: Page, id: string) =>
+  page.locator(`.le-context-toolbar [data-item="${id}"], .le-mobile-bar:not([hidden]) [data-item="${id}"]`).first();
+
+/** Selects text from the first cell into the second the way touch selection handles do (a native DOM range). */
+async function selectAcrossCells(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const [first, second] = Array.from(document.querySelectorAll('#editor td p'), (p) => p.firstChild!);
+    getSelection()!.setBaseAndExtent(first!, 1, second!, 2);
+    window.__editor.syncSelection();
+  });
+}
+
+const TWO_BY_TWO = '<table><tbody><tr><td><p>aaaa</p></td><td><p>bbbb</p></td></tr><tr><td><p>c</p></td><td><p>d</p></td></tr></tbody></table>';
+
+test.describe('audit #44: a selection dragged across cells becomes a cell selection', () => {
+  test.beforeEach(async ({ page }) => {
+    await openEmpty(page);
+    await page.evaluate((content) => window.__editor.setHTML(content), TWO_BY_TWO);
+    await page.locator('#editor td').first().click();
+    await selectAcrossCells(page);
+  });
+
+  test('the Merge tool becomes usable and merges the cells', async ({ page }) => {
+    await expect(tableTool(page, 'tableMerge')).not.toHaveAttribute('aria-disabled', 'true');
+    await tableTool(page, 'tableMerge').click();
+    await expect.poll(() => html(page)).toContain('<td colspan="2"><p>aaaa</p><p>bbbb</p></td>');
+  });
+
+  test('typing over it replaces the selected cells instead of moving text between them', async ({ page }) => {
+    await page.keyboard.type('Z');
+    expect(await html(page)).not.toContain('aZbb');
+    await expect(page.locator('#editor tr:first-child td')).toHaveCount(2);
+    await expect(page.locator('#editor tr:first-child')).toHaveText('Z');
+  });
+});
