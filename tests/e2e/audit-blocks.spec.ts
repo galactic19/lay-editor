@@ -45,6 +45,18 @@ test.describe('leaving a code block at the end of the document (#16)', () => {
     });
   }
 
+  test('ArrowDown at the end of a code block in the last table cell leaves the table', async ({ page }) => {
+    const table = '<table><tbody><tr><td><pre><code>x</code></pre></td></tr></tbody></table>';
+    await openEmpty(page);
+    await page.evaluate((content) => window.__editor.setHTML(content), table);
+    await page.locator('#editor pre code').click();
+    await page.keyboard.press('End');
+    await page.evaluate(() => window.__editor.syncSelection());
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.type('A');
+    expect(await html(page)).toBe(`${table}<p>A</p>`);
+  });
+
   test('a third Enter on trailing empty lines leaves the block', async ({ page }) => {
     await openEmpty(page);
     await page.keyboard.type('```js ');

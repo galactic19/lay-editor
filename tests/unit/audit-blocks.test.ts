@@ -64,6 +64,15 @@ describe('leaving a code block (#16)', () => {
     expect(press(ed, 'ArrowRight')).toBe(false);
   });
 
+  it.each(['ArrowDown', 'ArrowRight'])('%s at the end of a code block in the last table cell leaves the table like any other block', (key) => {
+    const table = '<table><tbody><tr><td><pre><code>x</code></pre></td></tr></tbody></table>';
+    const ed = makeEditor({ content: table });
+    caretAfter(ed, 'x');
+    expect(press(ed, key)).toBe(true);
+    typeText(ed, 'A');
+    expect(ed.getHTML()).toBe(`${table}<p>A</p>`);
+  });
+
   it('Enter on the second empty trailing line drops the blank lines and leaves the block', () => {
     const ed = lastCode('x();');
     press(ed, 'Enter');

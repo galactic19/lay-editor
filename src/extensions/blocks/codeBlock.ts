@@ -19,10 +19,14 @@ function caretAtCodeEnd(state: EditorState) {
   return empty && $from.parent.type.spec.code && $from.parentOffset === $from.parent.content.size ? $from : null;
 }
 
+/** An isolating container (a table cell) is left by its own arrow handling, a gap cursor after the table. */
+const inIsolating = (state: EditorState) => findParent(state, (node) => Boolean(node.type.spec.isolating)) !== null;
+
 /** Arrows at the end of a code block that nothing follows add a paragraph after it instead of trapping the caret. */
 const exitAtEnd: Command = (state, dispatch) => {
   const $end = caretAtCodeEnd(state);
-  return Boolean($end && !Selection.findFrom(state.doc.resolve($end.after()), 1)) && exitCode(state, dispatch);
+  if (!$end || Selection.findFrom(state.doc.resolve($end.after()), 1) || inIsolating(state)) return false;
+  return exitCode(state, dispatch);
 };
 
 /** Removes `count` empty trailing lines when Enter is pressed on the last of them; a count that is not a positive whole number turns it off. */
