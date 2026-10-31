@@ -382,3 +382,23 @@ describe('final review: code block language aliases', () => {
     expect(editor.getHTML()).toBe('<pre><code class="language-py">a</code></pre><pre><code class="language-rust">b</code></pre>');
   });
 });
+
+describe('final review: autosave on leaving the page', () => {
+  it.each([
+    ['pagehide', () => window.dispatchEvent(new Event('pagehide'))],
+    [
+      'visibilitychange to hidden',
+      () => {
+        vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+        document.dispatchEvent(new Event('visibilitychange'));
+      },
+    ],
+  ])('%s saves the draft at once', (_event, leave) => {
+    vi.useFakeTimers();
+    const editor = makeEditor({ content: '<p>server copy</p>', autosave: { key: 'leave' } });
+    caretAfter(editor, 'copy');
+    typeText(editor, ' last words');
+    leave();
+    expect(JSON.parse(localStorage.getItem('le-draft:leave')!).html).toBe('<p>server copy last words</p>');
+  });
+});

@@ -28,6 +28,20 @@ export function listen(target: EventTarget, type: string, fn: (event: any) => vo
   return () => target.removeEventListener(type, fn, options);
 }
 
+/**
+ * Runs `fn` when the page may be going away: closed, reloaded or left (pagehide), or hidden, after which a mobile
+ * browser may discard it without another event. Returns the function that stops listening.
+ */
+export function onPageLeave(fn: () => void): () => void {
+  const stops = [
+    listen(window, 'pagehide', fn),
+    listen(document, 'visibilitychange', () => {
+      if (document.visibilityState === 'hidden') fn();
+    }),
+  ];
+  return () => stops.forEach((stop) => stop());
+}
+
 /** Creates an element; `true` attributes are set empty, false/null ones are skipped. */
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: ElementProps = {}, ...children: Child[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);

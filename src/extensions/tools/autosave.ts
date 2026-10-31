@@ -5,7 +5,7 @@ import { EditorError } from '../../core/errors';
 import { debounce, type Debounced } from '../../core/timing';
 import { DraftStore, type Draft } from '../../io/autosave';
 import { c } from '../../ui/classes';
-import { h } from '../../ui/dom';
+import { h, onPageLeave } from '../../ui/dom';
 import { UIComponent } from '../../ui/UIComponent';
 import { defineExtension } from '../factories';
 
@@ -82,8 +82,11 @@ export const autosave = defineExtension<AutosaveOptions>({
     const off = editor.on('update', (tr) => {
       if (tr.docChanged) save();
     });
+    // A closed tab never calls destroy(): the last edits still waiting for the debounce are saved as the page goes.
+    const stopLeave = onPageLeave(() => save.flush());
     return () => {
       off();
+      stopLeave();
       save.flush();
       sessions.delete(editor);
     };
