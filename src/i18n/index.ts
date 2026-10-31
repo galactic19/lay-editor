@@ -21,8 +21,9 @@ export function registerLocale(code: string, pack: LocalePack): void {
 }
 
 /**
- * Lookup order: requested pack → en → the key itself. A pack passed as an object is a
- * partial override of the default language (e.g. just the placeholder).
+ * Lookup order: requested pack (the most specific registered tag; an unknown tag gets the default
+ * language with a warning) → en → the key itself. A pack passed as an object is a partial override
+ * of the default language (e.g. just the placeholder).
  */
 export function createTranslator(locale: string | LocalePack): Translate {
   const pack =
