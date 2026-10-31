@@ -1,12 +1,8 @@
-import { AllSelection, TextSelection } from 'prosemirror-state';
-import { findText, makeEditor, press, selectText, typeText } from '../helpers/editor';
+import { AllSelection } from 'prosemirror-state';
+import { caretAfter, caretAt, findText, makeEditor, press, selectText, typeText } from '../helpers/editor';
 import type { Editor } from '../../src/core/Editor';
 import { filterSlashItems, slashItems, slashKey } from '../../src/extensions/tools/slashMenu';
 
-const caretAt = (ed: Editor, pos: number): void => {
-  ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, pos)));
-};
-const caretAfter = (ed: Editor, text: string): void => caretAt(ed, findText(ed, text) + text.length);
 const selectAll = (ed: Editor): void => {
   ed.view.dispatch(ed.state.tr.setSelection(new AllSelection(ed.state.doc)));
 };

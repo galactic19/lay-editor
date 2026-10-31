@@ -1,16 +1,15 @@
 import { PRESETS, SEPARATOR } from '../../../src/ui/presets';
-import { makeEditor, press, selectText, squeezeToolbar } from '../../helpers/editor';
+import { makeEditor, press, selectText, squeezeToolbar, toolbarControl } from '../../helpers/editor';
 
 const toolbarIds = (root: HTMLElement): string[] =>
   Array.from(root.querySelectorAll<HTMLElement>('.le-toolbar > [data-item]:not([data-item="more"]), .le-toolbar > .le-separator')).map((el) => el.dataset.item ?? SEPARATOR);
-const control = (root: HTMLElement, id: string): HTMLButtonElement => root.querySelector<HTMLButtonElement>(`.le-toolbar [data-item="${id}"]`)!;
 const dialog = (): HTMLElement | null => document.querySelector('.le-dropdown');
 
 describe('Toolbar', () => {
   it('renders preset items in order with separators and labels', () => {
     const ed = makeEditor({ preset: 'basic' });
     expect(toolbarIds(ed.root)).toEqual(PRESETS.basic);
-    const bold = control(ed.root, 'bold');
+    const bold = toolbarControl(ed, 'bold');
     expect(bold.getAttribute('aria-label')).toBe(ed.t('toolbar.bold'));
     expect(bold.dataset.tooltip).toMatch(/B\)$/);
     expect(ed.root.querySelector('.le-toolbar')!.getAttribute('role')).toBe('toolbar');
@@ -19,7 +18,7 @@ describe('Toolbar', () => {
   it('clicking bold toggles and syncs aria-pressed', () => {
     const ed = makeEditor({ content: '<p>a</p>' });
     selectText(ed, 'a');
-    const btn = control(ed.root, 'bold');
+    const btn = toolbarControl(ed, 'bold');
     btn.click();
     ed.ui!.flush();
     expect(ed.getHTML()).toBe('<p><strong>a</strong></p>');
@@ -29,17 +28,17 @@ describe('Toolbar', () => {
   it('marks unavailable commands aria-disabled and ignores clicks on them', () => {
     const ed = makeEditor({ content: '<p>a</p>' });
     ed.ui!.flush();
-    const undo = control(ed.root, 'undo');
+    const undo = toolbarControl(ed, 'undo');
     expect(undo.getAttribute('aria-disabled')).toBe('true');
     ed.setEditable(false);
     ed.ui!.flush();
-    expect(control(ed.root, 'bold').getAttribute('aria-disabled')).toBe('true');
+    expect(toolbarControl(ed, 'bold').getAttribute('aria-disabled')).toBe('true');
   });
 
   it('pointerdown on a control is prevented to keep focus', () => {
     const ed = makeEditor();
     const event = new Event('pointerdown', { bubbles: true, cancelable: true });
-    control(ed.root, 'bold').dispatchEvent(event);
+    toolbarControl(ed, 'bold').dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
   });
 
@@ -58,7 +57,7 @@ describe('Toolbar', () => {
   it('moves overflowing items into the more menu', () => {
     const ed = makeEditor({ toolbar: ['bold', 'italic', 'underline', 'strike', 'code', 'link'] });
     const more = squeezeToolbar(ed, 4);
-    const visible = toolbarIds(ed.root).filter((id) => !control(ed.root, id)?.hidden);
+    const visible = toolbarIds(ed.root).filter((id) => !toolbarControl(ed, id)?.hidden);
     expect(visible).toEqual(['bold', 'italic', 'underline', 'strike']);
     expect(more.hidden).toBe(false);
     more.click();
@@ -67,7 +66,7 @@ describe('Toolbar', () => {
 
   it('heading dropdown applies H2', () => {
     const ed = makeEditor({ content: '<p>a</p>' });
-    control(ed.root, 'heading').click();
+    toolbarControl(ed, 'heading').click();
     dialog()!.querySelector<HTMLButtonElement>('[data-item="heading:2"]')!.click();
     expect(ed.getHTML()).toBe('<h2>a</h2>');
     expect(dialog()).toBeNull();
@@ -76,13 +75,13 @@ describe('Toolbar', () => {
   it('color panel applies and resets a color', () => {
     const ed = makeEditor({ content: '<p>a</p>', colors: { text: ['#e03131', '#2f9e44'] } });
     selectText(ed, 'a');
-    control(ed.root, 'textColor').click();
+    toolbarControl(ed, 'textColor').click();
     const swatches = dialog()!.querySelectorAll<HTMLButtonElement>('.le-swatch');
     expect(swatches).toHaveLength(2);
     swatches[0]!.click();
     expect(ed.getHTML()).toBe('<p><span style="color: rgb(224, 49, 49);">a</span></p>');
     selectText(ed, 'a');
-    control(ed.root, 'textColor').click();
+    toolbarControl(ed, 'textColor').click();
     dialog()!.querySelector<HTMLButtonElement>('[data-action="reset"]')!.click();
     expect(ed.getHTML()).toBe('<p>a</p>');
   });
@@ -120,18 +119,18 @@ describe('EditorUI', () => {
     const b = makeEditor({ content: '<p>b</p>' });
     a.destroy();
     selectText(b, 'b');
-    control(b.root, 'bold').click();
+    toolbarControl(b, 'bold').click();
     b.ui!.flush();
     expect(b.getHTML()).toBe('<p><strong>b</strong></p>');
-    expect(control(b.root, 'bold').getAttribute('aria-pressed')).toBe('true');
+    expect(toolbarControl(b, 'bold').getAttribute('aria-pressed')).toBe('true');
     expect(document.querySelectorAll('.le-editor')).toHaveLength(1);
   });
 
   it('setLocale rebuilds labels and the placeholder', () => {
     const ed = makeEditor({ locale: 'ko' });
-    expect(control(ed.root, 'bold').getAttribute('aria-label')).toBe('굵게');
+    expect(toolbarControl(ed, 'bold').getAttribute('aria-label')).toBe('굵게');
     ed.setLocale('en');
-    expect(control(ed.root, 'bold').getAttribute('aria-label')).toBe('Bold');
+    expect(toolbarControl(ed, 'bold').getAttribute('aria-label')).toBe('Bold');
     expect(ed.view.dom.querySelector('.le-placeholder')!.getAttribute('data-placeholder')).toBe('Start writing…');
     expect(ed.root.querySelectorAll('.le-toolbar')).toHaveLength(1);
   });

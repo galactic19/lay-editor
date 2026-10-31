@@ -1,8 +1,7 @@
 import { countText } from '../../../src/extensions/tools/wordCount';
 import { formatHTML } from '../../../src/io/html';
-import { makeEditor, typeText } from '../../helpers/editor';
+import { makeEditor, toolbarControl, typeText } from '../../helpers/editor';
 
-const button = (ed: ReturnType<typeof makeEditor>, id: string) => ed.root.querySelector<HTMLButtonElement>(`.le-toolbar [data-item="${id}"]`)!;
 
 describe('countText', () => {
   it.each([
@@ -30,10 +29,10 @@ describe('status bar', () => {
 describe('fullscreen', () => {
   it('toggles classes and exits on Escape', () => {
     const ed = makeEditor();
-    button(ed, 'fullscreen').click();
+    toolbarControl(ed, 'fullscreen').click();
     expect(ed.root.classList.contains('le-fullscreen')).toBe(true);
     expect(document.documentElement.classList.contains('le-scroll-locked')).toBe(true);
-    expect(button(ed, 'fullscreen').getAttribute('aria-pressed')).toBe('true');
+    expect(toolbarControl(ed, 'fullscreen').getAttribute('aria-pressed')).toBe('true');
     ed.root.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(ed.root.classList.contains('le-fullscreen')).toBe(false);
     expect(document.documentElement.classList.contains('le-scroll-locked')).toBe(false);
@@ -73,12 +72,12 @@ describe('source view', () => {
 
   it('locks toolbar items except sourceView while active', () => {
     const ed = makeEditor();
-    button(ed, 'sourceView').click();
-    expect(button(ed, 'bold').getAttribute('aria-disabled')).toBe('true');
-    expect(button(ed, 'sourceView').getAttribute('aria-disabled')).toBe('false');
-    expect(button(ed, 'sourceView').getAttribute('aria-pressed')).toBe('true');
-    button(ed, 'sourceView').click();
-    expect(button(ed, 'bold').getAttribute('aria-disabled')).toBe('false');
+    toolbarControl(ed, 'sourceView').click();
+    expect(toolbarControl(ed, 'bold').getAttribute('aria-disabled')).toBe('true');
+    expect(toolbarControl(ed, 'sourceView').getAttribute('aria-disabled')).toBe('false');
+    expect(toolbarControl(ed, 'sourceView').getAttribute('aria-pressed')).toBe('true');
+    toolbarControl(ed, 'sourceView').click();
+    expect(toolbarControl(ed, 'bold').getAttribute('aria-disabled')).toBe('false');
   });
 
   it('applies pending source edits on destroy', () => {

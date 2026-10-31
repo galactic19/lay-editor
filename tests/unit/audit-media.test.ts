@@ -1,7 +1,6 @@
-import { TextSelection } from 'prosemirror-state';
 import type { Editor } from '../../src/core/Editor';
 import { DEFAULTS } from '../../src/core/defaults';
-import { findText, flushPromises, makeEditor } from '../helpers/editor';
+import { caretAfter, findText, flushPromises, makeEditor, toolbarControl } from '../helpers/editor';
 import { triggerResize } from '../setup';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
@@ -10,10 +9,6 @@ const FIGURE = (src: string, caption = 'caption') => `<figure data-align="center
 
 /** Toasts live in a body portal, outside the editor root. */
 const toasts = (): string => document.querySelector('.le-toasts')!.textContent ?? '';
-const caretAfter = (ed: Editor, text: string): void => {
-  const pos = findText(ed, text) + text.length;
-  ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, pos)));
-};
 
 describe('audit #21: paste and drop only touch the images they bring in', () => {
   const DOC = `<p>first</p>${FIGURE(PNG)}<p>last</p>`;
@@ -62,7 +57,7 @@ describe('audit #21: paste and drop only touch the images they bring in', () => 
 
 const file = (name = 'a.png') => new File([new Uint8Array(4)], name, { type: 'image/png' });
 const source = (ed: Editor) => ed.root.querySelector<HTMLTextAreaElement>('textarea.le-source');
-const sourceButton = (ed: Editor) => ed.root.querySelector<HTMLButtonElement>('.le-toolbar [data-item="sourceView"]')!;
+const sourceButton = (ed: Editor) => toolbarControl(ed, 'sourceView');
 const typeSource = (ed: Editor, html: string): void => {
   source(ed)!.value = html;
   source(ed)!.dispatchEvent(new Event('input'));
@@ -169,7 +164,7 @@ describe('audit #9: read-only mode with the source view open', () => {
     ed.setEditable(false);
     expect(source(ed)!.readOnly).toBe(true);
     expect(sourceButton(ed).getAttribute('aria-disabled')).toBe('false');
-    expect(ed.root.querySelector('.le-toolbar [data-item="bold"]')!.getAttribute('aria-disabled')).toBe('true');
+    expect(toolbarControl(ed, 'bold').getAttribute('aria-disabled')).toBe('true');
     sourceButton(ed).click();
     expect(source(ed)).toBeNull();
     expect(ed.getHTML()).toBe('<p>abc</p>');

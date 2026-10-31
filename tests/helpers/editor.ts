@@ -34,6 +34,21 @@ export function findText(editor: Editor, text: string): number {
   return found;
 }
 
+/** Puts a collapsed caret at document position `pos`. */
+export function caretAt(editor: Editor, pos: number): void {
+  editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, pos)));
+}
+
+/** Puts the caret right after the first occurrence of `text`. */
+export function caretAfter(editor: Editor, text: string): void {
+  caretAt(editor, findText(editor, text) + text.length);
+}
+
+/** A control of the editor's main (desktop) toolbar. */
+export function toolbarControl(editor: Editor, id: string): HTMLButtonElement {
+  return editor.root.querySelector<HTMLButtonElement>(`.le-toolbar [data-item="${id}"]`)!;
+}
+
 export function selectText(editor: Editor, text: string): void {
   const from = findText(editor, text);
   const { view } = editor;

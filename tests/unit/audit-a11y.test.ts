@@ -3,10 +3,9 @@ import type { Editor } from '../../src/core/Editor';
 import { findKey } from '../../src/extensions/tools/findReplace';
 import { h } from '../../src/ui/dom';
 import { focusables } from '../../src/ui/focus';
-import { findText, flushPromises, makeEditor, press, selectText, squeezeToolbar, typeText } from '../helpers/editor';
+import { findText, flushPromises, makeEditor, press, selectText, squeezeToolbar, toolbarControl, typeText } from '../helpers/editor';
 import { setMedia } from '../setup';
 
-const toolbarControl = (ed: Editor, id: string): HTMLButtonElement => ed.root.querySelector<HTMLButtonElement>(`.le-toolbar [data-item="${id}"]`)!;
 const dialog = (): HTMLElement => document.querySelector<HTMLElement>('.le-dropdown, .le-sheet')!;
 
 describe('audit a11y #67: setLocale closes the find panel like Escape', () => {
