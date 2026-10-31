@@ -1,37 +1,16 @@
-import { act, createElement, createRef, StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { createApp, defineComponent, h, nextTick, ref } from 'vue';
-import { LayEditor as ReactLayEditor, type LayEditorProps } from '../../src/adapters/react';
-import { LayEditor as VueLayEditor } from '../../src/adapters/vue';
+import { nextTick, ref } from 'vue';
+import type { LayEditor as VueLayEditor } from '../../src/adapters/vue';
 import { Editor } from '../../src/core/Editor';
-import type { LocaleInput, ThemeMode } from '../../src/core/types';
-import { makeEditor } from '../helpers/editor';
 import { DEFAULT_ICONS } from '../../src/ui/icon-set';
 import { FALLBACK_ICON, registerIcon, renderIcon } from '../../src/ui/icons';
+import { mountReact, mountVue, type VueLayEditorProps } from '../helpers/adapters';
+import { makeEditor } from '../helpers/editor';
 import { setMedia } from '../setup';
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-function mountReact(props: LayEditorProps) {
-  const host = document.createElement('div');
-  document.body.appendChild(host);
-  const ref = createRef<Editor | null>();
-  const root = createRoot(host);
-  act(() => root.render(createElement(ReactLayEditor, { ...props, ref })));
-  const rerender = (next: LayEditorProps) => act(() => root.render(createElement(ReactLayEditor, { ...next, ref })));
-  return { editor: () => ref.current!, rerender, unmount: () => act(() => root.unmount()) };
-}
-
-function mountVue(initial: { theme?: ThemeMode; locale?: LocaleInput }) {
+/** Mounts the Vue wrapper with props a test can replace later. */
+function mountVueWith(initial: VueLayEditorProps) {
   const props = ref(initial);
-  // Typed from the component itself, as vue-tsc types `useTemplateRef` (#53).
-  const component = ref<InstanceType<typeof VueLayEditor> | null>(null);
-  const App = defineComponent({ setup: () => () => h(VueLayEditor, { ref: component, ...props.value }) });
-  const host = document.createElement('div');
-  document.body.appendChild(host);
-  const app = createApp(App);
-  app.mount(host);
-  return { props, editor: () => component.value!.getEditor()!, unmount: () => app.unmount() };
+  return { props, ...mountVue(() => props.value) };
 }
 
 describe('setLocale keeps the runtime theme (#3, #63)', () => {
@@ -59,15 +38,15 @@ describe('setLocale keeps the runtime theme (#3, #63)', () => {
   });
 
   it('React: a locale prop change keeps the current theme prop', () => {
-    const { editor, rerender, unmount } = mountReact({ theme: 'light', locale: 'ko' });
+    const { ref, rerender, unmount } = mountReact({ theme: 'light', locale: 'ko' });
     rerender({ theme: 'dark', locale: 'ko' });
     rerender({ theme: 'dark', locale: 'en' });
-    expect(editor().root.dataset.theme).toBe('dark');
+    expect(ref.current!.root.dataset.theme).toBe('dark');
     unmount();
   });
 
   it('Vue: a locale prop change keeps the current theme prop', async () => {
-    const { props, editor, unmount } = mountVue({ theme: 'light', locale: 'ko' });
+    const { props, editor, unmount } = mountVueWith({ theme: 'light', locale: 'ko' });
     props.value = { theme: 'dark', locale: 'ko' };
     await nextTick();
     props.value = { theme: 'dark', locale: 'en' };
@@ -81,32 +60,29 @@ describe('an inline locale object does not rebuild the UI on every render (#71)'
   const openPanels = () => document.querySelectorAll('.le-dropdown').length;
 
   it('React: an equal locale object is ignored, a different one is applied', () => {
-    const { editor, rerender, unmount } = mountReact({ locale: { placeholder: '댓글' } });
-    const setLocale = vi.spyOn(editor(), 'setLocale');
-    editor().ui!.openPanelFor('findReplace');
+    const { ref, rerender, unmount } = mountReact({ locale: { placeholder: '댓글' } });
+    const editor = ref.current!;
+    const setLocale = vi.spyOn(editor, 'setLocale');
+    editor.ui!.openPanelFor('findReplace');
     expect(openPanels()).toBe(1);
     rerender({ locale: { placeholder: '댓글' } });
     expect(setLocale).not.toHaveBeenCalled();
     expect(openPanels()).toBe(1);
     rerender({ locale: { placeholder: '답글' } });
     expect(setLocale).toHaveBeenCalledTimes(1);
-    expect(editor().view.dom.querySelector('.le-placeholder')!.getAttribute('data-placeholder')).toBe('답글');
+    expect(editor.view.dom.querySelector('.le-placeholder')!.getAttribute('data-placeholder')).toBe('답글');
     unmount();
   });
 
   it('React StrictMode: mounting does not call setLocale', () => {
-    const host = document.createElement('div');
-    document.body.appendChild(host);
-    const ref = createRef<Editor | null>();
-    const root = createRoot(host);
     const setLocale = vi.spyOn(Editor.prototype, 'setLocale');
-    act(() => root.render(createElement(StrictMode, null, createElement(ReactLayEditor, { ref, locale: { placeholder: '댓글' } }))));
+    const { unmount } = mountReact({ locale: { placeholder: '댓글' } }, { strict: true });
     expect(setLocale).not.toHaveBeenCalled();
-    act(() => root.unmount());
+    unmount();
   });
 
   it('Vue: an equal locale object is ignored, a different one is applied', async () => {
-    const { props, editor, unmount } = mountVue({ locale: { placeholder: '댓글' } });
+    const { props, editor, unmount } = mountVueWith({ locale: { placeholder: '댓글' } });
     const setLocale = vi.spyOn(editor(), 'setLocale');
     editor().ui!.openPanelFor('findReplace');
     props.value = { locale: { placeholder: '댓글' } };
@@ -168,7 +144,7 @@ describe('registerIcon with markup that is not well-formed XML (#57)', () => {
 describe('Vue: getEditor() is in the component instance type (#53)', () => {
   it('a template ref typed from LayEditor exposes getEditor(): Editor | null', () => {
     expectTypeOf<InstanceType<typeof VueLayEditor>['getEditor']>().toEqualTypeOf<() => Editor | null>();
-    const { editor, unmount } = mountVue({});
+    const { editor, unmount } = mountVue();
     expect(editor()).toBeInstanceOf(Editor);
     unmount();
   });

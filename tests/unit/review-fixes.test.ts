@@ -1,13 +1,9 @@
-import { act, createElement, createRef } from 'react';
-import { createRoot } from 'react-dom/client';
-import { LayEditor } from '../../src/adapters/react';
-import type { Editor } from '../../src/core/Editor';
 import { DEFAULTS } from '../../src/core/defaults';
 import { createTranslator } from '../../src/i18n';
 import { registerIcon, renderIcon } from '../../src/ui/icons';
+import { mountReact } from '../helpers/adapters';
 import { flushPromises, makeEditor, select, typeText } from '../helpers/editor';
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const DRAFT = DEFAULTS.autosave.prefix + 'k';
 
 describe('review fix #2: clearDraft cancels a pending save', () => {
@@ -77,14 +73,10 @@ describe('review fix #5: pasted data: images are validated', () => {
 
 describe('review fix #6: React value going back to undefined clears the editor', () => {
   it('treats a controlled value that becomes undefined as empty', () => {
-    const host = document.createElement('div');
-    document.body.appendChild(host);
-    const ref = createRef<Editor | null>();
-    const root = createRoot(host);
-    act(() => root.render(createElement(LayEditor, { ref, value: '<p>x</p>' })));
-    act(() => root.render(createElement(LayEditor, { ref, value: undefined })));
+    const { ref, rerender, unmount } = mountReact({ value: '<p>x</p>' });
+    rerender({ value: undefined });
     expect(ref.current!.getHTML()).toBe('');
-    act(() => root.unmount());
+    unmount();
   });
 });
 
