@@ -344,3 +344,13 @@ describe('final review: the header row tool', () => {
     expect(editor.getHTML()).toBe(TABLE);
   });
 });
+
+describe('final review: Tab in the last table cell', () => {
+  it('adds a row and moves into its first cell', () => {
+    const editor = makeEditor({ content: '<table><tbody><tr><td><p>a</p></td><td><p>b</p></td></tr></tbody></table>' });
+    caretAfter(editor, 'b');
+    expect(press(editor, 'Tab')).toBe(true);
+    typeText(editor, 'c');
+    expect(editor.getHTML()).toBe('<table><tbody><tr><td><p>a</p></td><td><p>b</p></td></tr><tr><td><p>c</p></td><td><p></p></td></tr></tbody></table>');
+  });
+});

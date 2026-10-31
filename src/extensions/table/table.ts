@@ -1,4 +1,5 @@
 import { type Attrs, Fragment, type NodeSpec, type Node as PMNode, type ResolvedPos, type Schema, Slice } from 'prosemirror-model';
+import { chainCommands } from 'prosemirror-commands';
 import { type Command, type EditorState, Plugin, Selection, TextSelection, type Transaction } from 'prosemirror-state';
 import {
   addColumnAfter,
@@ -261,6 +262,24 @@ function hasHeaderRow(state: EditorState): boolean {
   return rowIsHeader(map, table, 0);
 }
 
+/**
+ * Tab in the last cell (where goToNextCell has nowhere to go and the browser would move focus out of the editor) adds
+ * a row below the table and moves into its first cell, as word processors do.
+ */
+const addRowAndEnter: Command = (state, dispatch) => {
+  if (!isInTable(state)) return false;
+  const tablePos = selectedRect(state).tableStart - 1;
+  return addRowAfter(
+    state,
+    dispatch &&
+      ((tr) => {
+        const table = tr.doc.nodeAt(tablePos)!;
+        const lastRow = tablePos + 1 + table.content.size - table.lastChild!.nodeSize;
+        dispatch(tr.setSelection(Selection.near(tr.doc.resolve(lastRow + 1))).scrollIntoView());
+      }),
+  );
+};
+
 const TABLE_COMMANDS: Record<string, Command> = {
   addRowBefore,
   addRowAfter,
@@ -305,7 +324,7 @@ export const table = defineExtension<TableOptions>({
     },
     clearCellBackground: () => setCellAttr('background', null),
   }),
-  keymap: () => ({ Tab: goToNextCell(1), 'Shift-Tab': goToNextCell(-1) }),
+  keymap: () => ({ Tab: chainCommands(goToNextCell(1), addRowAndEnter), 'Shift-Tab': goToNextCell(-1) }),
   plugins: () => [columnResizing(), limitTableFiller(), tableEditing(), textToCellSelection()],
   ui: ({ options, editor }) => [
     {
