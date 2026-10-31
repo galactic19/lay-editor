@@ -19,7 +19,8 @@ export abstract class PortalPanel implements PanelContainer {
   private cleanups: Array<() => void> = [];
   private onClose: ((hadFocus: boolean) => void) | null = null;
 
-  constructor(private readonly themeSource: HTMLElement) {}
+  /** `root` is the editor root: the panel copies its theme and may publish layout variables on it. */
+  constructor(protected readonly root: HTMLElement) {}
 
   get isOpen(): boolean {
     return this.dialog !== null;
@@ -57,7 +58,7 @@ export abstract class PortalPanel implements PanelContainer {
   }
 
   syncTheme(): void {
-    this.elements.forEach((el) => (el.dataset.theme = this.themeSource.dataset.theme));
+    this.elements.forEach((el) => (el.dataset.theme = this.root.dataset.theme));
   }
 
   destroy(): void {

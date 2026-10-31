@@ -104,22 +104,28 @@ test('completes the scheme in the image form and shows why the video form reject
   await expect(page.locator('#editor [data-video]')).toHaveCount(0);
 });
 
-test('scrolls each find result into view, clear of a bottom sheet', async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 640 });
-  await openEmpty(page);
-  await page.evaluate(() => window.__editor.setHTML(Array.from({ length: 60 }, (_, i) => `<p>${i % 10 ? 'filler' : 'NEEDLE'} ${i}</p>`).join('')));
-  await page.evaluate(() => window.__editor.ui!.openPanelFor('findReplace'));
-  await panel(page).locator('[data-field="find"]').fill('NEEDLE');
-  const current = page.locator('#editor .le-find-current');
-  const coveredBySheet = () =>
-    page.evaluate(() => {
-      const sheet = document.querySelector('.le-sheet')?.getBoundingClientRect();
-      return Boolean(sheet && document.querySelector('#editor .le-find-current')!.getBoundingClientRect().bottom > sheet.top);
-    });
-  for (let step = 1; step <= 6; step++) {
-    await panel(page).locator('[data-action="next"]').click();
-    await expect(panel(page).locator('[data-field="status"]')).toContainText(`${step}/6`);
-    await expect(current).toBeInViewport({ ratio: 1 });
-    await expect.poll(coveredBySheet, { message: `match ${step}` }).toBe(false);
-  }
-});
+// Portrait, and landscape where the sheet takes most of the height.
+for (const size of [
+  { width: 360, height: 640 },
+  { width: 740, height: 360 },
+]) {
+  test(`scrolls each find result into view, clear of a bottom sheet (${size.width}x${size.height})`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await openEmpty(page);
+    await page.evaluate(() => window.__editor.setHTML(Array.from({ length: 60 }, (_, i) => `<p>${i % 10 ? 'filler' : 'NEEDLE'} ${i}</p>`).join('')));
+    await page.evaluate(() => window.__editor.ui!.openPanelFor('findReplace'));
+    await panel(page).locator('[data-field="find"]').fill('NEEDLE');
+    const current = page.locator('#editor .le-find-current');
+    const coveredBySheet = () =>
+      page.evaluate(() => {
+        const sheet = document.querySelector('.le-sheet')?.getBoundingClientRect();
+        return Boolean(sheet && document.querySelector('#editor .le-find-current')!.getBoundingClientRect().bottom > sheet.top);
+      });
+    for (let step = 1; step <= 6; step++) {
+      await panel(page).locator('[data-action="next"]').click();
+      await expect(panel(page).locator('[data-field="status"]')).toContainText(`${step}/6`);
+      await expect(current).toBeInViewport({ ratio: 1 });
+      await expect.poll(coveredBySheet, { message: `match ${step}` }).toBe(false);
+    }
+  });
+}

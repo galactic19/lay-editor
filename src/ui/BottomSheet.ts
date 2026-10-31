@@ -3,6 +3,9 @@ import { c } from './classes';
 import { h } from './dom';
 import { PortalPanel, type PortalParts } from './PortalPanel';
 
+/** The open sheet's height, published on the editor root; `.le-find-current` scrolls clear of it. */
+const HEIGHT_VAR = '--le-sheet-height';
+
 /** Mobile panel sliding up from the bottom; closes on a backdrop tap or a downward drag. */
 export class BottomSheet extends PortalPanel {
   protected render(content: HTMLElement): PortalParts {
@@ -11,7 +14,16 @@ export class BottomSheet extends PortalPanel {
     const backdrop = this.portal('sheet-backdrop');
     backdrop.addEventListener('pointerdown', () => this.close());
     handle.addEventListener('pointerdown', (event) => this.drag(event, dialog));
-    return { dialog, extras: [backdrop] };
+    return { dialog, extras: [backdrop], cleanups: [this.publishHeight(dialog)] };
+  }
+
+  private publishHeight(dialog: HTMLElement): () => void {
+    const sizer = new ResizeObserver(() => this.root.style.setProperty(HEIGHT_VAR, `${dialog.offsetHeight}px`));
+    sizer.observe(dialog);
+    return () => {
+      sizer.disconnect();
+      this.root.style.removeProperty(HEIGHT_VAR);
+    };
   }
 
   private drag(start: PointerEvent, dialog: HTMLElement): void {

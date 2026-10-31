@@ -256,3 +256,5 @@ html.le-scroll-locked { overflow: hidden; }
 .le-sheet .le-grid { justify-content: center; }
 .le-sheet .le-swatch { width: var(--le-touch-target); height: var(--le-touch-target); }
 @keyframes le-sheet-in { from { transform: translateY(100%); } }
+/* A find match is centred in the space above an open sheet (BottomSheet sets --le-sheet-height). */
+.le-find-current { scroll-margin-bottom: var(--le-sheet-height, 0px); }

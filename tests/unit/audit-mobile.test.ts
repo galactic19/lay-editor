@@ -1,5 +1,5 @@
 import { TextSelection } from 'prosemirror-state';
-import { onCleanup, setMedia } from '../setup';
+import { onCleanup, setMedia, triggerResize } from '../setup';
 import { findText, flushPromises, makeEditor, selectText } from '../helpers/editor';
 
 const COARSE = '(pointer: coarse)';
@@ -172,5 +172,16 @@ describe('audit: find scrolls to the match', () => {
     (document.querySelector('[data-field="replace"]') as HTMLInputElement).value = 'pin';
     document.querySelector<HTMLButtonElement>('[data-action="replaceOne"]')!.click();
     expect(scrolled.at(-1)!.closest('p')!.textContent).toBe('NEEDLE one');
+  });
+
+  it('publishes the open sheet height so the match can scroll clear of it, and drops it on close', () => {
+    const ed = mobileEditor();
+    const sheetHeight = () => ed.root.style.getPropertyValue('--le-sheet-height');
+    ed.ui!.openPanelFor('findReplace');
+    triggerResize();
+    expect(sheetHeight()).toBe('0px');
+    document.querySelector<HTMLElement>('.le-sheet')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(document.querySelector('.le-sheet')).toBeNull();
+    expect(sheetHeight()).toBe('');
   });
 });
