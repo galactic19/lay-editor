@@ -64,6 +64,32 @@ test.describe('audit #30: clicking an image', () => {
     expect(await captionPlaceholder(page)).toEqual({ display: 'block', text: `"${hint}"` });
   });
 
+  test('the hint in an empty caption leaves the caret where typing starts', async ({ page }) => {
+    // The caption text is centred, so the caret of an empty caption belongs in the middle.
+    const CARET_TOLERANCE = 2;
+    await openEmpty(page);
+    await seedImage(page);
+    await page.locator('#editor .ProseMirror p').first().click();
+    await page.locator('#editor .le-image img').click();
+    const caption = page.locator('#editor .le-image figcaption');
+    await caption.click();
+    await expect.poll(() => page.evaluate(() => window.__editor.state.selection.$from.parent.type.name)).toBe('image');
+    const caretX = await page.evaluate(() => window.__editor.view.coordsAtPos(window.__editor.state.selection.from).left);
+    const box = (await caption.boundingBox())!;
+    expect(Math.abs(caretX - (box.x + box.width / 2))).toBeLessThan(CARET_TOLERANCE);
+    await page.keyboard.type('A');
+    await expect(caption).toHaveText('A');
+  });
+
+  test('the empty caption stays hidden in read-only mode', async ({ page }) => {
+    await openEmpty(page);
+    await seedImage(page);
+    await page.evaluate(() => window.__editor.setEditable(false));
+    await page.locator('#editor .ProseMirror p').first().click();
+    await page.locator('#editor .le-image img').click();
+    expect((await captionPlaceholder(page)).display).toBe('none');
+  });
+
   test('a click in the caption still places the caret there', async ({ page }) => {
     await openEmpty(page);
     await seedImage(page, 'my caption');

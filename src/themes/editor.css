@@ -115,8 +115,10 @@
 /* Images */
 .le-image-frame { position: relative; }
 .le-content .le-caption-empty figcaption { display: none; }
-.le-content .le-caption-empty.le-image-active figcaption { display: block; min-height: 1.5em; }
-.le-content .le-caption-empty.le-image-active figcaption::before { content: attr(data-placeholder); color: var(--le-color-muted); }
+/* An empty caption shows its hint while its image is being edited; read-only mode keeps it hidden. */
+.le-editor:not(.le-readonly) .le-caption-empty.le-image-active figcaption { display: block; position: relative; min-height: 1.5em; }
+/* Like .le-placeholder, the hint takes no room in the (centred) text, so the caret sits where typing starts. */
+.le-editor:not(.le-readonly) .le-caption-empty.le-image-active figcaption::before { content: attr(data-placeholder); position: absolute; inset-inline: 0; color: var(--le-color-muted); pointer-events: none; }
 .le-content .le-image.ProseMirror-selectednode { outline: none; }
 .le-content .le-image.ProseMirror-selectednode img { outline: 2px solid var(--le-color-primary); outline-offset: 2px; }
 .le-resize-handle {
