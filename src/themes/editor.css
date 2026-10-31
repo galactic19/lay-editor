@@ -16,6 +16,9 @@
 .le-content { flex: 1; min-height: var(--le-min-height); padding: var(--le-content-padding); cursor: text; }
 .le-content .ProseMirror { outline: none; min-height: calc(var(--le-min-height) - 32px); white-space: pre-wrap; word-wrap: break-word; caret-color: var(--le-color-primary); }
 .le-content .ProseMirror ::selection { background: var(--le-color-selection); }
+/* ProseMirror sets this class for node selections (e.g. a clicked image); the outline shows those instead. */
+.le-content .ProseMirror-hideselection ::selection { background: transparent; }
+.le-content .ProseMirror-hideselection { caret-color: transparent; }
 .le-editor:focus-within { border-color: var(--le-color-primary); box-shadow: 0 0 0 3px var(--le-color-selection); }
 .le-readonly .le-content { cursor: default; }
 
@@ -111,9 +114,9 @@
 
 /* Images */
 .le-image-frame { position: relative; }
-.le-content .le-image figcaption:empty { display: none; }
-.le-content .le-image-active figcaption:empty { display: block; min-height: 1.5em; }
-.le-content .le-image-active figcaption:empty::before { content: attr(data-placeholder); color: var(--le-color-muted); }
+.le-content .le-caption-empty figcaption { display: none; }
+.le-content .le-caption-empty.le-image-active figcaption { display: block; min-height: 1.5em; }
+.le-content .le-caption-empty.le-image-active figcaption::before { content: attr(data-placeholder); color: var(--le-color-muted); }
 .le-content .le-image.ProseMirror-selectednode { outline: none; }
 .le-content .le-image.ProseMirror-selectednode img { outline: 2px solid var(--le-color-primary); outline-offset: 2px; }
 .le-resize-handle {

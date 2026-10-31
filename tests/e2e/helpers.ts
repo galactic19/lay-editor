@@ -23,3 +23,7 @@ export const control = (page: Page, id: string) =>
 
 /** The open panel: a dropdown on desktop, a bottom sheet on mobile. */
 export const panel = (page: Page) => page.locator('.le-dropdown, .le-sheet');
+
+/** A tool for the current context (image, table...): the desktop context toolbar or the mobile keyboard bar. */
+export const contextControl = (page: Page, id: string) =>
+  page.locator(`.le-context-toolbar:not([hidden]) [data-item="${id}"], .le-mobile-bar:not([hidden]) [data-item="${id}"]`).first();

@@ -216,6 +216,12 @@ export const image = defineExtension<ImageOptions>({
               ? DecorationSet.create(state.doc, [Decoration.node(target.pos, target.pos + target.node.nodeSize, { class: c('image-active') })])
               : null;
           },
+          // The caption makes the image a non-leaf node, which ProseMirror does not select on a plain click.
+          handleClickOn: (view, _pos, node, nodePos, event, direct) => {
+            if (!direct || node.type !== type || !(event.target as Element).closest(`.${c('image-frame')}`)) return false;
+            view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)));
+            return true;
+          },
           handlePaste: (_view, event) => {
             const files = imageFiles(event.clipboardData);
             if (!files.length || event.clipboardData?.types.includes('text/html')) return false;
