@@ -157,3 +157,21 @@ test('audit #69: dropped files keep their order', async ({ page }) => {
   await expect(page.locator('#editor .ProseMirror > *')).toHaveCount(5);
   await expect(page.locator('#editor .ProseMirror > p').last()).toHaveText('second paragraph');
 });
+
+test('audit #9: the more menu leads out of the source view after a UI rebuild in read-only mode', async ({ page }, info) => {
+  test.skip(info.project.name.startsWith('mobile'), 'the more menu is part of the desktop toolbar');
+  await openEmpty(page);
+  await page.evaluate(() => window.__editor.setHTML('<p>kept</p>'));
+  await page.evaluate(() => {
+    window.__editor.exec('toggleSourceView');
+    window.__editor.setEditable(false);
+    window.__editor.setLocale('en');
+  });
+  const more = page.locator('#editor .le-toolbar [data-item="more"]');
+  await expect(page.locator('#editor .le-toolbar [data-item="sourceView"]')).toBeHidden();
+  await expect(more).toHaveAttribute('aria-disabled', 'false');
+  await more.click();
+  await page.locator('.le-dropdown [data-item="sourceView"]').click();
+  await expect(page.locator('#editor textarea.le-source')).toHaveCount(0);
+  expect(await page.evaluate(() => window.__editor.getHTML())).toBe('<p>kept</p>');
+});
