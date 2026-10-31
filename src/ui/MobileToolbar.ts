@@ -33,7 +33,8 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
       editor.root.style.removeProperty('--le-mobile-bar-height');
       editor.view.setProps({ scrollMargin: undefined });
     });
-    this.followEditorFocus();
+    // The bar is the only chrome on mobile, so focus anywhere in the editor keeps it, the HTML source textarea included.
+    this.followEditorFocus(editor.root);
   }
 
   /** Context-only tools first, then the regular tools that also work in this context. */
