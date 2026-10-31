@@ -5,10 +5,10 @@ import { PortalPanel, type PortalParts } from './PortalPanel';
 export class Dropdown extends PortalPanel {
   /** `fallback` (the selection) takes over when the anchor element hides or goes away while the panel is open. */
   constructor(
-    themeSource: HTMLElement,
+    root: HTMLElement,
     private readonly fallback: Anchor,
   ) {
-    super(themeSource);
+    super(root);
   }
 
   protected render(content: HTMLElement, anchor: Anchor | null): PortalParts {
