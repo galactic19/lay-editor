@@ -24,7 +24,8 @@ function mountReact(props: LayEditorProps) {
 
 function mountVue(initial: { theme?: ThemeMode; locale?: LocaleInput }) {
   const props = ref(initial);
-  const component = ref<{ getEditor(): Editor | null } | null>(null);
+  // Typed from the component itself, as vue-tsc types `useTemplateRef` (#53).
+  const component = ref<InstanceType<typeof VueLayEditor> | null>(null);
   const App = defineComponent({ setup: () => () => h(VueLayEditor, { ref: component, ...props.value }) });
   const host = document.createElement('div');
   document.body.appendChild(host);
@@ -161,5 +162,14 @@ describe('registerIcon with markup that is not well-formed XML (#57)', () => {
     } finally {
       registerIcon('bold', DEFAULT_ICONS.bold!);
     }
+  });
+});
+
+describe('Vue: getEditor() is in the component instance type (#53)', () => {
+  it('a template ref typed from LayEditor exposes getEditor(): Editor | null', () => {
+    expectTypeOf<InstanceType<typeof VueLayEditor>['getEditor']>().toEqualTypeOf<() => Editor | null>();
+    const { editor, unmount } = mountVue({});
+    expect(editor()).toBeInstanceOf(Editor);
+    unmount();
   });
 });

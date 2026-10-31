@@ -16,7 +16,7 @@ export const LayEditor = defineComponent({
     'update:modelValue': (html: string) => typeof html === 'string',
     ready: (editor: Editor) => Boolean(editor),
   },
-  setup(props, { emit, expose }) {
+  setup(props, { emit }) {
     const host = ref<HTMLDivElement | null>(null);
     const synced = shallowRef<SyncedEditor | null>(null);
 
@@ -44,7 +44,11 @@ export const LayEditor = defineComponent({
       synced.value = null;
     });
 
-    expose({ getEditor: (): Editor | null => synced.value?.editor ?? null });
-    return () => h('div', { ref: host });
+    // Returned bindings (not `expose()`) make up the instance type, so a template ref typed
+    // from LayEditor knows getEditor(). `host` is the root element, i.e. what `$el` already is.
+    return { host, getEditor: (): Editor | null => synced.value?.editor ?? null };
+  },
+  render() {
+    return h('div', { ref: 'host' });
   },
 });

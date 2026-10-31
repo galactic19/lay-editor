@@ -255,7 +255,7 @@ const html = ref('<p>안녕하세요</p>');
 - 옵션은 마운트할 때 한 번 읽습니다. `value`(`v-model`), `theme`, `locale`은 이후 변경도 반영됩니다.
 - `locale` 객체는 내용으로 비교합니다. 인라인 객체로 넘겨도 렌더링마다 UI를 다시 만들지 않습니다.
 - React는 기본 옵션을 props로, 확장 옵션을 `options`로 넘깁니다. Vue는 모든 옵션을 `options`로 넘깁니다.
-- 에디터 인스턴스: React는 `ref`, Vue는 컴포넌트 ref의 `getEditor()`.
+- 에디터 인스턴스: React는 `ref`, Vue는 컴포넌트 ref의 `getEditor()`(타입 포함) 또는 `@ready` 이벤트(인자: 에디터).
 
 ## 11. 사용자 확장 만들기 (@멘션 예제)
 
