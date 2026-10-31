@@ -14,6 +14,8 @@ const RGB = new RegExp(`^rgb\\(\\s*${BYTE}\\s*,\\s*${BYTE}\\s*,\\s*${BYTE}\\s*\\
 const RGBA = new RegExp(`^rgba\\(\\s*${BYTE}\\s*,\\s*${BYTE}\\s*,\\s*${BYTE}\\s*,\\s*(0|1|0?\\.\\d+|1\\.0+)\\s*\\)$`, 'i');
 const PERCENT = /^\s*(\d+(?:\.\d+)?)\s*%\s*$/;
 const LANGUAGE = /^[a-z0-9+#-]{1,20}$/i;
+/** Code blocks name their language with this class prefix (`<code class="language-js">`). */
+const LANGUAGE_CLASS = 'language-';
 
 function isDataImage(value: string): boolean {
   const match = /^data:([^;,]+);base64,[a-z0-9+/=\s]+$/i.exec(value);
@@ -50,6 +52,14 @@ export function clampWidth(value: string | number | null | undefined): number | 
 export function safeLanguage(value: string | null | undefined): string | null {
   return value && LANGUAGE.test(value) ? value : null;
 }
+
+/** The safe language a `language-xxx` class in `classes` names, else null. */
+export function classLanguage(classes: Iterable<string>): string | null {
+  const cls = [...classes].find((name) => name.startsWith(LANGUAGE_CLASS));
+  return safeLanguage(cls?.slice(LANGUAGE_CLASS.length));
+}
+
+export const languageClass = (language: string): string => `${LANGUAGE_CLASS}${language}`;
 
 export function oneOf<T extends string>(value: unknown, allowed: readonly T[]): T | null {
   return typeof value === 'string' && (allowed as readonly string[]).includes(value) ? (value as T) : null;

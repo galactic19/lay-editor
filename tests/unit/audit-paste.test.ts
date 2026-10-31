@@ -85,3 +85,21 @@ describe('Word colors, highlights and cell shading (audit #24)', () => {
     );
   });
 });
+
+describe('pasted code blocks keep their language (audit #25)', () => {
+  it('keeps the language class, as setHTML does', () => {
+    expect(paste('<pre><code class="language-js">const a = 1;</code></pre>')).toBe('<pre><code class="language-js">const a = 1;</code></pre>');
+  });
+
+  it('keeps only the language token from highlighter markup', () => {
+    expect(paste('<pre class="language-ts"><code class="hljs language-ts">let x: number</code></pre>')).toBe(
+      '<pre><code class="language-ts">let x: number</code></pre>',
+    );
+  });
+
+  it('drops classes that do not name a safe language', () => {
+    expect(paste('<pre><code class="hljs language-this-name-is-far-too-long-to-be-real">x</code></pre><p class="language-js">p</p>')).toBe(
+      '<pre><code>x</code></pre><p>p</p>',
+    );
+  });
+});

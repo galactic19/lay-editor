@@ -53,4 +53,11 @@ test.describe('paste from other pages (audit)', () => {
       '<p><span style="color: rgb(255, 0, 0);">빨강</span><mark style="background-color: rgb(255, 255, 0);">형광</mark></p><table><tbody><tr><td style="background-color: rgb(255, 192, 0);"><p>셀</p></td></tr></tbody></table>',
     );
   });
+
+  test("a code block copied from a viewer page keeps its language and the viewer's text color is dropped (#23, #25)", async ({ page }) => {
+    await page.goto('./?empty');
+    await copyPaste(page, '<div class="le-prose"><p>before</p><pre><code class="language-python">def f():\n    return 1</code></pre><p>after</p></div>');
+    await expect.poll(() => html(page)).toContain('after');
+    expect(await html(page)).toBe('<p>before</p><pre><code class="language-python">def f():\n    return 1</code></pre><p>after</p>');
+  });
 });

@@ -1,5 +1,5 @@
 import { DEFAULTS } from '../../../core/defaults';
-import { safeColor } from '../../sanitize';
+import { classLanguage, languageClass, safeColor } from '../../sanitize';
 import { mapStyle, styleDeclarations, withDocument, type StyleDeclaration } from '../dom';
 
 /** Inline styles that mean a semantic tag. */
@@ -53,12 +53,15 @@ function cleanDeclaration(prop: string, value: string): StyleDeclaration | null 
   return color && !isPageColor(name, color) ? [name, color] : null;
 }
 
+/** Drops classes, ids and unknown data attributes; a code element keeps only the class naming its language. */
 function cleanAttributes(el: HTMLElement): void {
+  const language = el.tagName === 'CODE' ? classLanguage(el.classList) : null;
   for (const { name } of Array.from(el.attributes)) {
     if (name === 'class' || name === 'id' || (name.startsWith('data-') && !includes(keepDataAttrs, name))) {
       el.removeAttribute(name);
     }
   }
+  if (language) el.className = languageClass(language);
 }
 
 /** Keeps only the styles the schema understands and converts semantic styles into tags. */
