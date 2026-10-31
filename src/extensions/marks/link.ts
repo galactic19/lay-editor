@@ -1,10 +1,10 @@
 import type { Mark, MarkType } from 'prosemirror-model';
 import { InputRule } from 'prosemirror-inputrules';
 import type { Command } from 'prosemirror-state';
-import { getMarkRange, isMarkActive } from '../../core/state-utils';
+import { getMarkRange, isMarkActive, markApplies } from '../../core/state-utils';
 import { safeUrl } from '../../io/sanitize';
 import { linkPanel } from '../../ui/panels/linkPanel';
-import { defineExtension } from '../factories';
+import { canApplyMark, defineExtension } from '../factories';
 
 export interface LinkInput {
   href: string;
@@ -37,7 +37,7 @@ const setLink =
   (type: MarkType, input: LinkInput): Command =>
   (state, dispatch) => {
     const href = safeUrl(normalizeHref(input?.href));
-    if (!href) return false;
+    if (!href || !markApplies(state, type)) return false;
     const mark = type.create({ href, target: input.newTab ? '_blank' : null });
     if (!dispatch) return true;
     const range = linkRange(state, type);
@@ -86,7 +86,8 @@ export const link = defineExtension({
         if (dispatch) window.open(href, '_blank', 'noopener');
         return true;
       },
-      openLinkPanel: (): Command => (_state, dispatch) => {
+      openLinkPanel: (): Command => (state, dispatch) => {
+        if (!markApplies(state, type)) return false;
         if (dispatch) editor.ui?.openPanelFor('link');
         return true;
       },
@@ -115,6 +116,7 @@ export const link = defineExtension({
       shortcut: 'Mod-k',
       contexts: ['text', 'table'],
       isActive: (editor) => editor.isActive('link'),
+      isEnabled: canApplyMark('link'),
       panel: linkPanel,
     },
     { id: 'linkEdit', kind: 'panel', icon: 'pencil', label: 'toolbar.linkEdit', contexts: ['link'], panel: linkPanel },

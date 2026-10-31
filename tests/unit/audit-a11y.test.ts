@@ -1,9 +1,11 @@
+import { AllSelection } from 'prosemirror-state';
 import type { Editor } from '../../src/core/Editor';
 import { findKey } from '../../src/extensions/tools/findReplace';
 import { focusables } from '../../src/ui/focus';
-import { makeEditor } from '../helpers/editor';
+import { makeEditor, press, selectText } from '../helpers/editor';
 import { triggerResize } from '../setup';
 
+const toolbarControl = (ed: Editor, id: string): HTMLButtonElement => ed.root.querySelector<HTMLButtonElement>(`.le-toolbar [data-item="${id}"]`)!;
 const dialog = (): HTMLElement => document.querySelector<HTMLElement>('.le-dropdown, .le-sheet')!;
 
 /** Squeezes the toolbar so only `visible` controls fit (each 40px wide); returns the "more" button. */
@@ -72,5 +74,34 @@ describe('audit a11y #34: the image panel file picker works from the keyboard', 
     const open = vi.spyOn(input, 'click');
     picker.click();
     expect(open).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('audit a11y #66: mark panels are disabled where the mark cannot apply', () => {
+  const MARK_ITEMS = ['textColor', 'highlight', 'link'];
+  const LINK = { href: 'https://a.com' };
+
+  it('disables text color, highlight and link inside a code block, and Mod-k opens nothing', () => {
+    const ed = makeEditor({ content: '<pre><code>some code</code></pre>' });
+    selectText(ed, 'some code');
+    ed.ui!.flush();
+    for (const id of MARK_ITEMS) expect(toolbarControl(ed, id).getAttribute('aria-disabled')).toBe('true');
+    expect(ed.can('setTextColor', '#e03131')).toBe(false);
+    expect(ed.can('setHighlight', '#ffec99')).toBe(false);
+    expect(ed.can('setLink', LINK)).toBe(false);
+    expect(press(ed, 'Mod-k')).toBe(false);
+    expect(dialog()).toBeNull();
+  });
+
+  it('stays enabled for text, an empty cursor and a selection that also covers a paragraph', () => {
+    const ed = makeEditor({ content: '<p>text</p><pre><code>code</code></pre>' });
+    selectText(ed, 'text');
+    ed.ui!.flush();
+    for (const id of MARK_ITEMS) expect(toolbarControl(ed, id).getAttribute('aria-disabled')).toBe('false');
+    expect(ed.can('setLink', LINK)).toBe(true);
+    ed.view.dispatch(ed.state.tr.setSelection(new AllSelection(ed.state.doc)));
+    expect(ed.can('setTextColor', '#e03131')).toBe(true);
+    ed.exec('setTextColor', '#e03131');
+    expect(ed.getHTML()).toBe('<p><span style="color: rgb(224, 49, 49);">text</span></p><pre><code>code</code></pre>');
   });
 });

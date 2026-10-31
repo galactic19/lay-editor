@@ -24,6 +24,17 @@ export function isMarkActive(state: EditorState, type: MarkType, attrs?: Attrs |
   return found;
 }
 
+/** Whether `type` can go on some text in the selection; code blocks, for one, allow no marks. */
+export function markApplies(state: EditorState, type: MarkType): boolean {
+  const { from, to } = state.selection;
+  let applies = false;
+  state.doc.nodesBetween(from, to, (node) => {
+    applies ||= node.inlineContent && node.type.allowsMarkType(type);
+    return !applies;
+  });
+  return applies;
+}
+
 export function isNodeActive(state: EditorState, type: NodeType, attrs?: Attrs | null): boolean {
   const { selection } = state;
   if (selection instanceof NodeSelection && selection.node.type === type) return attrsMatch(selection.node.attrs, attrs);
