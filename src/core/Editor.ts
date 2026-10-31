@@ -22,7 +22,7 @@ export interface EditorEvents {
   uploadStart: [file: File];
   uploadProgress: [file: File, ratio: number];
   uploadSuccess: [file: File, url: string];
-  uploadError: [error: EditorError, file: File];
+  uploadError: [file: File, error: EditorError];
   error: [error: EditorError];
   modeChange: [mode: DeviceMode];
   destroy: [];

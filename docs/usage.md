@@ -135,7 +135,10 @@ editor.destroy();
 | `update` | `transaction` | 모든 편집마다 |
 | `selectionChange` | — | 선택 영역 변경 |
 | `focus`, `blur` | — | 포커스 변화 |
-| `uploadStart` / `uploadProgress` / `uploadSuccess` / `uploadError` | 파일, 진행률/URL/오류 | 업로드 단계 |
+| `uploadStart` | `file` | 업로드 시작 |
+| `uploadProgress` | `file`, `ratio`(0~1) | 업로드 진행 |
+| `uploadSuccess` | `file`, `url` | 업로드 성공 |
+| `uploadError` | `file`, `EditorError` | 업로드 실패(`UPLOAD_FAILED`) 또는 형식·용량 검사 탈락(`UPLOAD_REJECTED`) |
 | `modeChange` | `'desktop' \| 'mobile'` | 기기 모드 전환 |
 | `error` | `EditorError` | 잡힌 내부 오류 (코드: `error.code`) |
 | `destroy` | — | 해제 직전 |

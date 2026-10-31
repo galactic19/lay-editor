@@ -92,7 +92,7 @@ describe('upload flow', () => {
     ed.on('uploadError', onError);
     ed.exec('uploadImages', [file]);
     await flushPromises();
-    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ code: 'UPLOAD_REJECTED', message: expect.stringContaining(reason) }), file);
+    expect(onError).toHaveBeenCalledWith(file, expect.objectContaining({ code: 'UPLOAD_REJECTED', message: expect.stringContaining(reason) }));
     expect(upload).not.toHaveBeenCalled();
     expect(ed.root.querySelector('.le-toast-error')).not.toBeNull();
   });
@@ -108,7 +108,7 @@ describe('upload flow', () => {
     await flushPromises();
     expect(ed.getHTML()).toBe('');
     expect(ed.state.doc.textContent).toBe('');
-    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ code: 'UPLOAD_FAILED' }), expect.any(File));
+    expect(onError).toHaveBeenCalledWith(expect.any(File), expect.objectContaining({ code: 'UPLOAD_FAILED' }));
   });
 
   it('rejects an unsafe URL returned by the server', async () => {

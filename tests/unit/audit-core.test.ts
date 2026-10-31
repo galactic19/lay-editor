@@ -1,4 +1,4 @@
-import { makeEditor, typeText } from '../helpers/editor';
+import { flushPromises, makeEditor, typeText } from '../helpers/editor';
 
 describe('audit core: every public method is safe after destroy', () => {
   it('setEditable, setTheme and the other methods are no-ops on a destroyed editor', () => {
@@ -78,5 +78,21 @@ describe('audit core: setHTML starts a fresh undo history', () => {
     expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ docChanged: true }));
     vi.advanceTimersByTime(300);
     expect(onChange).toHaveBeenCalledWith('<p>B</p>');
+  });
+});
+
+describe('audit core: every upload event passes the file first', () => {
+  const photo = (type = 'image/png') => new File([new Uint8Array(4)], 'photo.png', { type });
+
+  it.each([
+    ['UPLOAD_FAILED', photo(), async () => Promise.reject(new Error('server 500'))],
+    ['UPLOAD_REJECTED', photo('image/svg+xml'), async () => ({ url: 'https://cdn.example.com/a.png' })],
+  ])('uploadError is (file, error) for %s', async (code, file, upload) => {
+    const ed = makeEditor({ upload });
+    const onError = vi.fn();
+    ed.on('uploadError', onError);
+    ed.exec('uploadImages', [file]);
+    await flushPromises();
+    expect(onError).toHaveBeenCalledWith(file, expect.objectContaining({ code }));
   });
 });

@@ -61,7 +61,7 @@ describe('review fix #5: pasted data: images are validated', () => {
     ed.view.pasteHTML(`<img src="${PNG}">`);
     await flushPromises();
     expect(upload).not.toHaveBeenCalled();
-    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ code: 'UPLOAD_REJECTED' }), expect.any(File));
+    expect(onError).toHaveBeenCalledWith(expect.any(File), expect.objectContaining({ code: 'UPLOAD_REJECTED' }));
     expect(ed.view.dom.querySelector('.le-image')).toBeNull();
   });
 
