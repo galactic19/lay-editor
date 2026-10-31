@@ -5,7 +5,7 @@ import type { EditorOptions } from '../../src/core/types';
 import { normalizeHref } from '../../src/extensions/marks/link';
 import { fillContainerStarts } from '../../src/io/html';
 import { onCleanup, setMedia } from '../setup';
-import { caretAfter, makeEditor, toolbarControl } from '../helpers/editor';
+import { caretAfter, makeEditor, toolbarControl, typeText } from '../helpers/editor';
 
 /** An editor in a form: textarea mode, or (`textarea: false`) an element inside the form. */
 function formEditor(content: string, { textarea = true, ...options }: Partial<EditorOptions> & { textarea?: boolean } = {}) {
@@ -214,5 +214,26 @@ describe('final review: tabs in pasted plain text', () => {
     expect(html).not.toContain('\t');
     expect(reloaded(html)).toBe(html);
     expect(editor.getText()).toBe(makeEditor({ content: html }).getText());
+  });
+});
+
+describe('final review: ordered list start numbers', () => {
+  it.each([
+    ['0', '<ol start="0">'],
+    ['-2', '<ol start="-2">'],
+    ['2.5', '<ol start="2">'],
+    ['1e3', '<ol>'],
+    ['3x', '<ol start="3">'],
+    ['abc', '<ol>'],
+  ])('start="%s" loads the way browsers read it', (start, expected) => {
+    expect(reloaded(`<ol start="${start}"><li><p>a</p></li></ol>`)).toBe(`${expected}<li><p>a</p></li></ol>`);
+  });
+
+  it('a list typed as "0. " keeps its start through a reload', () => {
+    const editor = makeEditor();
+    typeText(editor, '0. item');
+    const html = editor.getHTML();
+    expect(html).toBe('<ol start="0"><li><p>item</p></li></ol>');
+    expect(reloaded(html)).toBe(html);
   });
 });

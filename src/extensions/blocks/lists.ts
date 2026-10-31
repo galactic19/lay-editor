@@ -8,6 +8,7 @@ import type { EditorView, NodeView } from 'prosemirror-view';
 import type { Editor } from '../../core/Editor';
 import { findParent, type FoundNode } from '../../core/state-utils';
 import type { UIItem } from '../../core/types';
+import { readInteger } from '../../io/sanitize';
 import { c } from '../../ui/classes';
 import { h, outsideForms } from '../../ui/dom';
 import { commandName, defineExtension } from '../factories';
@@ -53,6 +54,10 @@ export function toggleList(schema: Schema, listName: ListName): Command {
     return retypeList(current, listType, itemType)(state, dispatch);
   };
 }
+
+/** An ordered list counts from 1 unless its start says otherwise. */
+const FIRST_NUMBER = 1;
+const listStart = (value: unknown): number => readInteger(value) ?? FIRST_NUMBER;
 
 const anyItem = (schema: Schema, run: (type: NodeType) => Command): Command => chainCommands(...listItemTypes(schema).map(run));
 
@@ -126,9 +131,10 @@ export const lists = defineExtension({
     orderedList: {
       group: 'block',
       content: 'listItem+',
-      attrs: { start: { default: 1 } },
-      parseDOM: [{ tag: 'ol', getAttrs: (dom) => ({ start: Math.max(1, Number((dom as HTMLElement).getAttribute('start')) || 1) }) }],
-      toDOM: (node) => (node.attrs.start === 1 ? ['ol', 0] : ['ol', { start: String(node.attrs.start) }, 0]),
+      attrs: { start: { default: FIRST_NUMBER } },
+      // Read the way browsers number the list: any whole number, 0 and negatives included.
+      parseDOM: [{ tag: 'ol', getAttrs: (dom) => ({ start: listStart((dom as HTMLElement).getAttribute('start')) }) }],
+      toDOM: (node) => (node.attrs.start === FIRST_NUMBER ? ['ol', 0] : ['ol', { start: String(node.attrs.start) }, 0]),
     },
     listItem: { content: 'paragraph block*', defining: true, parseDOM: [{ tag: 'li' }], toDOM: () => ['li', 0] },
     taskList: { group: 'block', content: 'taskItem+', parseDOM: [{ tag: 'ul[data-type="taskList"]', priority: 60 }], toDOM: () => ['ul', { 'data-type': 'taskList' }, 0] },
@@ -168,8 +174,8 @@ export const lists = defineExtension({
     wrappingInputRule(
       /^(\d+)\.\s$/,
       schema.nodes.orderedList!,
-      (match) => ({ start: Number(match[1]) }),
-      (match, node) => node.childCount + node.attrs.start === Number(match[1]),
+      (match) => ({ start: listStart(match[1]) }),
+      (match, node) => node.childCount + node.attrs.start === listStart(match[1]),
     ),
     new InputRule(/^\[( |x)?\]\s$/, (state, match, start, end) => {
       const tr = state.tr.delete(start, end);

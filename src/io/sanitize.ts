@@ -52,12 +52,18 @@ export function clampWidth(value: string | number | null | undefined): number | 
 }
 
 /**
- * Whole number clamped to [min, max]. Strings are read like HTML integer attributes, by their leading digits
- * ("5px" is 5, "1e9" is 1); anything without them becomes `min`.
+ * A whole number read like an HTML integer attribute: an optional sign and the leading digits ("5px" is 5, "1e9" is 1,
+ * "-2" is -2); null when there are none.
  */
-export function clampInteger(value: unknown, min: number, max: number): number {
+export function readInteger(value: unknown): number | null {
   const n = typeof value === 'number' ? Math.trunc(value) : parseInt(String(value), 10);
-  return Number.isFinite(n) ? clamp(n, min, max) : min;
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Whole number clamped to [min, max], read like readInteger(); anything without digits becomes `min`. */
+export function clampInteger(value: unknown, min: number, max: number): number {
+  const n = readInteger(value);
+  return n === null ? min : clamp(n, min, max);
 }
 
 export function safeLanguage(value: string | null | undefined): string | null {
