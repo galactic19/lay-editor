@@ -62,8 +62,10 @@
   --le-sheet-handle-height: 5px;
   --le-sheet-duration: 160ms;
   --le-backdrop: rgba(0, 0, 0, 0.35);
-  --le-z-overlay: 1000;
+  /* Stacking layers, lowest first. Body portals (panels, sheets, bars, menus) must stay above the fullscreen editor. */
+  --le-z-sticky: 2;
   --le-z-fullscreen: 9999;
+  --le-z-overlay: 10000;
   --le-transition: 120ms ease;
 }
 

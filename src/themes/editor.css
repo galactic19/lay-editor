@@ -29,7 +29,7 @@
 .le-task-content { flex: 1; min-width: 0; }
 
 /* Top bar */
-.le-top { position: sticky; top: 0; z-index: 2; background: var(--le-color-surface); border-bottom: 1px solid var(--le-color-border); border-radius: var(--le-radius) var(--le-radius) 0 0; }
+.le-top { position: sticky; top: 0; z-index: var(--le-z-sticky); background: var(--le-color-surface); border-bottom: 1px solid var(--le-color-border); border-radius: var(--le-radius) var(--le-radius) 0 0; }
 .le-toolbar { display: flex; align-items: center; gap: var(--le-space-hair); min-height: var(--le-toolbar-height); padding: var(--le-space-1) var(--le-space-2); flex-wrap: nowrap; overflow: hidden; }
 .le-separator { width: 1px; align-self: stretch; margin: var(--le-space-2) var(--le-space-1); background: var(--le-color-border); flex: none; }
 
