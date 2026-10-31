@@ -3,6 +3,7 @@
  * User options override these; nothing else in the codebase hard-codes them.
  */
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+const COLOR_STYLES = ['color', 'background-color'];
 
 export const DEFAULTS = {
   preset: 'full',
@@ -47,13 +48,34 @@ export const DEFAULTS = {
     languages: ['plaintext', 'javascript', 'typescript', 'html', 'css', 'json', 'python', 'java', 'sql', 'bash'],
   },
   paste: {
-    keepStyles: ['color', 'background-color', 'text-align'],
-    keepDataAttrs: ['data-type', 'data-checked', 'data-indent', 'data-align', 'data-video', 'data-provider', 'data-id', 'data-colwidth'],
-    /** Colors that equal the page default; dropping them keeps pasted text readable in dark mode. */
-    defaultColors: {
-      color: ['#000', '#000000', 'rgb(0,0,0)'],
-      'background-color': ['#fff', '#ffffff', 'rgb(255,255,255)'],
+    keepStyles: [...COLOR_STYLES, 'text-align'],
+    colorStyles: COLOR_STYLES,
+    /** CSS 2.1 color keywords, which Word uses for its standard colors and its highlight palette. */
+    namedColors: {
+      black: '#000000',
+      silver: '#c0c0c0',
+      gray: '#808080',
+      white: '#ffffff',
+      maroon: '#800000',
+      red: '#ff0000',
+      purple: '#800080',
+      fuchsia: '#ff00ff',
+      green: '#008000',
+      lime: '#00ff00',
+      olive: '#808000',
+      yellow: '#ffff00',
+      navy: '#000080',
+      blue: '#0000ff',
+      teal: '#008080',
+      aqua: '#00ffff',
+      orange: '#ffa500',
     },
+    keepDataAttrs: ['data-type', 'data-checked', 'data-indent', 'data-align', 'data-video', 'data-provider', 'data-id', 'data-colwidth'],
+    /**
+     * The source page's own colors, dropped so pasted text stays readable in both themes: any grey text color
+     * (channel spread up to `maxChroma`), and grey backgrounds at or beyond `darkBackground`/`lightBackground` lightness (0-255).
+     */
+    pageColors: { maxChroma: 24, darkBackground: 48, lightBackground: 240 },
   },
   indent: { max: 8 },
   colors: {

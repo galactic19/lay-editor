@@ -16,26 +16,25 @@ export function unwrap(el: Element): void {
   el.replaceWith(...Array.from(el.childNodes));
 }
 
-export function styleDeclarations(el: HTMLElement): Array<[string, string]> {
-  const style = el.style;
-  return Array.from({ length: style.length }, (_, i) => {
-    const prop = style.item(i);
-    return [prop, style.getPropertyValue(prop)] as [string, string];
-  });
+/** A style declaration as [property, value]. */
+export type StyleDeclaration = [string, string];
+
+/** Writes `decls` as the style attribute, or removes the attribute when none are left. */
+export function setStyle(el: HTMLElement, decls: StyleDeclaration[]): void {
+  if (decls.length) el.setAttribute('style', decls.map(([prop, value]) => `${prop}:${value}`).join(';'));
+  else el.removeAttribute('style');
 }
 
-/** Rewrites the style attribute keeping only declarations for which `keep` is true. */
+/**
+ * Rewrites the style attribute keeping only declarations for which `keep` is true.
+ * Reads the raw attribute so vendor properties (mso-*) arrive exactly as the source wrote them.
+ */
 export function filterStyle(el: HTMLElement, keep: (prop: string, value: string) => boolean): void {
   const raw = el.getAttribute('style');
   if (raw === null) return;
-  const kept = raw
-    .split(';')
-    .map((decl) => decl.trim())
-    .filter(Boolean)
-    .filter((decl) => {
-      const colon = decl.indexOf(':');
-      return colon > 0 && keep(decl.slice(0, colon).trim().toLowerCase(), decl.slice(colon + 1).trim());
-    });
-  if (kept.length) el.setAttribute('style', kept.join(';'));
-  else el.removeAttribute('style');
+  const decls = raw.split(';').map((decl): StyleDeclaration => {
+    const colon = decl.indexOf(':');
+    return [decl.slice(0, Math.max(colon, 0)).trim().toLowerCase(), decl.slice(colon + 1).trim()];
+  });
+  setStyle(el, decls.filter(([prop, value]) => prop && keep(prop, value)));
 }
