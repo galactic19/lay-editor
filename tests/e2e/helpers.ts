@@ -2,9 +2,20 @@ import type { Page } from '@playwright/test';
 
 export const MOD = process.platform === 'darwin' ? 'Meta' : 'Control';
 
+/**
+ * prosemirror-view writes its own selection back to the DOM this long after the editor gains focus, when it has
+ * not yet read the DOM selection (its focus handler). A selection key pressed before that can be undone.
+ */
+const PM_FOCUS_SETTLE_MS = 20;
+
+/** Waits for the editor's post-focus selection write: a timer set now with the same delay runs after it. */
+const settleFocus = (page: Page): Promise<void> =>
+  page.evaluate((delay) => new Promise<void>((resolve) => setTimeout(resolve, delay)), PM_FOCUS_SETTLE_MS);
+
 export async function openEmpty(page: Page, query = ''): Promise<void> {
   await page.goto(`./?empty${query ? `&${query}` : ''}`);
   await page.click('#editor .ProseMirror');
+  await settleFocus(page);
 }
 
 export const html = (page: Page): Promise<string> => page.evaluate(() => window.__editor.getHTML());
