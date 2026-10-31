@@ -1,4 +1,4 @@
-import { defineComponent, h, onBeforeUnmount, onMounted, ref, shallowRef, watch, type PropType } from 'vue';
+import { defineComponent, h, markRaw, onBeforeUnmount, onMounted, ref, shallowRef, watch, type PropType } from 'vue';
 import type { Editor } from '../core/Editor';
 import type { LocaleInput, ThemeMode } from '../core/types';
 import { createSyncedEditor, localeKey, type AdapterOptions, type SyncedEditor } from './shared';
@@ -25,6 +25,8 @@ export const LayEditor = defineComponent({
       if (props.theme) options.theme = props.theme;
       if (props.locale) options.locale = props.locale;
       synced.value = createSyncedEditor(host.value!, options, props.modelValue, (html) => emit('update:modelValue', html));
+      // Marked raw once, so an app may keep it in ref(): a deep reactive proxy would hand ProseMirror proxies of its own objects.
+      markRaw(synced.value.editor);
       emit('ready', synced.value.editor);
     });
     watch(

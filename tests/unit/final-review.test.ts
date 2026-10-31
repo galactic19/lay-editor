@@ -1,10 +1,12 @@
 import { DOMParser as PMDOMParser } from 'prosemirror-model';
+import { isProxy, ref } from 'vue';
 import { createEditor } from '../../src/core/createEditor';
 import type { Editor } from '../../src/core/Editor';
 import type { EditorOptions } from '../../src/core/types';
 import { normalizeHref } from '../../src/extensions/marks/link';
 import { fillContainerStarts } from '../../src/io/html';
 import { onCleanup, setMedia } from '../setup';
+import { mountVue } from '../helpers/adapters';
 import { caretAfter, caretAt, findText, makeEditor, press, toolbarControl, typeText } from '../helpers/editor';
 
 /** An editor in a form: textarea mode, or (`textarea: false`) an element inside the form. */
@@ -471,5 +473,19 @@ describe('final review: same-name textareas with equal values', () => {
     const formData = new FormData(form);
     form.dispatchEvent(Object.assign(new Event('formdata'), { formData }));
     expect(formData.getAll('answers[]')).toEqual(['<p>same</p>', '<p>sameB</p>']);
+  });
+});
+
+describe('final review: the Vue wrapper hands out a raw editor', () => {
+  it('an editor kept in ref() from @ready or getEditor() still works', () => {
+    const stored = ref<Editor | null>(null);
+    const mounted = mountVue(() => ({ modelValue: '<p>hello world</p>', onReady: (editor: Editor) => (stored.value = editor) }));
+    const fromRef = ref<Editor | null>(mounted.editor());
+    for (const editor of [stored.value!, fromRef.value!]) {
+      expect(isProxy(editor)).toBe(false);
+      expect(editor.getHTML()).toBe('<p>hello world</p>');
+    }
+    stored.value!.exec('insertTable', 2, 2);
+    expect(mounted.editor().getHTML()).toContain('<table>');
   });
 });
