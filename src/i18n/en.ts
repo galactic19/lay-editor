@@ -59,7 +59,7 @@ export const en = {
   panel: {
     find: { find: 'Find', replace: 'Replace with', caseSensitive: 'Match case', prev: 'Previous', next: 'Next', replaceOne: 'Replace', replaceAll: 'Replace all' },
     table: { size: '{rows} × {cols} table' },
-    video: { url: 'Video URL (YouTube, Vimeo)', insert: 'Embed', invalid: 'Enter a YouTube or Vimeo address' },
+    video: { url: 'Video URL ({providers})', insert: 'Embed', invalid: 'Enter a video address from {providers}', separator: ', ' },
     image: { file: 'Choose file', url: 'Image URL', alt: 'Describe the image', caption: 'Add a caption', insert: 'Insert', apply: 'Apply', invalid: 'Enter a valid image address' },
     color: { reset: 'Default' },
     link: {

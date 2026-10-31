@@ -412,3 +412,19 @@ describe('final review: task checkboxes and pointer clicks', () => {
     expect(press.defaultPrevented).toBe(true);
   });
 });
+
+describe('final review: the video panel names the providers the editor accepts', () => {
+  it.each([
+    ['ko', ['youtube'], '동영상 주소 (YouTube)', 'YouTube 동영상 주소를 입력하세요'],
+    ['en', ['youtube'], 'Video URL (YouTube)', 'Enter a video address from YouTube'],
+    ['en', ['vimeo', 'youtube'], 'Video URL (Vimeo, YouTube)', 'Enter a video address from Vimeo, YouTube'],
+  ])('%s %j', (locale, providers, label, error) => {
+    const editor = makeEditor({ locale, video: { providers } });
+    editor.ui!.openPanelFor('video');
+    const input = document.querySelector<HTMLInputElement>('.le-dropdown input[type="url"]')!;
+    expect(input.getAttribute('aria-label')).toBe(label);
+    input.value = 'https://example.com/clip';
+    input.form!.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(document.querySelector('.le-dropdown [role="alert"]')!.textContent).toBe(error);
+  });
+});

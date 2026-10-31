@@ -133,7 +133,7 @@ describe('audit: panel forms validate through the editor, not the browser', () =
 
   it.each([
     ['image', 'javascript:alert(1)', 'Enter a valid image address'],
-    ['video', 'example.com/clip', 'Enter a YouTube or Vimeo address'],
+    ['video', 'example.com/clip', 'Enter a video address from YouTube, Vimeo'],
   ])('shows a visible error when the %s form value is rejected', (item, typed, message) => {
     const ed = makeEditor({ locale: 'en' });
     ed.ui!.openPanelFor(item);

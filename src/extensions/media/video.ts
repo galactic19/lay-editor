@@ -29,6 +29,9 @@ const insertVideo =
     return true;
   };
 
+/** The names of the providers a video may come from (the `providers` option), for the panel's texts. */
+const providerNames = (providers: readonly string[]): string[] => providers.flatMap((id) => getVideoProvider(id)?.title ?? []);
+
 export const video = defineExtension<VideoOptions>({
   name: 'video',
   defaults: DEFAULTS.video,
@@ -68,7 +71,7 @@ export const video = defineExtension<VideoOptions>({
       },
     }),
   ],
-  ui: () => [
+  ui: ({ options }) => [
     {
       id: 'video',
       kind: 'panel',
@@ -83,6 +86,7 @@ export const video = defineExtension<VideoOptions>({
           labelKey: 'panel.video.url',
           submitKey: 'panel.video.insert',
           errorKey: 'panel.video.invalid',
+          params: { providers: providerNames(options.providers).join(t('panel.video.separator')) },
           onSubmit: (url) => {
             const ok = editor.exec('insertVideo', url);
             if (ok) close();

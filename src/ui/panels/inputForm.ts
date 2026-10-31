@@ -10,6 +10,8 @@ export interface InputFormOptions {
   submitKey: string;
   /** Shown under the input when `onSubmit` rejects the value. */
   errorKey?: string;
+  /** Parameters for the label, placeholder and error texts. */
+  params?: Record<string, string | number>;
   value?: string;
   placeholderKey?: string;
   /** Return false to keep the form open and flag the input as invalid. A URL arrives with the scheme of a bare host added. */
@@ -51,7 +53,7 @@ export function panelForm(className: string, onSubmit: () => void, ...children: 
 
 /** One input plus a submit button; shared by the image, video and alt-text panels. */
 export function inputForm(opts: InputFormOptions): HTMLFormElement {
-  const { t } = opts;
+  const t = (key: string): string => opts.t(key, opts.params);
   const input = h('input', {
     class: c('input'),
     attrs: {

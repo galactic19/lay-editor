@@ -59,7 +59,7 @@ export const ko = {
   panel: {
     find: { find: '찾기', replace: '바꿀 내용', caseSensitive: '대소문자 구분', prev: '이전', next: '다음', replaceOne: '바꾸기', replaceAll: '모두 바꾸기' },
     table: { size: '{rows} × {cols} 표' },
-    video: { url: '동영상 주소 (YouTube, Vimeo)', insert: '삽입', invalid: 'YouTube나 Vimeo 동영상 주소를 입력하세요' },
+    video: { url: '동영상 주소 ({providers})', insert: '삽입', invalid: '{providers} 동영상 주소를 입력하세요', separator: ', ' },
     image: { file: '파일 선택', url: '이미지 주소', alt: '이미지 설명 (대체 텍스트)', caption: '캡션 입력', insert: '삽입', apply: '적용', invalid: '올바른 이미지 주소를 입력하세요' },
     color: { reset: '기본색' },
     link: {
