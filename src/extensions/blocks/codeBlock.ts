@@ -25,15 +25,16 @@ const exitAtEnd: Command = (state, dispatch) => {
   return Boolean($end && !Selection.findFrom(state.doc.resolve($end.after()), 1)) && exitCode(state, dispatch);
 };
 
-/** Removes `count` empty trailing lines when Enter is pressed on the last of them. */
-const trimBlankLines =
-  (count: number): Command =>
-  (state, dispatch) => {
+/** Removes `count` empty trailing lines when Enter is pressed on the last of them; a count that is not a positive whole number turns it off. */
+const trimBlankLines = (count: number): Command => {
+  const blank = Number.isInteger(count) && count > 0 ? NEWLINE.repeat(count) : '';
+  return (state, dispatch) => {
     const $end = caretAtCodeEnd(state);
-    if (!count || !$end?.parent.textContent.endsWith(NEWLINE.repeat(count))) return false;
-    dispatch?.(state.tr.delete($end.pos - count, $end.pos));
+    if (!blank || !$end?.parent.textContent.endsWith(blank)) return false;
+    dispatch?.(state.tr.delete($end.pos - blank.length, $end.pos));
     return true;
   };
+};
 
 /** Enter on the last of `count` empty trailing lines drops them and leaves the block. */
 const exitAfterBlankLines = (count: number): Command => sequence(trimBlankLines(count), exitCode);

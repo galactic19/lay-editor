@@ -80,6 +80,14 @@ describe('leaving a code block (#16)', () => {
     expect(ed.getHTML()).toBe('<pre><code class="language-js">x();</code></pre><p>B</p>');
   });
 
+  it.each([0, -1, 1.5, Number.POSITIVE_INFINITY, Number.NaN])('exitBlankLines %s turns the exit off and Enter keeps adding lines', (exitBlankLines) => {
+    const ed = makeEditor({ codeBlock: { exitBlankLines }, content: '<pre><code>x</code></pre>' });
+    caretAt(ed, ed.state.doc.content.size - 1);
+    for (let i = 0; i < 3; i++) press(ed, 'Enter');
+    typeText(ed, '\n');
+    expect(ed.getHTML()).toBe('<pre><code>x\n\n\n\n</code></pre>');
+  });
+
   it('blank lines in the middle of the code keep Enter as a newline', () => {
     const ed = makeEditor({ content: '<pre><code>a\n\nb</code></pre>' });
     caretAt(ed, findText(ed, 'b'));

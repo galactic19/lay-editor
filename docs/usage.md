@@ -85,7 +85,7 @@ createEditor({
 |---|---|---|
 | `image` | `maxSize`, `accept`, `widths`, `aligns` | 10MB, png/jpeg/gif/webp, `[25, 50, 75, 100]`, `['left','center','right']` |
 | `video` | `providers` | `['youtube', 'vimeo']` |
-| `codeBlock` | `languages`, `indent`, `exitBlankLines` | 10개 언어, 공백 2칸, 빈 줄 2개(끝의 빈 줄이 이만큼일 때 Enter로 블록을 나감, `0`이면 끔) |
+| `codeBlock` | `languages`, `indent`, `exitBlankLines` | 10개 언어, 공백 2칸, 빈 줄 2개(끝의 빈 줄이 이만큼일 때 Enter로 블록을 나감, `0`처럼 양의 정수가 아니면 끔) |
 | `colors` | `text`, `highlight` | 각 10색 |
 | `table` | `maxGrid`, `mobileMaxGrid`, `defaultRows`, `defaultCols`, `cellColors` | 10, 6, 3, 3, 배경색 팔레트 |
 | `autosave` | `key`, `debounce` | 없음(꺼짐), 1000ms |
