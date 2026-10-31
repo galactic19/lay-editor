@@ -1,6 +1,8 @@
+import { DOMParser as PMDOMParser } from 'prosemirror-model';
 import { createEditor } from '../../src/core/createEditor';
 import type { Editor } from '../../src/core/Editor';
 import type { EditorOptions } from '../../src/core/types';
+import { fillContainerStarts } from '../../src/io/html';
 import { onCleanup, setMedia } from '../setup';
 import { makeEditor, toolbarControl } from '../helpers/editor';
 
@@ -129,5 +131,29 @@ describe('final review: formatting whitespace between styled blocks', () => {
 
   it('still styles a space between inline runs', () => {
     expect(pasted('<p style="text-decoration: underline"><b>one</b> <i>two</i></p>')).toBe('<p><strong><u>one</u></strong><u> </u><em><u>two</u></em></p>');
+  });
+});
+
+describe('final review: list items starting with a wrapper are checked without parsing their subtree', () => {
+  const NESTED = '<ul><li><div>x'.repeat(150) + '</div></li></ul>'.repeat(150);
+  const timed = (run: () => void): number => {
+    const start = performance.now();
+    run();
+    return performance.now() - start;
+  };
+
+  it('costs about what one parse costs, not one parse per nesting level', () => {
+    const schema = makeEditor().schema;
+    const body = () => new window.DOMParser().parseFromString(NESTED, 'text/html').body;
+    const parse = timed(() => PMDOMParser.fromSchema(schema).parse(body()));
+    const fill = timed(() => fillContainerStarts(body(), schema));
+    expect(fill).toBeLessThan(parse * 5);
+  });
+
+  it('still adds the paragraph a list item needs in front of a block inside a wrapper', () => {
+    const editor = makeEditor({ content: '<ul><li><div><h3>Title</h3><p>text</p></div></li><li><span><img src="https://a.com/x.png"></span></li></ul>' });
+    expect(editor.getHTML()).toBe(
+      '<ul><li><p></p><h3>Title</h3><p>text</p></li><li><p></p><figure data-align="center"><img src="https://a.com/x.png" alt=""><figcaption></figcaption></figure></li></ul>',
+    );
   });
 });

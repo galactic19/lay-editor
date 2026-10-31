@@ -40,19 +40,27 @@ export function fillContainerStarts(root: Element, schema: Schema): void {
   const fineStart = selectorFor((type) => [...types].every((container) => container.contentMatch.matchType(type)));
   /** The rule the parser would use for `el` (rules are in priority order). */
   const ruleFor = (el: Element) => tagRules.find((rule) => el.matches(rule.tag) && rule.getAttrs?.(el as HTMLElement) !== false);
-  /** What `first` parses to: its own rule's node, or (no rule, or a skipped wrapper) the first node parsed from it. */
-  const leadingType = (first: Element): NodeType | undefined => {
-    const rule = ruleFor(first);
-    if (rule && !rule.skip) return nodeOf(rule);
-    const probe = first.ownerDocument.createElement('div');
-    probe.append(first.cloneNode(true));
-    return parser.parseSlice(probe).content.firstChild?.type;
+  /**
+   * The node the parser opens first for `nodes`: a node rule's type; text means inline content; an ignored element is
+   * passed over; a mark, a skipped or an unknown wrapper opens with what its own children open with. Only the chain of
+   * leading children is walked (never a whole subtree), so nested wrappers cost their depth, not their size.
+   */
+  const leadingType = (nodes: Iterable<ChildNode>): NodeType | undefined => {
+    for (const node of nodes) {
+      if (!contentChild(node)) continue;
+      if (!(node instanceof Element)) return schema.nodes.text;
+      const rule = ruleFor(node);
+      if (rule?.ignore) continue;
+      const type = nodeOf(rule) ?? leadingType(node.childNodes);
+      if (type) return type;
+    }
+    return undefined;
   };
   for (const el of root.querySelectorAll(containers)) {
     const first = Array.from(el.childNodes).find(contentChild);
     if (!(first instanceof Element) || (fineStart && first.matches(fineStart))) continue;
     const type = nodeOf(ruleFor(el));
-    const leading = leadingType(first);
+    const leading = leadingType(el.childNodes);
     if (!type || !types.has(type) || !leading?.isBlock || type.contentMatch.matchType(leading)) continue;
     const filler = type.contentMatch.defaultType!.create();
     el.insertBefore(DOMSerializer.fromSchema(schema).serializeNode(filler, { document: el.ownerDocument }), first);
