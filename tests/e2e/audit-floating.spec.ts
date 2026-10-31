@@ -140,35 +140,43 @@ test.describe('floating toolbars follow page scroll (#35)', () => {
 
   const filler = (count: number): string => '<p>filler</p>'.repeat(count);
 
-  /** Scrolls the page and checks that `bar` keeps its offset from `target`. */
+  /** Scrolls (the page, or the content area in fullscreen) and checks that `bar` keeps its offset from `target`. */
   async function expectFollows(page: Page, bar: Locator, target: () => Promise<Box>): Promise<void> {
     await expect(bar).toBeVisible();
     const offset = async (): Promise<number> => (await bar.boundingBox())!.y - (await target()).y;
+    const scrolled = (): Promise<number> => page.evaluate(() => window.scrollY + document.querySelector('#editor .le-content')!.scrollTop);
     const before = await offset();
-    const scrollY = await page.evaluate(() => window.scrollY);
+    const start = await scrolled();
     await page.mouse.wheel(0, 120);
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(scrollY);
+    await expect.poll(scrolled).toBeGreaterThan(start);
     await expect.poll(offset).toBeCloseTo(before, 0);
   }
 
-  test('the selection bubble', async ({ page }) => {
+  async function setUp(page: Page, html: string, fullscreen: boolean): Promise<void> {
     await page.setViewportSize({ width: 1280, height: 700 });
     await openEmpty(page);
-    await page.evaluate((html) => window.__editor.setHTML(html), `${filler(8)}<p>target line</p>${filler(60)}`);
-    await page.getByText('target line').click();
-    await page.keyboard.press('End');
-    await page.keyboard.press('Shift+Home');
-    await expectFollows(page, page.locator('.le-bubble:not([hidden])'), () => selectionBox(page));
-  });
+    await page.evaluate((content) => window.__editor.setHTML(content), `${filler(8)}${html}${filler(60)}`);
+    if (fullscreen) await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+  }
 
-  test('the context toolbar', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 700 });
-    await openEmpty(page);
-    await page.evaluate((html) => window.__editor.setHTML(html), `${filler(8)}<table><tbody><tr><td><p>cell</p></td></tr></tbody></table>${filler(60)}`);
-    await page.click('#editor td');
-    const table = page.locator('#editor table');
-    await expectFollows(page, page.locator('.le-context-toolbar:not([hidden])'), async () => (await table.boundingBox())!);
-  });
+  for (const fullscreen of [false, true]) {
+    const where = fullscreen ? ' in fullscreen' : '';
+
+    test(`the selection bubble${where}`, async ({ page }) => {
+      await setUp(page, '<p>target line</p>', fullscreen);
+      await page.getByText('target line').click();
+      await page.keyboard.press('End');
+      await page.keyboard.press('Shift+Home');
+      await expectFollows(page, page.locator('.le-bubble:not([hidden])'), () => selectionBox(page));
+    });
+
+    test(`the context toolbar${where}`, async ({ page }) => {
+      await setUp(page, '<table><tbody><tr><td><p>cell</p></td></tr></tbody></table>', fullscreen);
+      await page.click('#editor td');
+      const table = page.locator('#editor table');
+      await expectFollows(page, page.locator('.le-context-toolbar:not([hidden])'), async () => (await table.boundingBox())!);
+    });
+  }
 });
 
 test('a dropdown taller than the viewport fits it and scrolls inside (#37)', async ({ page }, info) => {
