@@ -111,4 +111,15 @@ test.describe('paste from other pages (audit)', () => {
       '<p><span style="color: rgb(204, 0, 0);">hsl</span> <span style="color: rgb(200, 0, 0);">space</span> <span style="color: rgb(192, 0, 0);">hex8</span> <span style="color: rgb(192, 0, 0);">imp</span></p>',
     );
   });
+
+  test('a normal-weight run inside a bold row or list item stays normal (#27)', async ({ page }) => {
+    await page.goto('./?empty');
+    await copyPaste(
+      page,
+      '<table><tbody><tr style="font-weight:bold"><th>Name</th><td>Price <small style="font-weight:normal">(KRW)</small></td></tr></tbody></table><ul><li style="font-weight:700">Term<span style="font-weight:400">: description</span></li></ul>',
+    );
+    await expect.poll(() => html(page)).toContain('description');
+    const bold = await page.evaluate(() => Array.from(document.querySelectorAll('#editor .ProseMirror strong'), (strong) => strong.textContent));
+    expect(bold).toEqual(['Price ', 'Term']);
+  });
 });

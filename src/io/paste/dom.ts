@@ -16,14 +16,6 @@ export function unwrap(el: Element): void {
   el.replaceWith(...Array.from(el.childNodes));
 }
 
-export function styleDeclarations(el: HTMLElement): Array<[string, string]> {
-  const style = el.style;
-  return Array.from({ length: style.length }, (_, i) => {
-    const prop = style.item(i);
-    return [prop, style.getPropertyValue(prop)] as [string, string];
-  });
-}
-
 /** A style declaration as [property, value]. */
 export type StyleDeclaration = [string, string];
 

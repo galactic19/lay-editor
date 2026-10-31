@@ -1,25 +1,35 @@
 import { DEFAULTS } from '../../../core/defaults';
 import { classLanguage, languageClass, safeColor } from '../../sanitize';
-import { setStyle, styleDeclarations, withDocument, type StyleDeclaration } from '../dom';
+import { setStyle, withDocument, type StyleDeclaration } from '../dom';
 
-/** An inline style that means a semantic tag; `implied` matches elements that already render that way. */
+/**
+ * An inline style that means a semantic tag; `implied` matches elements that already render that way. An `inherited`
+ * property gives way to a descendant's own value, while a decoration propagates and a descendant cannot remove it.
+ */
 interface StyleTag {
   prop: string;
   test: RegExp;
   tag: string;
   implied?: RegExp;
+  inherited?: boolean;
 }
 
 const STYLE_TAGS: StyleTag[] = [
-  { prop: 'font-weight', test: /^(bold(er)?|[6-9]\d{2})$/, tag: 'strong', implied: /^(H[1-6]|TH)$/ },
-  { prop: 'font-style', test: /^italic$/, tag: 'em' },
+  { prop: 'font-weight', test: /^(bold(er)?|[6-9]\d{2})$/, tag: 'strong', implied: /^(H[1-6]|TH)$/, inherited: true },
+  { prop: 'font-style', test: /^italic$/, tag: 'em', inherited: true },
   { prop: 'text-decoration', test: /underline/, tag: 'u' },
   { prop: 'text-decoration-line', test: /underline/, tag: 'u' },
   { prop: 'text-decoration', test: /line-through/, tag: 's' },
   { prop: 'text-decoration-line', test: /line-through/, tag: 's' },
 ];
-/** Elements whose children are rows, cells or items: a wrapper cannot go inside them, so it goes into each child. */
+/**
+ * Elements whose children are rows, cells or items: text right inside them is layout whitespace, and a wrapper there
+ * would be foster-parented out of the table.
+ */
 const STRUCTURE_TAGS = /^(UL|OL|TABLE|THEAD|TBODY|TFOOT|TR|COLGROUP)$/;
+/** Whether text at a point of the tree carries each entry of STYLE_TAGS. */
+type TagState = readonly boolean[];
+const NO_TAGS: TagState = STYLE_TAGS.map(() => false);
 const TEXT_COLOR = 'color';
 const FILL_COLOR = 'background-color';
 /** Elements whose background the schema keeps: a highlight or a table cell. */
@@ -52,23 +62,33 @@ function isPageColor(prop: string, color: string): boolean {
   return prop === TEXT_COLOR || lightness <= pageColors.darkBackground || lightness >= pageColors.lightBackground;
 }
 
-/** Wraps the content of `el` in `tag`; rows, tables and lists pass it down to their cells and items. */
-function wrapContent(el: Element, tag: string): void {
-  if (STRUCTURE_TAGS.test(el.tagName)) {
-    Array.from(el.children).forEach((child) => wrapContent(child, tag));
-    return;
-  }
-  const wrapper = el.ownerDocument.createElement(tag);
-  wrapper.append(...Array.from(el.childNodes));
-  el.appendChild(wrapper);
+/** The state inside `el`: its own styles update the inherited state; an element that already renders a tag resets it. */
+function stateInside(el: HTMLElement, state: TagState): TagState {
+  const styled = el.hasAttribute('style');
+  return STYLE_TAGS.map(({ prop, test, implied, inherited }, i) => {
+    if (implied?.test(el.tagName)) return false;
+    const value = styled ? el.style.getPropertyValue(prop) : '';
+    return value ? test.test(value) || (!inherited && state[i]!) : state[i]!;
+  });
 }
 
-/** Wraps an element's content in the tags its styles imply, so formatting set on a block or cell becomes marks. */
-function stylesToTags(el: HTMLElement): void {
-  const decls = styleDeclarations(el);
-  const implies = ({ prop, test, implied }: StyleTag) =>
-    !implied?.test(el.tagName) && decls.some(([p, v]) => p === prop && test.test(v));
-  new Set(STYLE_TAGS.filter(implies).map((s) => s.tag)).forEach((tag) => wrapContent(el, tag));
+/** Puts `node` inside a new `tag` element in its place. */
+function wrap(node: ChildNode, tag: string): void {
+  const wrapper = node.ownerDocument!.createElement(tag);
+  node.replaceWith(wrapper);
+  wrapper.appendChild(node);
+}
+
+/**
+ * Wraps each text run under `parent` in the tags the styles around it imply, so formatting set on a block or cell
+ * becomes marks while a descendant's own normal weight or style still wins.
+ */
+function stylesToTags(parent: Element, state: TagState): void {
+  const tags = STRUCTURE_TAGS.test(parent.tagName) ? [] : [...new Set(STYLE_TAGS.filter((_, i) => state[i]).map((s) => s.tag))];
+  for (const child of Array.from(parent.childNodes)) {
+    if (child.nodeType === Node.TEXT_NODE) tags.forEach((tag) => wrap(child, tag));
+    else if (child.nodeType === Node.ELEMENT_NODE) stylesToTags(child as Element, stateInside(child as HTMLElement, state));
+  }
 }
 
 /** The fill the paste keeps under `el`: its own, or the nearest ancestor's. */
@@ -77,7 +97,10 @@ function keptFill(el: HTMLElement): string | null {
   return own ?? el.parentElement?.closest<HTMLElement>(KEPT_FILL)?.style.getPropertyValue(FILL_COLOR) ?? null;
 }
 
-/** Grey text lighter than its kept fill was chosen to read on it (white on a dark header cell); darker text reads like on any highlight. */
+/**
+ * Grey text lighter than its kept fill was chosen to read on it (white on a dark header cell); darker text reads like
+ * text on any highlight, so it stays a page color.
+ */
 function readsOnFill(el: HTMLElement, color: string): boolean {
   const fill = keptFill(el);
   return fill !== null && tone(color).lightness > tone(fill).lightness;
@@ -119,11 +142,9 @@ function cleanAttributes(el: HTMLElement): void {
 /** Keeps only the styles the schema understands and converts semantic styles into tags. */
 export function normalizeStyles(html: string): string {
   return withDocument(html, (doc) => {
+    stylesToTags(doc.body, NO_TAGS);
     for (const el of Array.from(doc.body.querySelectorAll<HTMLElement>('*'))) {
-      if (el.hasAttribute('style')) {
-        stylesToTags(el);
-        cleanStyle(el);
-      }
+      if (el.hasAttribute('style')) cleanStyle(el);
       cleanAttributes(el);
     }
   });

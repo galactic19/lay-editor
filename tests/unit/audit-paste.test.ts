@@ -221,4 +221,22 @@ describe('formatting set on blocks and cells (audit #27)', () => {
       '<h2><em>제목</em></h2><table><tbody><tr><th><p>머리</p></th></tr></tbody></table>',
     );
   });
+
+  it('keeps a normal-weight run inside a bold row or list item normal', () => {
+    expect(paste('<table><tbody><tr style="font-weight: bold;"><th>Name</th><td>Price <small style="font-weight: normal;">(KRW)</small></td></tr></tbody></table>')).toBe(
+      '<table><tbody><tr><th><p>Name</p></th><td><p><strong>Price </strong>(KRW)</p></td></tr></tbody></table>',
+    );
+    expect(paste('<ul><li style="font-weight: 700;">Term<span style="font-weight: 400;">: description</span></li></ul>')).toBe(
+      '<ul><li><p><strong>Term</strong>: description</p></li></ul>',
+    );
+    expect(paste('<p style="font-style: italic;">a <span style="font-style: normal;">b</span></p>')).toBe('<p><em>a </em>b</p>');
+  });
+
+  it('does not add bold to a heading inside a bold container', () => {
+    expect(paste('<div style="font-weight:bold"><h2>T</h2><p>p</p></div>')).toBe('<h2>T</h2><p><strong>p</strong></p>');
+  });
+
+  it('keeps an underline a descendant cannot remove, as browsers draw it', () => {
+    expect(paste('<p style="text-decoration: underline;">a <span style="text-decoration: none;">b</span></p>')).toBe('<p><u>a b</u></p>');
+  });
 });
