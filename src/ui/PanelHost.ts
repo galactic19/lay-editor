@@ -2,7 +2,7 @@ import type { Editor } from '../core/Editor';
 import type { DeviceMode, PanelFactory } from '../core/types';
 import { BottomSheet } from './BottomSheet';
 import { Dropdown } from './Dropdown';
-import type { Anchor } from './floating';
+import { selectionReference, type Anchor } from './floating';
 
 export interface PanelContainer {
   /** `onClose(hadFocus)` reports whether focus was inside the panel when it closed. */
@@ -49,6 +49,6 @@ export class PanelHost {
   }
 
   protected createContainer(): PanelContainer {
-    return this.getMode() === 'mobile' ? new BottomSheet(this.editor.root) : new Dropdown(this.editor.root);
+    return this.getMode() === 'mobile' ? new BottomSheet(this.editor.root) : new Dropdown(this.editor.root, selectionReference(this.editor.view));
   }
 }

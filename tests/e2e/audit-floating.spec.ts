@@ -70,3 +70,67 @@ test('Escape leaves fullscreen while the caret is in the editor (#52)', async ({
   expect(await isFullscreen(page)).toBe(false);
   expect(await page.evaluate(() => document.documentElement.classList.contains('le-scroll-locked'))).toBe(false);
 });
+
+type Box = { x: number; y: number; width: number; height: number };
+
+/** The open dropdown sits right under one of `targets` (its opener, or the selection), aligned to its left or right edge. */
+async function expectPanelUnder(page: Page, targets: Box[]): Promise<void> {
+  await expect(panel(page)).toBeVisible();
+  const box = (await panel(page).boundingBox())!;
+  const near = (a: number, b: number): boolean => Math.abs(a - b) <= 16;
+  const under = targets.some(
+    (t) => near(box.y, t.y + t.height) && (near(box.x, t.x) || near(box.x + box.width, t.x + t.width)),
+  );
+  expect(under, `panel ${JSON.stringify(box)} vs ${JSON.stringify(targets)}`).toBe(true);
+}
+
+const selectionBox = (page: Page): Promise<Box> =>
+  page.evaluate(() => {
+    const { x, y, width, height } = window.getSelection()!.getRangeAt(0).getBoundingClientRect();
+    return { x, y, width, height };
+  });
+
+/** Clicks a floating-toolbar button and checks where its panel opened. */
+async function openFrom(page: Page, button: Locator): Promise<void> {
+  const opener = (await button.boundingBox())!;
+  const selection = await selectionBox(page);
+  await button.click();
+  await expectPanelUnder(page, [opener, selection]);
+}
+
+test.describe('panels anchor to what opened them (#29, #59)', () => {
+  test.beforeEach(({}, info) => test.skip(isMobile(info.project.name), 'desktop dropdowns'));
+
+  for (const id of ['link', 'textColor', 'highlight']) {
+    test(`from the selection bubble: ${id}`, async ({ page }) => {
+      await openEmpty(page);
+      await page.keyboard.type('hello world');
+      await page.keyboard.press('Shift+Home');
+      await openFrom(page, page.locator(`.le-bubble:not([hidden]) [data-item="${id}"]`));
+    });
+  }
+
+  for (const [id, content, target] of [
+    ['codeLanguage', '<p>intro</p><pre><code>let a = 1;</code></pre>', '#editor pre'],
+    ['tableCellColor', '<p>intro</p><table><tbody><tr><td><p>cell</p></td></tr></tbody></table>', '#editor td'],
+    ['linkEdit', '<p>intro <a href="https://a.com">link</a> text</p>', '#editor a'],
+  ] as const) {
+    test(`from the context toolbar: ${id}`, async ({ page }) => {
+      await openEmpty(page);
+      await page.evaluate((html) => window.__editor.setHTML(html), content);
+      await page.click(target);
+      await openFrom(page, page.locator(`.le-context-toolbar:not([hidden]) [data-item="${id}"]`));
+    });
+  }
+
+  test('from the toolbar overflow menu', async ({ page }) => {
+    await openEmpty(page);
+    const more = page.locator('#editor .le-toolbar [data-item="more"]');
+    await expect(more).toBeVisible();
+    const moreBox = (await more.boundingBox())!;
+    await more.click();
+    await panel(page).locator('[data-item="findReplace"]').click();
+    await expect(panel(page).locator('.le-find-panel')).toBeVisible();
+    await expectPanelUnder(page, [moreBox]);
+  });
+});

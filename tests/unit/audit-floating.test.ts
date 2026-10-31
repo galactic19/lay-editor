@@ -1,4 +1,6 @@
 import type { Editor } from '../../src/core/Editor';
+import { h } from '../../src/ui/dom';
+import { visibleOr, type Anchor } from '../../src/ui/floating';
 import { makeEditor, typeText } from '../helpers/editor';
 
 const isFullscreen = (ed: Editor): boolean => ed.root.classList.contains('le-fullscreen');
@@ -39,5 +41,25 @@ describe('audit #52: Escape leaves fullscreen while the caret is in the editor',
     const ed = makeEditor();
     pressEscapeInEditor(ed);
     expect(isFullscreen(ed)).toBe(false);
+  });
+});
+
+describe('audit #29/#59: a panel anchor that hides or goes away hands over to the fallback', () => {
+  const rect = (y: number): DOMRect => ({ x: 0, y, left: 0, top: y, right: 10, bottom: y + 10, width: 10, height: 10, toJSON: () => ({}) }) as DOMRect;
+  const fallback: Anchor = { getBoundingClientRect: () => rect(300) };
+
+  it('measures the element while it is shown, then the fallback once it is hidden or removed', () => {
+    const el = h('button');
+    document.body.appendChild(el);
+    el.getBoundingClientRect = () => rect(100);
+    const shown = vi.spyOn(el, 'getClientRects').mockReturnValue([rect(100)] as unknown as DOMRectList);
+    const anchor = visibleOr(el, fallback);
+    expect(anchor.contextElement).toBe(el);
+    expect(anchor.getBoundingClientRect().top).toBe(100);
+    shown.mockReturnValue([] as unknown as DOMRectList);
+    expect(anchor.getBoundingClientRect().top).toBe(300);
+    shown.mockReturnValue([rect(100)] as unknown as DOMRectList);
+    el.remove();
+    expect(anchor.getBoundingClientRect().top).toBe(300);
   });
 });

@@ -8,7 +8,7 @@ import { BubbleMenu } from './BubbleMenu';
 import { resolveContext } from './context';
 import { ContextToolbar } from './ContextToolbar';
 import { DeviceWatcher, ViewportTracker } from './device';
-import { rangeReference, type Anchor } from './floating';
+import { selectionReference, type Anchor } from './floating';
 import { h } from './dom';
 import { MobileToolbar } from './MobileToolbar';
 import { listPanel } from './panels/listPanel';
@@ -65,11 +65,11 @@ export class EditorUI {
     this.updateAll();
   }
 
-  /** Opens an item's panel next to `anchor`, its toolbar control, or else the caret. */
+  /** Opens an item's panel next to `anchor`, its toolbar control, or else the selection. */
   openPanelFor(itemId: string, anchor?: Anchor | null): void {
     const item = this.registry.get(itemId);
     if (!item) return;
-    const at = anchor ?? this.toolbar?.anchorFor(itemId) ?? rangeReference(this.editor.view, this.editor.state.selection.from);
+    const at = anchor ?? this.toolbar?.anchorFor(itemId) ?? selectionReference(this.editor.view);
     if (item.panel) this.panels.openPanel(item.panel, at);
     else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at);
   }

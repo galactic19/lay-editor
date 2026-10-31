@@ -1,4 +1,4 @@
-import { autoUpdate, computePosition, flip, offset, shift, type Placement, type ReferenceElement } from '@floating-ui/dom';
+import { autoUpdate, computePosition, flip, offset, shift, type Placement, type ReferenceElement, type VirtualElement } from '@floating-ui/dom';
 import type { EditorView } from 'prosemirror-view';
 import { DEFAULTS } from '../core/defaults';
 
@@ -26,13 +26,30 @@ export function rangeReference(view: EditorView, from: number, to = from): Ancho
   return {
     contextElement: view.dom,
     getBoundingClientRect: () => {
-      const a = view.coordsAtPos(from);
-      const b = view.coordsAtPos(to);
+      // A placement still in flight can outlive the view, and the document can shrink under a stored range.
+      if (view.isDestroyed) return view.dom.getBoundingClientRect();
+      const size = view.state.doc.content.size;
+      const a = view.coordsAtPos(Math.min(from, size));
+      const b = view.coordsAtPos(Math.min(to, size));
       const left = Math.min(a.left, b.left);
       const right = Math.max(a.right, b.right);
       const top = Math.min(a.top, b.top);
       const bottom = Math.max(a.bottom, b.bottom);
       return { x: left, y: top, left, top, right, bottom, width: right - left, height: bottom - top };
     },
+  };
+}
+
+/** A virtual box around the current selection (the caret when it is empty). */
+export function selectionReference(view: EditorView): Anchor {
+  const { from, to } = view.state.selection;
+  return rangeReference(view, from, to);
+}
+
+/** `el` while it is on screen; once it is hidden or removed (a bubble that hid, a closed menu), `fallback`. */
+export function visibleOr(el: Element, fallback: Anchor): VirtualElement {
+  return {
+    contextElement: el,
+    getBoundingClientRect: () => (el.isConnected && el.getClientRects().length ? el : fallback).getBoundingClientRect(),
   };
 }
