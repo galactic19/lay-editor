@@ -27,6 +27,10 @@ const STYLE_TAGS: StyleTag[] = [
  * would be foster-parented out of the table.
  */
 const STRUCTURE_TAGS = /^(UL|OL|TABLE|THEAD|TBODY|TFOOT|TR|COLGROUP)$/;
+/** Elements that lay out as blocks: whitespace next to one is source formatting, which the parser drops unless it is wrapped. */
+const BLOCK_TAGS = /^(ADDRESS|ARTICLE|ASIDE|BLOCKQUOTE|DD|DIV|DL|DT|FIGCAPTION|FIGURE|FOOTER|H[1-6]|HEADER|HR|LI|MAIN|NAV|OL|P|PRE|SECTION|TABLE|UL)$/;
+/** HTML's own whitespace (no-break spaces are text). */
+const LAYOUT_WHITESPACE = /^[ \t\n\f\r]*$/;
 /** Whether text at a point of the tree carries each entry of STYLE_TAGS. */
 type TagState = readonly boolean[];
 const NO_TAGS: TagState = STYLE_TAGS.map(() => false);
@@ -72,6 +76,12 @@ function stateInside(el: HTMLElement, state: TagState): TagState {
   });
 }
 
+const isBlock = (node: Node | null): boolean => node instanceof Element && BLOCK_TAGS.test(node.tagName);
+
+/** Whitespace between blocks (a newline before a <p>): it is not text, and a mark around it would become an empty paragraph. */
+const isLayoutWhitespace = (text: ChildNode): boolean =>
+  LAYOUT_WHITESPACE.test(text.textContent ?? '') && (isBlock(text.previousSibling) || isBlock(text.nextSibling));
+
 /** Puts `node` inside a new `tag` element in its place. */
 function wrap(node: ChildNode, tag: string): void {
   const wrapper = node.ownerDocument!.createElement(tag);
@@ -80,14 +90,14 @@ function wrap(node: ChildNode, tag: string): void {
 }
 
 /**
- * Wraps each text run under `parent` in the tags the styles around it imply, so formatting set on a block or cell
- * becomes marks while a descendant's own normal weight or style still wins.
+ * Wraps each text run under `parent` (not the whitespace between blocks) in the tags the styles around it imply, so
+ * formatting set on a block or cell becomes marks while a descendant's own normal weight or style still wins.
  */
 function stylesToTags(parent: Element, state: TagState): void {
   const tags = STRUCTURE_TAGS.test(parent.tagName) ? [] : [...new Set(STYLE_TAGS.filter((_, i) => state[i]).map((s) => s.tag))];
   for (const child of Array.from(parent.childNodes)) {
-    if (child.nodeType === Node.TEXT_NODE) tags.forEach((tag) => wrap(child, tag));
-    else if (child.nodeType === Node.ELEMENT_NODE) stylesToTags(child as Element, stateInside(child as HTMLElement, state));
+    if (child.nodeType === Node.ELEMENT_NODE) stylesToTags(child as Element, stateInside(child as HTMLElement, state));
+    else if (child.nodeType === Node.TEXT_NODE && !isLayoutWhitespace(child)) tags.forEach((tag) => wrap(child, tag));
   }
 }
 

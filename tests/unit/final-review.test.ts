@@ -111,3 +111,23 @@ describe('final review: read-only mode keeps the way out of a mode', () => {
     expect(mobileBar().hidden).toBe(true);
   });
 });
+
+const pasted = (html: string): string => {
+  const editor = makeEditor();
+  editor.view.pasteHTML(html);
+  return editor.getHTML();
+};
+
+describe('final review: formatting whitespace between styled blocks', () => {
+  it.each([
+    ['<div style="font-weight: 700;">\n<p>bold a</p>\n<p>bold b</p>\n</div>', '<p><strong>bold a</strong></p><p><strong>bold b</strong></p>'],
+    ['<div style="text-decoration: underline">\n  <h2>Title</h2>\n  <p>body</p>\n</div>', '<h2><u>Title</u></h2><p><u>body</u></p>'],
+    ['<p>before</p>\n<div style="font-weight:700">\n<p>bold a</p>\n</div>\n<p>after</p>', '<p>before</p><p><strong>bold a</strong></p><p>after</p>'],
+  ])('adds no empty paragraph: %j', (html, expected) => {
+    expect(pasted(html)).toBe(expected);
+  });
+
+  it('still styles a space between inline runs', () => {
+    expect(pasted('<p style="text-decoration: underline"><b>one</b> <i>two</i></p>')).toBe('<p><strong><u>one</u></strong><u> </u><em><u>two</u></em></p>');
+  });
+});
