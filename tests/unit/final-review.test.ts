@@ -237,3 +237,19 @@ describe('final review: ordered list start numbers', () => {
     expect(reloaded(html)).toBe(html);
   });
 });
+
+describe('final review: the slash menu and the HTML source view', () => {
+  it('hides while the source view is open and comes back when it closes', () => {
+    const editor = makeEditor();
+    editor.focus();
+    typeText(editor, '/');
+    editor.ui!.flush();
+    const menu = document.querySelector<HTMLElement>('.le-slash-menu')!;
+    expect(menu.hidden).toBe(false);
+    editor.exec('toggleSourceView');
+    expect(menu.hidden).toBe(true);
+    expect(editor.view.dom.hasAttribute('aria-activedescendant')).toBe(false);
+    editor.exec('toggleSourceView');
+    expect(menu.hidden).toBe(false);
+  });
+});

@@ -119,9 +119,14 @@ export class EditorUI {
     return Boolean(stop);
   }
 
+  /** Whether an item locked the UI (the HTML source is edited): the content is hidden, so menus over it stay hidden too. */
+  get locked(): boolean {
+    return this.lockOwner !== undefined;
+  }
+
   /** Whether an item is temporarily unavailable regardless of state (e.g. while editing source). */
   isLocked(item: UIItem): boolean {
-    return this.lockOwner !== undefined && !this.holdsLock(item);
+    return this.locked && !this.holdsLock(item);
   }
 
   /** Whether an item set the lock (it alone stays usable while the lock holds). */

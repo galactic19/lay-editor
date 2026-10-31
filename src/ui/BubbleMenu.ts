@@ -53,7 +53,7 @@ export class BubbleMenu extends UIComponent<HTMLDivElement> {
       selection instanceof TextSelection &&
       !selection.empty &&
       BUBBLE_CONTEXTS.has(ui.getContext()) &&
-      editor.root.dataset.lockedExcept === undefined
+      !ui.locked
     );
   }
 

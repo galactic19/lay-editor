@@ -29,7 +29,7 @@ export class SlashMenu extends UIComponent<HTMLDivElement> {
   override update(): void {
     const state = slashKey.getState(this.editor.state);
     const items = currentSlashItems(this.editor);
-    if (!state?.active) return this.hide();
+    if (!state?.active || this.ui.locked) return this.hide();
     const index = Math.min(state.index, Math.max(0, items.length - 1));
     const signature = `${state.query}|${index}|${items.map((i) => i.id).join(',')}`;
     if (signature !== this.rendered) this.render(items, index);
