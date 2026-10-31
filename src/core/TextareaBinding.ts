@@ -11,6 +11,9 @@ const INVALID_CLASS = c('invalid');
 const USER_ACTIONS = ['click', 'keydown'] as const;
 /** Button types whose activation submits their form. */
 const SUBMIT_TYPES = ['submit', 'image'];
+/** Input types that never add an entry to the form data (a submitter's own entry is added only for it), and ones that only do while checked. */
+const NO_ENTRY_TYPES = ['button', 'reset', ...SUBMIT_TYPES];
+const CHECKED_TYPES = ['checkbox', 'radio'];
 
 /** The form an element belongs to: a form control's owner (it may sit outside the form), else the enclosing form. */
 const formOf = (element: Element): HTMLFormElement | null =>
@@ -32,13 +35,32 @@ function isSubmitAttempt(event: Event, form: HTMLFormElement): boolean {
 /** Browsers may hand a textarea's line breaks to form data as CRLF. */
 const sameText = (a: string, b: string): boolean => a.replace(/\r\n/g, '\n') === b.replace(/\r\n/g, '\n');
 
+/** Whether a form control adds an entry to the form data, as the HTML algorithm decides (buttons only as the submitter). */
+function postsEntry(control: Element): boolean {
+  if (control.matches(':disabled')) return false;
+  if (control instanceof HTMLInputElement) return !NO_ENTRY_TYPES.includes(control.type) && (!CHECKED_TYPES.includes(control.type) || control.checked);
+  return control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement;
+}
+
 /**
- * Swaps the entry a field contributed (found by its old value) for a new value. Other entries
- * with the same name (`answers[]`) keep their order, and the first one keeps its position.
+ * Where `field`'s entry sits among the entries named like it: its place among the controls that post under that name,
+ * in tree order. When those do not line up with the entries (a multiple select, a file input), the entry holding
+ * `stale`, the field's old value, is used.
  */
-function replaceEntry(data: FormData, name: string, from: string, to: string): void {
+function entryIndex(field: HTMLTextAreaElement, values: FormDataEntryValue[], stale: string): number {
+  const posting = field.form ? [...field.form.elements].filter((control) => (control as HTMLTextAreaElement).name === field.name && postsEntry(control)) : [];
+  if (posting.length === values.length) return posting.indexOf(field);
+  return values.findIndex((value) => typeof value === 'string' && sameText(value, stale));
+}
+
+/**
+ * Swaps the entry `field` contributed (its old value `from`) for a new value. Other entries with
+ * the same name (`answers[]`) keep their order, and the first one keeps its position.
+ */
+function replaceEntry(data: FormData, field: HTMLTextAreaElement, from: string, to: string): void {
+  const { name } = field;
   const values = data.getAll(name);
-  const index = values.findIndex((value) => typeof value === 'string' && sameText(value, from));
+  const index = entryIndex(field, values, from);
   if (index === -1 || sameText(from, to)) return;
   values[index] = to;
   const [first, ...rest] = values;
@@ -108,7 +130,7 @@ export class TextareaBinding {
   private readonly onFormData = (event: FormDataEvent): void => {
     const stale = this.textarea.value;
     this.commit();
-    if (this.textarea.name) replaceEntry(event.formData, this.textarea.name, stale, this.textarea.value);
+    if (this.textarea.name) replaceEntry(event.formData, this.textarea, stale, this.textarea.value);
   };
 
   /**

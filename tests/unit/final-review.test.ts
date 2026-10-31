@@ -457,3 +457,19 @@ describe('final review: the English status bar', () => {
     expect(editor.root.querySelector('.le-statusbar')!.textContent).toBe('Characters 1 · Without spaces 1 · Words 1');
   });
 });
+
+describe('final review: same-name textareas with equal values', () => {
+  it('each editor replaces its own form entry', () => {
+    vi.useFakeTimers();
+    document.body.innerHTML =
+      '<form><textarea name="answers[]"><p>same</p></textarea><input type="checkbox" name="answers[]" value="box"><textarea name="answers[]"><p>same</p></textarea></form>';
+    const form = document.querySelector('form')!;
+    const [first, second] = [...form.querySelectorAll('textarea')].map((element) => createEditor({ element }));
+    onCleanup(() => [first, second].forEach((editor) => editor!.destroy()));
+    caretAfter(second!, 'same');
+    typeText(second!, 'B');
+    const formData = new FormData(form);
+    form.dispatchEvent(Object.assign(new Event('formdata'), { formData }));
+    expect(formData.getAll('answers[]')).toEqual(['<p>same</p>', '<p>sameB</p>']);
+  });
+});
