@@ -177,6 +177,17 @@ test.describe('floating toolbars follow page scroll (#35)', () => {
       await expectFollows(page, page.locator('.le-context-toolbar:not([hidden])'), async () => (await table.boundingBox())!);
     });
   }
+
+  test('the selection bubble shown before entering fullscreen', async ({ page }) => {
+    await setUp(page, '<p>target line</p>', false);
+    await page.getByText('target line').click();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Shift+Home');
+    const bubble = page.locator('.le-bubble:not([hidden])');
+    await expect(bubble).toBeVisible();
+    await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+    await expectFollows(page, bubble, () => selectionBox(page));
+  });
 });
 
 test('a dropdown taller than the viewport fits it and scrolls inside (#37)', async ({ page }, info) => {

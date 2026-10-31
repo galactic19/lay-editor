@@ -1,4 +1,15 @@
-import { autoUpdate, computePosition, flip, offset, shift, size, type Placement, type ReferenceElement, type VirtualElement } from '@floating-ui/dom';
+import {
+  autoUpdate,
+  computePosition,
+  flip,
+  getOverflowAncestors,
+  offset,
+  shift,
+  size,
+  type Placement,
+  type ReferenceElement,
+  type VirtualElement,
+} from '@floating-ui/dom';
 import type { EditorView } from 'prosemirror-view';
 import { DEFAULTS } from '../core/defaults';
 
@@ -30,9 +41,16 @@ export function followFloating(reference: Anchor, el: HTMLElement, placement: Pl
   return autoUpdate(reference, el, () => void placeFloating(reference, el, placement, gap));
 }
 
+type ScrollAncestors = ReturnType<typeof getOverflowAncestors>;
+
+/** The element whose scroll containers and size a reference moves with. */
+const contextOf = (anchor: Anchor): Element | undefined => (anchor instanceof Element ? anchor : anchor.contextElement);
+
 /** Shows a floating bar or menu next to an anchor that changes with the editor state, following it on scroll. */
 export class FloatingFollower {
-  private stop: (() => void) | null = null;
+  private anchor: Anchor | null = null;
+  /** One autoUpdate per scroll context: its reference reads whichever anchor is current. */
+  private following: { reference: VirtualElement; ancestors: ScrollAncestors; stop: () => void } | null = null;
 
   constructor(
     private readonly el: HTMLElement,
@@ -41,9 +59,19 @@ export class FloatingFollower {
   ) {}
 
   show(anchor: Anchor): void {
-    this.unfollow();
+    this.anchor = anchor;
     this.el.hidden = false;
-    this.stop = followFloating(anchor, this.el, this.placement, this.gap);
+    const contextElement = contextOf(anchor);
+    // Scroll containers change too, e.g. the content area once the editor goes fullscreen.
+    const ancestors = contextElement ? getOverflowAncestors(contextElement) : [];
+    const current = this.following;
+    if (current && current.reference.contextElement === contextElement && sameItems(current.ancestors, ancestors)) {
+      void this.place(current.reference);
+      return;
+    }
+    this.unfollow();
+    const reference: VirtualElement = { contextElement, getBoundingClientRect: () => this.anchor!.getBoundingClientRect() };
+    this.following = { reference, ancestors, stop: autoUpdate(reference, this.el, () => void this.place(reference)) };
   }
 
   hide(): void {
@@ -51,10 +79,18 @@ export class FloatingFollower {
     this.el.hidden = true;
   }
 
-  private unfollow(): void {
-    this.stop?.();
-    this.stop = null;
+  private place(reference: Anchor): Promise<void> {
+    return placeFloating(reference, this.el, this.placement, this.gap);
   }
+
+  private unfollow(): void {
+    this.following?.stop();
+    this.following = null;
+  }
+}
+
+function sameItems<T>(a: readonly T[], b: readonly T[]): boolean {
+  return a.length === b.length && a.every((item, i) => item === b[i]);
 }
 
 /** A virtual box covering document positions `from`..`to` (the caret when they are equal). */

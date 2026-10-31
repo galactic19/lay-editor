@@ -1,6 +1,7 @@
 import type { Editor } from '../../src/core/Editor';
+import { DEFAULTS } from '../../src/core/defaults';
 import { h } from '../../src/ui/dom';
-import { visibleOr, type Anchor } from '../../src/ui/floating';
+import { FloatingFollower, visibleOr, type Anchor } from '../../src/ui/floating';
 import { setMedia, setViewport } from '../setup';
 import { makeEditor, typeText } from '../helpers/editor';
 
@@ -45,8 +46,9 @@ describe('audit #52: Escape leaves fullscreen while the caret is in the editor',
   });
 });
 
+const rect = (y: number): DOMRect => ({ x: 0, y, left: 0, top: y, right: 10, bottom: y + 10, width: 10, height: 10, toJSON: () => ({}) }) as DOMRect;
+
 describe('audit #29/#59: a panel anchor that hides or goes away hands over to the fallback', () => {
-  const rect = (y: number): DOMRect => ({ x: 0, y, left: 0, top: y, right: 10, bottom: y + 10, width: 10, height: 10, toJSON: () => ({}) }) as DOMRect;
   const fallback: Anchor = { getBoundingClientRect: () => rect(300) };
 
   it('measures the element while it is shown, then the fallback once it is hidden or removed', () => {
@@ -62,6 +64,39 @@ describe('audit #29/#59: a panel anchor that hides or goes away hands over to th
     shown.mockReturnValue([rect(100)] as unknown as DOMRectList);
     el.remove();
     expect(anchor.getBoundingClientRect().top).toBe(300);
+  });
+});
+
+describe('audit #35: a floating bar keeps one scroll subscription while it shows', () => {
+  it('moves to each new anchor without subscribing again, and subscribes again when the scroll container changes', async () => {
+    const container = h('div');
+    const target = h('span');
+    container.appendChild(target);
+    const bar = h('div');
+    document.body.append(container, bar);
+    const added = vi.spyOn(window, 'addEventListener');
+    const removed = vi.spyOn(window, 'removeEventListener');
+    const scrollCalls = (spy: typeof added): number => spy.mock.calls.filter(([type]) => type === 'scroll').length;
+    const follower = new FloatingFollower(bar, 'bottom-start', 'menu');
+    const at = (y: number): Anchor => ({ contextElement: target, getBoundingClientRect: () => rect(y) });
+
+    follower.show(at(100));
+    const perSubscription = scrollCalls(added);
+    expect(perSubscription).toBeGreaterThan(0);
+    follower.show(at(200));
+    expect(scrollCalls(added)).toBe(perSubscription);
+    await vi.waitFor(() => expect(bar.style.top).toBe(`${rect(200).bottom + DEFAULTS.floating.gaps.menu}px`));
+
+    // In fullscreen the content area becomes the scroll container: follow it too.
+    container.style.overflow = 'auto';
+    follower.show(at(300));
+    expect(scrollCalls(removed)).toBe(perSubscription);
+    expect(scrollCalls(added)).toBeGreaterThan(perSubscription);
+    await vi.waitFor(() => expect(bar.style.top).toBe(`${rect(300).bottom + DEFAULTS.floating.gaps.menu}px`));
+
+    follower.hide();
+    expect(scrollCalls(removed)).toBe(2 * perSubscription);
+    expect(bar.hidden).toBe(true);
   });
 });
 
