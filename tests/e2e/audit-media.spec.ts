@@ -105,11 +105,15 @@ const captionedFigure = (src: string, caption: string) =>
 
 /** Puts the caret two characters before the end of the nth image caption. */
 async function caretInCaption(page: Page, nth = 0): Promise<void> {
+  const syncSelection = () => page.evaluate(() => window.__editor.syncSelection());
   await page.locator('#editor .le-image figcaption').nth(nth).click();
+  // A tap reaches the editor on the next selectionchange; until then it may still hold an image node selection,
+  // and the arrow keys below would move from that image instead of from the caption.
+  await syncSelection();
   await page.keyboard.press('End');
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowLeft');
-  await page.evaluate(() => window.__editor.syncSelection());
+  await syncSelection();
 }
 
 test.describe('audit #68: pasting from inside a caption inserts after that image', () => {
