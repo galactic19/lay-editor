@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { control } from './helpers';
+import { control, MOD, openEmpty, panel } from './helpers';
 
 test('the theme picked at runtime survives a language switch (#3, #63)', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
@@ -14,6 +14,18 @@ test('the theme picked at runtime survives a language switch (#3, #63)', async (
   await page.click('#editor .ProseMirror');
   await expect(control(page, 'bold')).toHaveAttribute('aria-label', /^Bold/);
   for (const bar of await page.locator('.le-mobile-bar:not([hidden])').all()) await expect(bar).toHaveAttribute('data-theme', 'dark');
+});
+
+test('an open panel follows an OS color scheme change (#3, #63)', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await openEmpty(page);
+  await page.keyboard.press(`${MOD}+f`);
+  await expect(panel(page)).toHaveCount(1);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(page.locator('#editor .le-editor')).toHaveAttribute('data-theme', 'dark');
+  // The panel stays open and follows, and so does the bottom sheet's backdrop on mobile.
+  await expect(panel(page)).toHaveAttribute('data-theme', 'dark');
+  for (const backdrop of await page.locator('.le-sheet-backdrop').all()) await expect(backdrop).toHaveAttribute('data-theme', 'dark');
 });
 
 test('registerIcon with SVG copied from an HTML page renders the icon, not a parser error page (#57)', async ({ page }) => {

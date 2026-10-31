@@ -31,10 +31,8 @@ export abstract class PortalPanel implements PanelContainer {
     this.dialog = parts.dialog;
     this.elements = [...(parts.extras ?? []), parts.dialog];
     this.onClose = onClose;
-    for (const el of this.elements) {
-      el.dataset.theme = this.themeSource.dataset.theme;
-      document.body.appendChild(el);
-    }
+    this.syncTheme();
+    document.body.append(...this.elements);
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
       event.stopPropagation();
@@ -43,6 +41,11 @@ export abstract class PortalPanel implements PanelContainer {
     parts.dialog.addEventListener('keydown', onKeyDown);
     this.cleanups = [...(parts.cleanups ?? []), trapFocus(parts.dialog)];
     focusFirst(parts.dialog);
+  }
+
+  /** Copies the editor's current theme onto the portal elements. */
+  syncTheme(): void {
+    for (const el of this.elements) el.dataset.theme = this.themeSource.dataset.theme;
   }
 
   close(): void {

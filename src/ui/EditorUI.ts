@@ -48,8 +48,8 @@ export class EditorUI {
     editor.root.prepend(this.slots.top);
     editor.root.append(this.slots.status);
     this.device = new DeviceWatcher(editor.root, DEFAULTS.mobileBreakpoint);
-    this.theme = new ThemeController(() => [editor.root], editor.theme, () => this.flush());
     this.panels = new PanelHost(editor, () => this.device.mode);
+    this.theme = new ThemeController(() => [editor.root], editor.theme, () => this.syncTheme());
     this.toaster = new Toaster(editor.root);
 
     for (const spec of editor.manager.createComponents(editor)) {
@@ -135,6 +135,12 @@ export class EditorUI {
       else if (strict) console.warn(new EditorError('UNKNOWN_UI_ITEM', `"${id}"; available: ${[...this.registry.keys()].join(', ')}`).message);
     }
     return tidySeparators(entries);
+  }
+
+  /** Portals copy the root's theme: the open panel re-reads it, the rest on update. */
+  private syncTheme(): void {
+    this.panels.syncTheme();
+    this.flush();
   }
 
   private updateAll(): void {

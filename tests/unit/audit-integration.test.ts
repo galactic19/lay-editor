@@ -37,6 +37,23 @@ describe('setLocale keeps the runtime theme (#3, #63)', () => {
     expect(bar.dataset.theme).toBe('light');
   });
 
+  it.each([
+    { mode: 'desktop', coarse: false, parts: 1 },
+    { mode: 'mobile', coarse: true, parts: 2 },
+  ])('$mode: an open panel follows setTheme() and the OS scheme', ({ coarse, parts }) => {
+    setMedia('(pointer: coarse)', coarse);
+    const ed = makeEditor({ theme: 'auto' });
+    ed.ui!.openPanelFor('findReplace');
+    // The dropdown, or the bottom sheet and its backdrop.
+    const themes = () => [...document.querySelectorAll<HTMLElement>('.le-dropdown, .le-sheet, .le-sheet-backdrop')].map((el) => el.dataset.theme);
+    const every = (theme: string) => Array<string>(parts).fill(theme);
+    expect(themes()).toEqual(every('light'));
+    setMedia('(prefers-color-scheme: dark)', true);
+    expect(themes()).toEqual(every('dark'));
+    ed.setTheme('light');
+    expect(themes()).toEqual(every('light'));
+  });
+
   it('React: a locale prop change keeps the current theme prop', () => {
     const { ref, rerender, unmount } = mountReact({ theme: 'light', locale: 'ko' });
     rerender({ theme: 'dark', locale: 'ko' });

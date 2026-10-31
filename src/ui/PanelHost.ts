@@ -9,6 +9,8 @@ export interface PanelContainer {
   open(content: HTMLElement, anchor: Anchor | null, onClose: (hadFocus: boolean) => void): void;
   close(): void;
   readonly isOpen: boolean;
+  /** Re-reads the editor's theme after it changed while open. */
+  syncTheme(): void;
   destroy(): void;
 }
 
@@ -41,6 +43,10 @@ export class PanelHost {
 
   close(): void {
     this.container?.close();
+  }
+
+  syncTheme(): void {
+    this.container?.syncTheme();
   }
 
   destroy(): void {
