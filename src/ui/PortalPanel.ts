@@ -58,8 +58,8 @@ export abstract class PortalPanel implements PanelContainer {
     onClose?.(hadFocus);
   }
 
+  /** A UI rebuild (setLocale) closes like Escape, so panel cleanups such as clearing find highlights still run. */
   destroy(): void {
-    this.onClose = null;
     this.close();
   }
 
