@@ -205,3 +205,20 @@ test('an upload error toast shows in the viewport, above the keyboard bar, in a 
     expect(box.y + box.height).toBeLessThanOrEqual((await bar.boundingBox())!.y);
   }
 });
+
+test('tapping the sheet backdrop only closes the sheet (#41)', async ({ page }, info) => {
+  test.skip(!isMobile(info.project.name), 'bottom sheets are mobile-only');
+  await openEmpty(page, 'theme=light');
+  await page.keyboard.type('abc');
+  await control(page, 'textColor').tap();
+  await expect(page.locator('.le-sheet')).toBeVisible();
+  const target = (await page.locator('#toggle-theme').boundingBox())!;
+  await page.touchscreen.tap(target.x + target.width / 2, target.y + target.height / 2);
+  await expect(page.locator('.le-sheet')).toHaveCount(0);
+  const theme = () => page.evaluate(() => window.__editor.root.dataset.theme);
+  expect(await theme()).toBe('light');
+  await expect(page.locator('#editor .ProseMirror')).toBeFocused();
+  await expect(page.locator('.le-mobile-bar:not([hidden])')).toBeVisible();
+  await page.keyboard.type('d');
+  expect(await page.evaluate(() => window.__editor.getHTML())).toBe('<p>abcd</p>');
+});

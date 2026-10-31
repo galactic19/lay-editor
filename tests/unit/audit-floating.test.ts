@@ -92,3 +92,20 @@ describe('audit #45: toasts stay in view whatever the document length', () => {
     expect(region().style.getPropertyValue('--le-toast-offset')).toBe('352px');
   });
 });
+
+describe('audit #41: tapping the sheet backdrop only closes the sheet', () => {
+  it('keeps the press from moving focus and closes on the click, while the backdrop still covers the page', () => {
+    setMedia('(pointer: coarse)', true);
+    const ed = makeEditor();
+    ed.focus();
+    ed.ui!.openPanelFor('textColor');
+    const backdrop = document.querySelector<HTMLElement>('.le-sheet-backdrop')!;
+    const press = new Event('pointerdown', { bubbles: true, cancelable: true });
+    backdrop.dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(true);
+    expect(document.querySelector('.le-sheet')).not.toBeNull();
+    backdrop.click();
+    expect(document.querySelector('.le-sheet')).toBeNull();
+    expect(ed.view.hasFocus()).toBe(true);
+  });
+});
