@@ -31,7 +31,7 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
     this.addDisposer(ui.viewport.onChange(() => this.place()));
     this.addDisposer(() => {
       editor.root.style.removeProperty('--le-mobile-bar-height');
-      editor.view.setProps({ scrollMargin: undefined });
+      editor.view.setProps({ scrollMargin: undefined, scrollThreshold: undefined });
     });
     // The bar is the only chrome on mobile, so focus anywhere in the editor keeps it, the HTML source textarea included.
     this.followEditorFocus(editor.root);
@@ -79,6 +79,8 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
     if (height === this.height) return;
     this.height = height;
     this.editor.root.style.setProperty('--le-mobile-bar-height', `${height}px`);
-    this.editor.view.setProps({ scrollMargin: { top: scrollGap, left: scrollGap, right: scrollGap, bottom: height + scrollGap } });
+    const edge = { top: scrollGap, left: scrollGap, right: scrollGap, bottom: height + scrollGap };
+    // ProseMirror applies the margin only to a caret past the threshold, so the bar must count for both.
+    this.editor.view.setProps({ scrollMargin: edge, scrollThreshold: edge });
   }
 }

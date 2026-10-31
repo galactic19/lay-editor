@@ -43,4 +43,14 @@ describe('audit: mobile keyboard bar', () => {
     expect(ed.root.dataset.mode).toBe('mobile');
     expect(bar().hidden).toBe(false);
   });
+
+  it('passes the bar height as scroll threshold too, so ProseMirror scrolls the caret clear of the bar', () => {
+    const ed = mobileEditor();
+    const margin = ed.view.someProp('scrollMargin');
+    expect(margin).toBeDefined();
+    expect(ed.view.someProp('scrollThreshold')).toEqual(margin);
+    setMedia(COARSE, false);
+    expect(ed.view.someProp('scrollMargin')).toBeUndefined();
+    expect(ed.view.someProp('scrollThreshold')).toBeUndefined();
+  });
 });

@@ -18,3 +18,19 @@ test('keeps the keyboard bar in source view so the user can switch back', async 
   await expect(source).toHaveCount(0);
   await expect(page.locator('#editor .ProseMirror')).toBeFocused();
 });
+
+test('keeps the caret line above the keyboard bar while typing past one screen', async ({ page }, info) => {
+  mobileOnly(info);
+  await openEmpty(page);
+  const clearance = () =>
+    page.evaluate(() => {
+      const { view } = window.__editor;
+      const caret = view.coordsAtPos(view.state.selection.head);
+      return document.querySelector('.le-mobile-bar:not([hidden])')!.getBoundingClientRect().top - caret.bottom;
+    });
+  for (let line = 1; line <= 30; line++) {
+    await page.keyboard.type(`line ${line}`);
+    await page.keyboard.press('Enter');
+    await expect.poll(clearance, { message: `caret of line ${line + 1}` }).toBeGreaterThanOrEqual(0);
+  }
+});
