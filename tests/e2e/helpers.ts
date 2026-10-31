@@ -17,6 +17,16 @@ export async function compose(page: Page, steps: string[], commit: string): Prom
   await cdp.detach();
 }
 
+/** Drags one finger from (x, y) down by `dy` pixels through the Chrome DevTools Protocol. */
+export async function touchDrag(page: Page, x: number, y: number, dy: number, steps = 5): Promise<void> {
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', at: number | null) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: at === null ? [] : [{ x, y: at }] });
+  await touch('touchStart', y);
+  for (let step = 1; step <= steps; step++) await touch('touchMove', y + (dy * step) / steps);
+  await touch('touchEnd', null);
+  await cdp.detach();
+}
+
 /** A toolbar control: the desktop top toolbar or the visible mobile keyboard bar. */
 export const control = (page: Page, id: string) =>
   page.locator(`#editor .le-toolbar [data-item="${id}"], .le-mobile-bar:not([hidden]) [data-item="${id}"]`).first();

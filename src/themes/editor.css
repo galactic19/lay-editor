@@ -247,8 +247,10 @@ html.le-scroll-locked { overflow: hidden; }
   box-shadow: var(--le-shadow);
   animation: le-sheet-in var(--le-sheet-duration) ease-out;
 }
-.le-sheet-handle { width: var(--le-sheet-handle-width); height: var(--le-sheet-handle-height); margin: 0 auto var(--le-space-3); border-radius: var(--le-sheet-handle-height); background: var(--le-color-border); touch-action: none; cursor: grab; }
-.le-sheet .le-control, .le-sheet .le-button, .le-sheet .le-input { min-height: var(--le-touch-target); }
+/* The whole top strip of the sheet (its padding included) starts the drag; the grip is only the visible mark. */
+.le-sheet-handle { position: relative; height: var(--le-touch-target); margin-top: calc(-1 * var(--le-space-2)); touch-action: none; cursor: grab; }
+.le-sheet-handle::before { content: ''; position: absolute; top: 50%; left: 50%; width: var(--le-sheet-handle-width); height: var(--le-sheet-handle-height); transform: translate(-50%, -50%); border-radius: var(--le-sheet-handle-height); background: var(--le-color-border); }
+.le-sheet .le-control, .le-sheet .le-button, .le-sheet .le-input, .le-sheet .le-panel label { min-height: var(--le-touch-target); }
 .le-sheet .le-swatches { grid-template-columns: repeat(5, var(--le-touch-target)); }
 .le-sheet { --le-grid-cell: var(--le-touch-target); }
 .le-sheet .le-grid { justify-content: center; }

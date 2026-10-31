@@ -1,8 +1,10 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { control, openEmpty, panel } from './helpers';
+import { control, openEmpty, panel, touchDrag } from './helpers';
 
 const mobileOnly = (info: TestInfo): void => test.skip(!info.project.name.startsWith('mobile'), 'the keyboard bar and bottom sheets exist only in mobile mode');
 const visibleBar = (page: Page) => page.locator('.le-mobile-bar:not([hidden])');
+/** The --le-touch-target token in pixels. */
+const touchTarget = (page: Page): Promise<number> => page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('#editor .le-editor')!).getPropertyValue('--le-touch-target')));
 
 test('keeps the keyboard bar in source view so the user can switch back', async ({ page }, info) => {
   mobileOnly(info);
@@ -51,4 +53,25 @@ test('repaints the keyboard bar when the OS switches to dark while editing', asy
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect(page.locator('#editor .le-editor')).toHaveAttribute('data-theme', 'dark');
   await expect(visibleBar(page)).toHaveAttribute('data-theme', 'dark');
+});
+
+test('gives the bottom-sheet drag area and checkbox rows a full touch target', async ({ page }, info) => {
+  mobileOnly(info);
+  await openEmpty(page);
+  const target = await touchTarget(page);
+  for (const item of ['link', 'findReplace']) {
+    await control(page, item).tap();
+    const row = (await panel(page).locator('label:has(input[type="checkbox"])').boundingBox())!;
+    expect(row.height, item).toBeGreaterThanOrEqual(target);
+    await page.keyboard.press('Escape');
+  }
+
+  await control(page, 'textColor').tap();
+  const sheet = page.locator('.le-sheet');
+  await sheet.evaluate((el) => Promise.all(el.getAnimations().map((animation) => animation.finished)));
+  const handle = (await page.locator('.le-sheet-handle').boundingBox())!;
+  expect(handle.height).toBeGreaterThanOrEqual(target);
+  // A drag that starts a little below the visible grip still closes the sheet.
+  await touchDrag(page, handle.x + handle.width / 2, handle.y + handle.height / 2 + 10, 150);
+  await expect(sheet).toHaveCount(0);
 });
