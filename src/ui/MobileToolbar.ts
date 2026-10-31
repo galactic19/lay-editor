@@ -13,6 +13,9 @@ import { copyTheme } from './theme';
 import { UIComponent } from './UIComponent';
 
 const { scrollGap } = DEFAULTS.mobileBar;
+/** Published on the editor root: the bar's own height, and the height it and the on-screen keyboard cover. */
+const BAR_HEIGHT = '--le-mobile-bar-height';
+const COVERED_HEIGHT = '--le-mobile-covered-height';
 
 /** One-row toolbar pinned above the on-screen keyboard; its items follow the selection context. */
 export class MobileToolbar extends UIComponent<HTMLDivElement> {
@@ -32,7 +35,7 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
     this.addDisposer(() => this.roving.destroy());
     this.addDisposer(ui.viewport.onChange(() => this.place()));
     this.addDisposer(() => {
-      editor.root.style.removeProperty('--le-mobile-bar-height');
+      [BAR_HEIGHT, COVERED_HEIGHT].forEach((name) => editor.root.style.removeProperty(name));
       editor.view.setProps({ scrollMargin: undefined, scrollThreshold: undefined });
     });
     // The bar is the only chrome on mobile, so while editing, focus anywhere in the editor keeps it, the HTML source textarea included.
@@ -60,15 +63,21 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
     return this.editor.isEditable ? this.hasFocusWithin() : entries.length > 0;
   }
 
+  /** Height of the bar itself (0 while hidden). */
+  get barHeight(): number {
+    return this.el.hidden ? 0 : this.el.offsetHeight;
+  }
+
   /** Screen height it and the on-screen keyboard cover at the bottom. */
   get coveredHeight(): number {
-    return this.ui.viewport.bottomInset + (this.el.hidden ? 0 : this.el.offsetHeight);
+    return this.ui.viewport.bottomInset + this.barHeight;
   }
 
   override update(): void {
     const entries = this.entries();
     if (!this.wanted(entries)) {
       this.setVisible(false);
+      this.place();
       return;
     }
     copyTheme(this.el, this.editor.root);
@@ -96,14 +105,15 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
     this.roving.refresh();
   }
 
-  /** Keeps the bar on top of the keyboard and the caret clear of the bar. */
+  /** Keeps the bar on top of the keyboard and the caret clear of the bar, and publishes what covers the bottom. */
   private place(): void {
+    this.editor.root.style.setProperty(COVERED_HEIGHT, `${this.coveredHeight}px`);
     if (this.el.hidden) return;
     this.el.style.bottom = `${this.ui.viewport.bottomInset}px`;
     const height = this.el.offsetHeight;
     if (height === this.height) return;
     this.height = height;
-    this.editor.root.style.setProperty('--le-mobile-bar-height', `${height}px`);
+    this.editor.root.style.setProperty(BAR_HEIGHT, `${height}px`);
     const edge = { top: scrollGap, left: scrollGap, right: scrollGap, bottom: height + scrollGap };
     // ProseMirror applies the margin only to a caret past the threshold, so the bar must count for both.
     this.editor.view.setProps({ scrollMargin: edge, scrollThreshold: edge });

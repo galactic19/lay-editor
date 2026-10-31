@@ -14,10 +14,13 @@ let menuCount = 0;
 /** The "/" block menu, positioned under the trigger character. */
 export class SlashMenu extends UIComponent<HTMLDivElement> {
   private readonly id = `le-slash-${++menuCount}`;
-  private readonly float = this.floating('bottom-start', 'menu');
+  private readonly float = this.floating('bottom-start', 'menu', () => ({ bottom: this.ui.coveredBottom }));
   private rendered = '';
 
-  constructor(editor: Editor, _ui: EditorUI) {
+  constructor(
+    editor: Editor,
+    private readonly ui: EditorUI,
+  ) {
     super(editor, h('div', { class: `${PORTAL_CLASS} ${c('slash-menu')}`, attrs: { role: 'listbox', 'aria-label': editor.t('a11y.slashMenu'), hidden: true } }));
     this.el.id = this.id;
     this.addDisposer(() => this.setActiveDescendant(null));

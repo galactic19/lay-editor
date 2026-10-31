@@ -91,6 +91,14 @@ export class EditorUI {
     return Math.max(0, this.slots.top.getBoundingClientRect().bottom);
   }
 
+  /**
+   * Viewport height the mobile keyboard bar covers; the slash menu flips above the caret rather than run under it.
+   * Floating elements are placed within the visual viewport, which already ends above the on-screen keyboard.
+   */
+  get coveredBottom(): number {
+    return this.mobileBar?.barHeight ?? 0;
+  }
+
   getContext(): UIContext {
     return resolveContext(this.editor.state);
   }

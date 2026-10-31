@@ -20,23 +20,31 @@ export type FloatingGap = keyof typeof DEFAULTS.floating.gaps;
 /** Set on every placed element: the height left on its side of the anchor. Tall panels cap themselves to it in CSS. */
 const AVAILABLE_HEIGHT = '--le-available-height';
 
-/** Height of the viewport's top edge hidden under a sticky bar (0 when nothing covers it). */
-export type CoveredTop = () => number;
+/** Heights of the viewport's edges hidden under the editor's own bars: the sticky top bar, the mobile keyboard bar. */
+export interface CoveredEdges {
+  top?: number;
+  bottom?: number;
+}
+export type Covered = () => CoveredEdges;
 
 /**
  * Places a fixed-position element next to `reference`, flipping and shifting to stay on screen. It also flips
- * rather than cover the top `coveredTop` pixels.
+ * rather than run under the `covered` edges, and its available height leaves them out.
  */
-export async function placeFloating(reference: Anchor, el: HTMLElement, placement: Placement, gap: FloatingGap, coveredTop = 0): Promise<void> {
+export async function placeFloating(reference: Anchor, el: HTMLElement, placement: Placement, gap: FloatingGap, covered: CoveredEdges = {}): Promise<void> {
   const padding = DEFAULTS.floating.viewportPadding;
+  const { top = 0, bottom = 0 } = covered;
   const { x, y } = await computePosition(reference, el, {
     placement,
     strategy: 'fixed',
     middleware: [
       offset(DEFAULTS.floating.gaps[gap]),
-      flip({ padding: { top: coveredTop } }),
+      flip({ padding: { top, bottom } }),
       shift({ padding }),
-      size({ padding, apply: ({ availableHeight }) => el.style.setProperty(AVAILABLE_HEIGHT, `${availableHeight}px`) }),
+      size({
+        padding: { top: padding, left: padding, right: padding, bottom: padding + bottom },
+        apply: ({ availableHeight }) => el.style.setProperty(AVAILABLE_HEIGHT, `${availableHeight}px`),
+      }),
     ],
   });
   Object.assign(el.style, { left: `${x}px`, top: `${y}px` });
@@ -62,7 +70,7 @@ export class FloatingFollower {
     private readonly el: HTMLElement,
     private readonly placement: Placement,
     private readonly gap: FloatingGap,
-    private readonly coveredTop?: CoveredTop,
+    private readonly covered?: Covered,
     /** Shows or hides `el`; a UI component passes its own so hiding can hand focus back to the editor. */
     private readonly setVisible: (visible: boolean) => void = (visible) => (el.hidden = !visible),
   ) {}
@@ -89,7 +97,7 @@ export class FloatingFollower {
   }
 
   private place(reference: Anchor): Promise<void> {
-    return placeFloating(reference, this.el, this.placement, this.gap, this.coveredTop?.());
+    return placeFloating(reference, this.el, this.placement, this.gap, this.covered?.());
   }
 
   private unfollow(): void {

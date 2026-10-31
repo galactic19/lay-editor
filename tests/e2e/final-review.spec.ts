@@ -1,5 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
-import { contrast, openEmpty, WCAG_AA } from './helpers';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { contrast, control, openEmpty, WCAG_AA } from './helpers';
+
+const isMobile = (info: TestInfo): boolean => info.project.name.startsWith('mobile');
 
 /** Text color against the background color of the element(s) `selector` in the editor content. */
 const textContrasts = (page: Page, selector: string): Promise<number[]> =>
@@ -34,3 +36,45 @@ for (const theme of ['light', 'dark']) {
     expect(contrast(toast.fg, toast.bg)).toBeGreaterThanOrEqual(WCAG_AA.text);
   });
 }
+
+test.describe('final review: the mobile keyboard bar covers nothing it should not', () => {
+  test.beforeEach(({}, info) => test.skip(!isMobile(info), 'the keyboard bar is mobile only'));
+
+  const barTop = (page: Page): Promise<number> => page.locator('.le-mobile-bar:not([hidden])').evaluate((el) => el.getBoundingClientRect().top);
+
+  test('full screen keeps the last line and the status bar above the bar', async ({ page }) => {
+    await openEmpty(page);
+    await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+    for (let i = 0; i < 30; i++) await page.keyboard.press('Enter');
+    await page.keyboard.type('last line');
+    const top = await barTop(page);
+    const caret = await page.evaluate(() => window.__editor.view.coordsAtPos(window.__editor.state.selection.head).bottom);
+    expect(caret).toBeLessThanOrEqual(top);
+    const status = await page.locator('#editor .le-status').evaluate((el) => el.getBoundingClientRect().bottom);
+    expect(status).toBeLessThanOrEqual(top + 1);
+  });
+
+  test('the slash menu does not run under the bar', async ({ page }) => {
+    await openEmpty(page);
+    for (let i = 0; i < 14; i++) await page.keyboard.press('Enter');
+    await page.keyboard.type('/');
+    const menu = page.locator('.le-slash-menu:not([hidden])');
+    await expect(menu).toBeVisible();
+    const height = await menu.evaluate((el) => el.getBoundingClientRect().height);
+    // Puts the caret where a menu below it would end inside the bar.
+    await page.keyboard.press('Backspace');
+    const top = await barTop(page);
+    await page.evaluate(
+      ({ target }) => {
+        const caret = window.__editor.view.coordsAtPos(window.__editor.state.selection.head);
+        window.scrollBy(0, caret.bottom - target);
+      },
+      { target: top - height + 20 },
+    );
+    await page.keyboard.type('/');
+    await expect(menu).toBeVisible();
+    const box = await menu.evaluate((el) => el.getBoundingClientRect().toJSON() as DOMRect);
+    expect(box.bottom).toBeLessThanOrEqual(top);
+    await expect(control(page, 'bold')).toBeVisible();
+  });
+});

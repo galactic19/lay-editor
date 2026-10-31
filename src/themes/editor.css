@@ -169,7 +169,7 @@
 .le-context-toolbar[hidden] { display: none; }
 
 /* Slash menu */
-.le-slash-menu { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); width: var(--le-menu-width); max-height: var(--le-menu-max-height); overflow-y: auto; padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
+.le-slash-menu { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); width: var(--le-menu-width); max-height: min(var(--le-menu-max-height), var(--le-available-height, var(--le-menu-max-height))); overflow-y: auto; padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
 .le-slash-menu[hidden] { display: none; }
 .le-slash-item { display: flex; align-items: center; gap: var(--le-space-2); min-height: var(--le-control-size); padding: 0 var(--le-space-2); border-radius: var(--le-radius-sm); cursor: pointer; }
 .le-slash-item[aria-selected='true'], .le-slash-item:hover { background: var(--le-color-hover); }
@@ -197,6 +197,8 @@
 .le-editor.le-fullscreen { position: fixed; inset: 0; z-index: var(--le-z-fullscreen); border-radius: 0; border: none; }
 .le-editor.le-fullscreen .le-content { overflow-y: auto; }
 .le-editor.le-fullscreen .le-top { border-radius: 0; }
+/* On mobile the keyboard bar and the on-screen keyboard sit over the bottom of the screen (MobileToolbar sets the height). */
+.le-editor.le-fullscreen[data-mode='mobile'] { bottom: var(--le-mobile-covered-height, 0px); }
 html.le-scroll-locked { overflow: hidden; }
 .le-source { display: block; width: 100%; min-height: var(--le-min-height); padding: var(--le-content-padding); border: none; resize: vertical; background: var(--le-color-code-bg); color: var(--le-color-fg); font-family: var(--le-font-mono); font-size: var(--le-font-size-source); line-height: 1.6; outline: none; }
 .le-editor.le-fullscreen .le-source { flex: 1; resize: none; }

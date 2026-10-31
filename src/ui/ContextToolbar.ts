@@ -14,7 +14,7 @@ export class ContextToolbar extends UIComponent<HTMLDivElement> {
   private context: UIContext = 'text';
   private controls: Array<{ item: UIItem; el: HTMLButtonElement }> = [];
   private readonly roving: RovingFocus;
-  private readonly float = this.floating('top', 'toolbar', () => this.ui.coveredTop);
+  private readonly float = this.floating('top', 'toolbar', () => ({ top: this.ui.coveredTop }));
 
   constructor(
     editor: Editor,
