@@ -2,7 +2,10 @@ import type { ThemeMode } from '../core/types';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
-/** Applies data-theme to the editor root and its portals; 'auto' follows the OS. */
+/**
+ * Applies data-theme to the editor root and its portals; 'auto' follows the OS.
+ * `onApply` lets chrome that copies the theme (portals) re-read it right away.
+ */
 export class ThemeController {
   private readonly media = window.matchMedia(DARK_QUERY);
   private readonly onMedia = (): void => this.apply();
@@ -10,6 +13,7 @@ export class ThemeController {
   constructor(
     private readonly getTargets: () => HTMLElement[],
     private mode: ThemeMode,
+    private readonly onApply: () => void = () => {},
   ) {
     this.media.addEventListener('change', this.onMedia);
     this.apply();
@@ -28,6 +32,7 @@ export class ThemeController {
   apply(): void {
     const theme = this.resolved;
     this.getTargets().forEach((el) => (el.dataset.theme = theme));
+    this.onApply();
   }
 
   destroy(): void {

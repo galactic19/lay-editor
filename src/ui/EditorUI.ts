@@ -48,7 +48,7 @@ export class EditorUI {
     editor.root.prepend(this.slots.top);
     editor.root.append(this.slots.status);
     this.device = new DeviceWatcher(editor.root, DEFAULTS.mobileBreakpoint);
-    this.theme = new ThemeController(() => [editor.root], editor.config.theme);
+    this.theme = new ThemeController(() => [editor.root], editor.theme, () => this.flush());
     this.panels = new PanelHost(editor, () => this.device.mode);
     this.toaster = new Toaster(editor.root);
 

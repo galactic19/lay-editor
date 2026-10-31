@@ -123,8 +123,8 @@ editor.can('undo');           // 실행 가능 여부
 editor.isActive('heading', { level: 2 });
 editor.focus();
 editor.setEditable(false);    // 읽기 전용
-editor.setTheme('dark');
-editor.setLocale('en');
+editor.setTheme('dark');      // 현재 값은 editor.theme
+editor.setLocale('en');       // UI를 다시 만들어도 setTheme 값은 유지
 editor.clearDraft();          // 저장이 끝난 뒤 임시저장 삭제
 editor.destroy();
 ```
