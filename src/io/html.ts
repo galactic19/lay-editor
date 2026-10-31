@@ -135,9 +135,15 @@ function mapProse(node: PMNode, rewrite: TextRewrite, keep: (child: PMNode) => b
   return copy.isTextblock && copy.type.whitespace !== 'pre' ? mapBlockText(copy, rewrite) : copy;
 }
 
+/**
+ * Spaces as saved, the same however they got into the document: no-break spaces pasted in place of collapsing ones
+ * become plain first, so loading the output and saving again gives the same HTML.
+ */
+const saveSpaces = (text: string): string => keepSpaces(restoreSpaces(text));
+
 export function serializeHTML(schema: Schema, doc: PMNode): string {
   // The document as saved: transient nodes dropped, typed spaces kept visible.
-  const clean = mapProse(doc, keepSpaces, (child) => !isTransient(child));
+  const clean = mapProse(doc, saveSpaces, (child) => !isTransient(child));
   if (clean.childCount === 0 || isDocEmpty(clean)) return '';
   const container = document.createElement('div');
   container.appendChild(DOMSerializer.fromSchema(schema).serializeFragment(clean.content));

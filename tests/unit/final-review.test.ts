@@ -175,3 +175,33 @@ describe('final review: links that already carry a scheme', () => {
     expect(editor.getHTML()).toBe('<p>write to <a href="mailto:a@b.co" target="_blank" rel="noopener noreferrer">me</a> now</p>');
   });
 });
+
+/** getHTML() of a new editor loaded with `html`. */
+const reloaded = (html: string): string => makeEditor({ content: html }).getHTML();
+
+describe('final review: getHTML() is stable across a reload after pasting no-break spaces', () => {
+  it.each([
+    '<p>Hello&nbsp;&nbsp;world</p>',
+    '<p>&nbsp;&nbsp;&nbsp;&nbsp;indented</p>',
+    '<p class="MsoNormal">End.<span style="mso-spacerun:yes">&nbsp; </span>Next</p>',
+    '<p>a&nbsp; b</p>',
+  ])('%s', (html) => {
+    const first = pasted(html);
+    expect(reloaded(first)).toBe(first);
+  });
+
+  it('keeps a no-break space between two words', () => {
+    expect(pasted('<p>10&nbsp;km</p>')).toBe('<p>10&nbsp;km</p>');
+  });
+
+  it('autosave offers no restore when the saved post is reopened unchanged', async () => {
+    vi.useFakeTimers();
+    const first = makeEditor({ autosave: { key: 'post-1' } });
+    first.view.pasteHTML('<p>Hello&nbsp;&nbsp;world</p>');
+    vi.runAllTimers();
+    const saved = first.getHTML();
+    first.destroy();
+    const second = makeEditor({ content: saved, autosave: { key: 'post-1' } });
+    expect(second.root.querySelector<HTMLElement>('.le-restore-bar')!.hidden).toBe(true);
+  });
+});
