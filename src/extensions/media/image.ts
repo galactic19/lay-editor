@@ -88,15 +88,23 @@ function readDataImage(src: string): File | null {
   }
 }
 
-/**
- * After a paste or drop, hands data: images to the uploader. Images that cannot be decoded,
- * fail validation, or arrive while uploads are off are removed with a notice.
- */
-function adoptDataImages(tr: Transaction, state: EditorState, type: NodeType, uploads: UploadManager): Transaction | null {
+/** Images whose src is still an inline data: URL (not uploaded, not being uploaded). */
+function dataImages(doc: PMNode, type: NodeType): Array<{ pos: number; node: PMNode }> {
   const found: Array<{ pos: number; node: PMNode }> = [];
-  state.doc.descendants((node, pos) => {
+  doc.descendants((node, pos) => {
     if (node.type === type && node.attrs.uploadId === null && String(node.attrs.src).startsWith('data:')) found.push({ node, pos });
   });
+  return found;
+}
+
+/**
+ * After a paste or drop, hands the data: images it brought in to the uploader. Images that cannot
+ * be decoded, fail validation, or arrive while uploads are off are removed with a notice.
+ * Images the document already had (including ones a drop only moved) are left alone.
+ */
+function adoptDataImages(tr: Transaction, old: EditorState, state: EditorState, type: NodeType, uploads: UploadManager): Transaction | null {
+  const existing = new Set(dataImages(old.doc, type).map(({ node }) => node.attrs.src));
+  const found = dataImages(state.doc, type).filter(({ node }) => !existing.has(node.attrs.src));
   if (!found.length) return null;
   const next = state.tr.setMeta('addToHistory', tr.getMeta('addToHistory'));
   const notices: Array<() => void> = [];
@@ -222,9 +230,9 @@ export const image = defineExtension<ImageOptions>({
             return true;
           },
         },
-        appendTransaction: (trs, _old, state) => {
+        appendTransaction: (trs, old, state) => {
           const pasted = trs.find((tr) => tr.docChanged && ['paste', 'drop'].includes(tr.getMeta('uiEvent')));
-          return pasted ? adoptDataImages(pasted, state, type, uploads()) : null;
+          return pasted ? adoptDataImages(pasted, old, state, type, uploads()) : null;
         },
       }),
     ];
