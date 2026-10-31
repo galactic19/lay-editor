@@ -103,3 +103,37 @@ describe('pasted code blocks keep their language (audit #25)', () => {
     );
   });
 });
+
+/** A Word list paragraph: list `l<list>`, numbering instance `lfo<lfo>`, and the marker Word renders. */
+const wordItem = (list: number, level: number, marker: string, text: string, lfo = list + 1): string =>
+  `<p class=MsoListParagraph style='mso-list:l${list} level${level} lfo${lfo}'><![if !supportLists]><span style='mso-list:Ignore'>${marker}<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span><![endif]>${text}<o:p></o:p></p>`;
+
+describe('Word numbered lists (audit #26)', () => {
+  it.each(['가.', '나)', '(가)', 'ㄱ.', '①', '㉮', '⑴', 'Ⅳ.', '1.1.', '1.1', 'xviii.'])('treats %s as numbering', (marker) => {
+    expect(paste(word(wordItem(0, 1, marker, 'A')))).toBe('<ol><li><p>A</p></li></ol>');
+  });
+
+  it.each(['·', '§', 'o', 'Ø', 'ü', '-', '•', '■', '➢'])('treats %s as a bullet', (marker) => {
+    expect(paste(word(wordItem(0, 1, marker, 'A')))).toBe('<ul><li><p>A</p></li></ul>');
+  });
+
+  it('keeps a Korean second level numbered', () => {
+    const out = paste(word(wordItem(0, 1, '1.', '하나') + wordItem(0, 2, '가.', '가나') + wordItem(0, 1, '2.', '둘')));
+    expect(out).toBe('<ol><li><p>하나</p><ol><li><p>가나</p></li></ol></li><li><p>둘</p></li></ol>');
+  });
+
+  it('does not merge two adjacent Word lists', () => {
+    const out = paste(word(wordItem(2, 1, 'i.', '로마1') + wordItem(2, 1, 'ii.', '로마2') + wordItem(3, 1, '(1)', '괄호1')));
+    expect(out).toBe('<ol><li><p>로마1</p></li><li><p>로마2</p></li></ol><ol><li><p>괄호1</p></li></ol>');
+  });
+
+  it('keeps a list that changes at a nested level under its parent item', () => {
+    const out = paste(word(wordItem(0, 1, '·', 'A') + wordItem(0, 2, '§', 'a1') + wordItem(1, 2, '1.', 'a2') + wordItem(0, 1, '·', 'B')));
+    expect(out).toBe('<ul><li><p>A</p><ul><li><p>a1</p></li></ul><ol><li><p>a2</p></li></ol></li><li><p>B</p></li></ul>');
+  });
+
+  it('starts a new list when Word restarts the numbering of the same list', () => {
+    const out = paste(word(wordItem(0, 1, '1.', 'A1') + wordItem(0, 1, '2.', 'A2') + wordItem(0, 1, '1.', 'B1', 2)));
+    expect(out).toBe('<ol><li><p>A1</p></li><li><p>A2</p></li></ol><ol><li><p>B1</p></li></ol>');
+  });
+});

@@ -60,4 +60,15 @@ test.describe('paste from other pages (audit)', () => {
     await expect.poll(() => html(page)).toContain('after');
     expect(await html(page)).toBe('<p>before</p><pre><code class="language-python">def f():\n    return 1</code></pre><p>after</p>');
   });
+
+  test('Word Korean numbering pastes as numbered lists and adjacent lists stay apart (#26)', async ({ page }) => {
+    const item = (style: string, marker: string, text: string) =>
+      `<p class=MsoListParagraph style='mso-list:${style}'><![if !supportLists]><span style='mso-list:Ignore'>${marker}<span style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><![endif]>${text}<o:p></o:p></p>`;
+    await pasteHTML(
+      page,
+      `<html xmlns:o="urn:schemas-microsoft-com:office:office"><body><!--StartFragment-->${item('l0 level1 lfo1', '가.', '가항목')}${item('l0 level1 lfo1', '나.', '나항목')}${item('l1 level1 lfo2', '①', '원문자')}<!--EndFragment--></body></html>`,
+    );
+    await expect.poll(() => html(page)).toContain('원문자');
+    expect(await html(page)).toBe('<ol><li><p>가항목</p></li><li><p>나항목</p></li></ol><ol><li><p>원문자</p></li></ol>');
+  });
 });
