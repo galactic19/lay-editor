@@ -86,9 +86,10 @@ export const link = defineExtension({
         if (dispatch) window.open(href, '_blank', 'noopener');
         return true;
       },
+      // Where no link can go (code blocks) Mod-k opens nothing, but still claims the key so the
+      // browser's own Ctrl+K (address bar search) does not take focus away.
       openLinkPanel: (): Command => (state, dispatch) => {
-        if (!markApplies(state, type)) return false;
-        if (dispatch) editor.ui?.openPanelFor('link');
+        if (dispatch && markApplies(state, type)) editor.ui?.openPanelFor('link');
         return true;
       },
     };

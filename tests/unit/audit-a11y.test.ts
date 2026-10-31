@@ -90,7 +90,7 @@ describe('audit a11y #66: mark panels are disabled where the mark cannot apply',
     expect(ed.can('setTextColor', '#e03131')).toBe(false);
     expect(ed.can('setHighlight', '#ffec99')).toBe(false);
     expect(ed.can('setLink', LINK)).toBe(false);
-    expect(press(ed, 'Mod-k')).toBe(false);
+    expect(press(ed, 'Mod-k')).toBe(true);
     expect(dialog()).toBeNull();
   });
 
