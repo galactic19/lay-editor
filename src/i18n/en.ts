@@ -79,7 +79,7 @@ export const en = {
     required: 'Please enter some content',
   },
   slash: { empty: 'No matching blocks' },
-  status: { count: '{chars} characters · {charsNoSpace} without spaces · {words} words', matchCount: '{current}/{total}', noMatch: 'No results' },
+  status: { count: 'Characters {chars} · Without spaces {charsNoSpace} · Words {words}', matchCount: '{current}/{total}', noMatch: 'No results' },
   autosave: { found: 'You have unsaved work from before. Restore it?', restore: 'Restore', discard: 'Discard' },
   a11y: {
     editor: 'Editing area',

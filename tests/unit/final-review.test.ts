@@ -449,3 +449,11 @@ describe('final review: developer warnings', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^\[laymaker\] \[UNKNOWN_UI_ITEM\] "nope"/));
   });
 });
+
+describe('final review: the English status bar', () => {
+  it('reads correctly for one word and one character', () => {
+    const editor = makeEditor({ content: '<p>a</p>', locale: 'en' });
+    editor.ui!.flush();
+    expect(editor.root.querySelector('.le-statusbar')!.textContent).toBe('Characters 1 · Without spaces 1 · Words 1');
+  });
+});
