@@ -79,7 +79,7 @@
 
 /* Dropdown panels */
 .le-portal { font-family: var(--le-font); font-size: var(--le-font-size-ui); color: var(--le-color-fg); }
-.le-dropdown { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); min-width: var(--le-dropdown-min-width); max-width: min(var(--le-dropdown-max-width), calc(100vw - 2 * var(--le-space-2))); padding: var(--le-space-2); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
+.le-dropdown { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); box-sizing: border-box; min-width: var(--le-dropdown-min-width); max-width: min(var(--le-dropdown-max-width), calc(100vw - 2 * var(--le-space-2))); max-height: var(--le-available-height, none); overflow-y: auto; padding: var(--le-space-2); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
 .le-panel { display: flex; flex-direction: column; gap: var(--le-space-2); }
 .le-panel-row { display: flex; gap: var(--le-space-2); align-items: center; flex-wrap: wrap; }
 .le-panel label { display: flex; align-items: center; gap: var(--le-space-2); }

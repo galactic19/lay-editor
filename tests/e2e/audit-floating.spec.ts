@@ -170,3 +170,20 @@ test.describe('floating toolbars follow page scroll (#35)', () => {
     await expectFollows(page, page.locator('.le-context-toolbar:not([hidden])'), async () => (await table.boundingBox())!);
   });
 });
+
+test('a dropdown taller than the viewport fits it and scrolls inside (#37)', async ({ page }, info) => {
+  test.skip(isMobile(info.project.name), 'desktop dropdowns');
+  await page.setViewportSize({ width: 560, height: 520 });
+  await openEmpty(page);
+  await page.locator('#editor .le-toolbar [data-item="more"]').click();
+  const menu = panel(page);
+  await expect(menu).toBeVisible();
+  const box = (await menu.boundingBox())!;
+  expect(box.y + box.height).toBeLessThanOrEqual(520);
+  const last = menu.locator('[data-item]').last();
+  await page.keyboard.press('End');
+  await expect(last).toBeFocused();
+  const item = (await last.boundingBox())!;
+  expect(item.y + item.height).toBeLessThanOrEqual(520);
+  await expect(last).toBeInViewport({ ratio: 1 });
+});

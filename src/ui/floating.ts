@@ -1,4 +1,4 @@
-import { autoUpdate, computePosition, flip, offset, shift, type Placement, type ReferenceElement, type VirtualElement } from '@floating-ui/dom';
+import { autoUpdate, computePosition, flip, offset, shift, size, type Placement, type ReferenceElement, type VirtualElement } from '@floating-ui/dom';
 import type { EditorView } from 'prosemirror-view';
 import { DEFAULTS } from '../core/defaults';
 
@@ -6,12 +6,21 @@ import { DEFAULTS } from '../core/defaults';
 export type Anchor = ReferenceElement;
 export type FloatingGap = keyof typeof DEFAULTS.floating.gaps;
 
+/** Set on every placed element: the height left on its side of the anchor. Tall panels cap themselves to it in CSS. */
+const AVAILABLE_HEIGHT = '--le-available-height';
+
 /** Places a fixed-position element next to `reference`, flipping and shifting to stay on screen. */
 export async function placeFloating(reference: Anchor, el: HTMLElement, placement: Placement, gap: FloatingGap): Promise<void> {
+  const padding = DEFAULTS.floating.viewportPadding;
   const { x, y } = await computePosition(reference, el, {
     placement,
     strategy: 'fixed',
-    middleware: [offset(DEFAULTS.floating.gaps[gap]), flip(), shift({ padding: DEFAULTS.floating.viewportPadding })],
+    middleware: [
+      offset(DEFAULTS.floating.gaps[gap]),
+      flip(),
+      shift({ padding }),
+      size({ padding, apply: ({ availableHeight }) => el.style.setProperty(AVAILABLE_HEIGHT, `${availableHeight}px`) }),
+    ],
   });
   Object.assign(el.style, { left: `${x}px`, top: `${y}px` });
 }
