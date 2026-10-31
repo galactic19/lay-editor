@@ -1,5 +1,7 @@
 import { createEditor } from '../../src/core/createEditor';
 import type { Editor } from '../../src/core/Editor';
+import { createHighlightPlugin } from '../../src/extensions/blocks/codeHighlight';
+import { defineExtension } from '../../src/extensions/factories';
 import { createTranslator, registerLocale } from '../../src/i18n';
 import { onCleanup } from '../setup';
 import { flushPromises, makeEditor, typeText } from '../helpers/editor';
@@ -70,6 +72,16 @@ describe('audit core: setHTML starts a fresh undo history', () => {
     ed.exec('undo');
     expect(ed.getHTML()).toBe('<p>B</p>');
     expect(ed.can('undo')).toBe(false);
+  });
+
+  it('code highlighting still arrives when setHTML runs while the highlighter loads', async () => {
+    let resolve!: (highlight: () => Array<{ from: number; to: number; className: string }>) => void;
+    const highlighter = defineExtension({ name: 'testHighlight', plugins: () => [createHighlightPlugin(() => new Promise((r) => (resolve = r)))] });
+    const ed = makeEditor({ content: '<pre><code>let a</code></pre>', extensions: [highlighter], disable: ['codeHighlight'] });
+    ed.setHTML('<pre><code>const b</code></pre>');
+    resolve(() => [{ from: 0, to: 5, className: 'hljs-keyword' }]);
+    await flushPromises();
+    expect(ed.view.dom.querySelector('.hljs-keyword')?.textContent).toBe('const');
   });
 
   it('still emits update and change for the load', () => {
