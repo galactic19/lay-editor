@@ -103,3 +103,23 @@ test.describe('slash in prose (#31)', () => {
     });
   }
 });
+
+test('typed spaces survive a reload and show on the view page (#18)', async ({ page }) => {
+  await openEmpty(page);
+  await page.keyboard.type('Name:    Kim');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('    indented line');
+  const saved = await html(page);
+  const result = await page.evaluate((content) => {
+    window.__editor.setHTML(content);
+    const view = document.createElement('div');
+    view.className = 'le-prose';
+    view.innerHTML = content;
+    document.body.appendChild(view);
+    const text = view.innerText;
+    view.remove();
+    return { reloaded: window.__editor.getHTML(), text };
+  }, saved);
+  expect(result.reloaded).toBe(saved);
+  expect(result.text.replace(/ /g, ' ')).toBe('Name:    Kim\n\n    indented line');
+});

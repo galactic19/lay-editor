@@ -1,5 +1,9 @@
 import { DOMParser as PMDOMParser, DOMSerializer, Fragment, type Node as PMNode, type Schema } from 'prosemirror-model';
+import { LEAF_CHAR } from '../core/state-utils';
 import type { ExtNodeSpec } from '../core/types';
+
+const NBSP = '\u00a0';
+const NEWLINE = '\n';
 
 export function parseHTML(schema: Schema, html: string | null | undefined): PMNode {
   const dom = new window.DOMParser().parseFromString(`<!doctype html><body>${html ?? ''}</body>`, 'text/html');
@@ -20,17 +24,40 @@ export function isDocEmpty(doc: PMNode): boolean {
 
 const isTransient = (node: PMNode): boolean => Boolean((node.type.spec as ExtNodeSpec).transient?.(node));
 
-function stripTransient(node: PMNode): PMNode {
+/** HTML collapses runs of spaces and drops them at line edges: those become no-break spaces, alternating like other editors. */
+const keepSpaces = (text: string): string =>
+  text
+    .replace(/ {2}/g, ` ${NBSP}`)
+    .replace(new RegExp(`(^|${NEWLINE}) `, 'g'), `$1${NBSP}`)
+    .replace(new RegExp(` (${NEWLINE}|$)`, 'g'), `${NBSP}$1`);
+
+/** Applies keepSpaces across a textblock's inline content (marks and line breaks included), one character per inline node. */
+function keepBlockSpaces(block: PMNode): PMNode {
+  const parts: string[] = [];
+  block.forEach((child) => parts.push(child.isText ? child.text! : child.type === child.type.schema.linebreakReplacement ? NEWLINE : LEAF_CHAR));
+  const kept = keepSpaces(parts.join(''));
+  let offset = 0;
+  const children = parts.map((part, index) => {
+    const child = block.child(index);
+    const text = kept.slice(offset, (offset += part.length));
+    return child.isText ? block.type.schema.text(text, child.marks) : child;
+  });
+  return block.copy(Fragment.fromArray(children));
+}
+
+/** The document as saved: transient nodes dropped, typed spaces kept visible. */
+function outputNode(node: PMNode): PMNode {
   if (node.isLeaf) return node;
   const children: PMNode[] = [];
   node.forEach((child) => {
-    if (!isTransient(child)) children.push(stripTransient(child));
+    if (!isTransient(child)) children.push(outputNode(child));
   });
-  return node.copy(Fragment.fromArray(children));
+  const copy = node.copy(Fragment.fromArray(children));
+  return copy.isTextblock && copy.type.whitespace !== 'pre' ? keepBlockSpaces(copy) : copy;
 }
 
 export function serializeHTML(schema: Schema, doc: PMNode): string {
-  const clean = stripTransient(doc);
+  const clean = outputNode(doc);
   if (clean.childCount === 0 || isDocEmpty(clean)) return '';
   const container = document.createElement('div');
   container.appendChild(DOMSerializer.fromSchema(schema).serializeFragment(clean.content));

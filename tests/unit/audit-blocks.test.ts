@@ -169,3 +169,39 @@ describe('slash menu leaves prose alone (#31)', () => {
     expect(ids('b')).toEqual([]);
   });
 });
+
+describe('typed spaces survive saving (#18)', () => {
+  const roundTrip = (ed: Editor): string => {
+    const saved = ed.getHTML();
+    ed.setHTML(saved);
+    expect(ed.getHTML()).toBe(saved);
+    return saved;
+  };
+
+  it('runs of spaces and leading spaces alternate with no-break spaces and reload unchanged', () => {
+    const ed = makeEditor();
+    typeText(ed, 'Name:    Kim');
+    press(ed, 'Enter');
+    typeText(ed, '    indented line');
+    expect(roundTrip(ed)).toBe('<p>Name: &nbsp; &nbsp;Kim</p><p>&nbsp;&nbsp; &nbsp;indented line</p>');
+  });
+
+  it('spaces at line edges, around breaks and across marks stay visible', () => {
+    const ed = makeEditor({ content: '<p>a<br>b</p>' });
+    caretAfter(ed, 'a');
+    typeText(ed, '  ');
+    caretAfter(ed, 'b');
+    typeText(ed, ' c ');
+    expect(roundTrip(ed)).toBe('<p>a &nbsp;<br>b c&nbsp;</p>');
+    const marked = makeEditor({ content: '<p>a <strong>b</strong></p>' });
+    caretAt(marked, findText(marked, 'b'));
+    marked.exec('toggleBold');
+    typeText(marked, ' ');
+    expect(roundTrip(marked)).toBe('<p>a <strong>&nbsp;b</strong></p>');
+  });
+
+  it('leaves single spaces between words and code blocks alone', () => {
+    const ed = makeEditor({ content: '<p>a b c</p><pre><code>  a\n    b</code></pre>' });
+    expect(roundTrip(ed)).toBe('<p>a b c</p><pre><code>  a\n    b</code></pre>');
+  });
+});

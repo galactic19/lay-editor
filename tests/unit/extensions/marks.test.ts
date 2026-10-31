@@ -102,7 +102,8 @@ describe('link', () => {
   it('autolinks typed URLs', () => {
     const ed = makeEditor();
     typeText(ed, 'www.a.com ');
-    expect(ed.getHTML()).toBe('<p><a href="https://www.a.com">www.a.com</a> </p>');
+    // The trailing space is saved as a no-break space so it survives a reload.
+    expect(ed.getHTML()).toBe('<p><a href="https://www.a.com">www.a.com</a>&nbsp;</p>');
   });
 
   it('Mod-k maps to openLinkPanel', () => {
