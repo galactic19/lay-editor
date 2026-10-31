@@ -12,12 +12,25 @@ const STYLE_TAGS: Array<{ prop: string; test: RegExp; tag: string }> = [
   { prop: 'text-decoration-line', test: /line-through/, tag: 's' },
 ];
 const BLOCK_TAGS = /^(P|H[1-6]|LI|UL|OL|DIV|TD|TH|TABLE|BLOCKQUOTE|PRE|BODY)$/;
-const { keepStyles, keepDataAttrs, defaultColors } = DEFAULTS.paste;
+const { keepStyles, keepDataAttrs, pageColors } = DEFAULTS.paste;
 
-function isDefaultColor(prop: string, value: string): boolean {
-  const list = (defaultColors as Record<string, readonly string[]>)[prop];
-  const normalized = safeColor(value);
-  return Boolean(list && normalized && list.includes(normalized));
+/** Red, green and blue (0-255) of a color in safeColor's output format. */
+function channels(color: string): number[] {
+  if (!color.startsWith('#')) return color.slice(color.indexOf('(') + 1, -1).split(',').slice(0, 3).map(Number);
+  const hex = color.length === 4 ? [...color.slice(1)].map((digit) => digit + digit).join('') : color.slice(1);
+  return [0, 2, 4].map((start) => parseInt(hex.slice(start, start + 2), 16));
+}
+
+/** Greys the source page used for its text or background; intentional colors keep a hue or a mid-grey shade. */
+function isPageColor(prop: string, value: string): boolean {
+  const color = safeColor(value);
+  if (!color) return false;
+  const rgb = channels(color);
+  const max = Math.max(...rgb);
+  const min = Math.min(...rgb);
+  if (max - min > pageColors.maxChroma) return false;
+  const lightness = (max + min) / 2;
+  return prop === 'color' || lightness <= pageColors.darkBackground || lightness >= pageColors.lightBackground;
 }
 
 /** Wraps an inline element's children in the tags its styles imply. */
@@ -46,7 +59,7 @@ export function normalizeStyles(html: string): string {
     for (const el of Array.from(doc.body.querySelectorAll<HTMLElement>('*'))) {
       if (el.hasAttribute('style')) {
         stylesToTags(el);
-        filterStyle(el, (prop, value) => (keepStyles as readonly string[]).includes(prop) && !isDefaultColor(prop, value));
+        filterStyle(el, (prop, value) => (keepStyles as readonly string[]).includes(prop) && !isPageColor(prop, value));
       }
       cleanAttributes(el);
     }

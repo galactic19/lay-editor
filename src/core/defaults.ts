@@ -41,11 +41,11 @@ export const DEFAULTS = {
   paste: {
     keepStyles: ['color', 'background-color', 'text-align'],
     keepDataAttrs: ['data-type', 'data-checked', 'data-indent', 'data-align', 'data-video', 'data-provider', 'data-id'],
-    /** Colors that equal the page default; dropping them keeps pasted text readable in dark mode. */
-    defaultColors: {
-      color: ['#000', '#000000', 'rgb(0,0,0)'],
-      'background-color': ['#fff', '#ffffff', 'rgb(255,255,255)'],
-    },
+    /**
+     * The source page's own colors, dropped so pasted text stays readable in both themes: any grey text color
+     * (channel spread up to `maxChroma`), and grey backgrounds at or beyond `darkBackground`/`lightBackground` lightness (0-255).
+     */
+    pageColors: { maxChroma: 24, darkBackground: 48, lightBackground: 240 },
   },
   indent: { max: 8 },
   colors: {
