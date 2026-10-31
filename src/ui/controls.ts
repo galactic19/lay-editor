@@ -14,7 +14,7 @@ export interface ControlOptions {
   onActivate?(item: UIItem, anchor: HTMLButtonElement): void;
 }
 
-export const isDisabled = (el: Element): boolean => el.getAttribute('aria-disabled') === 'true';
+const isDisabled = (el: Element): boolean => el.getAttribute('aria-disabled') === 'true';
 
 /** Default action: run the command, or open the item's panel / option list. */
 export function activateItem(item: UIItem, editor: Editor, ui: EditorUI, anchor: HTMLElement | null): void {
