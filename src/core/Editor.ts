@@ -98,10 +98,11 @@ export class Editor {
     return serializeHTML(this.schema, this.state.doc);
   }
 
+  /** Replaces the content. Not an undo step: Ctrl+Z after loading content must not empty the editor. */
   setHTML(html: string): void {
     if (this.destroyed) return;
     const doc = parseHTML(this.schema, html);
-    this.view.dispatch(this.state.tr.replaceWith(0, this.state.doc.content.size, doc.content));
+    this.view.dispatch(this.state.tr.replaceWith(0, this.state.doc.content.size, doc.content).setMeta('addToHistory', false));
   }
 
   getText(): string {

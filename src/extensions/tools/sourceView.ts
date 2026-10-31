@@ -12,6 +12,8 @@ const sources = new WeakMap<Editor, HTMLTextAreaElement>();
 function openSource(editor: Editor): void {
   const textarea = h('textarea', { class: c('source'), attrs: { spellcheck: 'false', 'aria-label': editor.t('a11y.sourceEditor') } });
   textarea.value = formatHTML(editor.getHTML());
+  // Apply as the user types so getHTML(), onChange and form submits always see the source edits.
+  textarea.addEventListener('input', () => editor.setHTML(textarea.value));
   editor.content.hidden = true;
   editor.content.after(textarea);
   sources.set(editor, textarea);

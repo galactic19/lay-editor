@@ -2,10 +2,11 @@ import type { Editor } from '../core/Editor';
 import type { DeviceMode, PanelFactory } from '../core/types';
 import { BottomSheet } from './BottomSheet';
 import { Dropdown } from './Dropdown';
+import type { Anchor } from './floating';
 
 export interface PanelContainer {
   /** `onClose(hadFocus)` reports whether focus was inside the panel when it closed. */
-  open(content: HTMLElement, anchor: HTMLElement | null, onClose: (hadFocus: boolean) => void): void;
+  open(content: HTMLElement, anchor: Anchor | null, onClose: (hadFocus: boolean) => void): void;
   close(): void;
   readonly isOpen: boolean;
   destroy(): void;
@@ -24,7 +25,7 @@ export class PanelHost {
     return Boolean(this.container?.isOpen);
   }
 
-  openPanel(factory: PanelFactory, anchor: HTMLElement | null = null): void {
+  openPanel(factory: PanelFactory, anchor: Anchor | null = null): void {
     this.close();
     this.editor.syncSelection();
     const container = this.createContainer();

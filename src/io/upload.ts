@@ -14,6 +14,7 @@ const BYTES_PER_MB = 1024 * 1024;
 const REJECTION_TOAST = { type: 'toast.uploadBadType', size: 'toast.uploadTooLarge' } as const;
 type Rejection = keyof typeof REJECTION_TOAST;
 
+/** Decodes a base64 data: URL; throws on malformed data. */
 export function dataUrlToFile(dataUrl: string, name = 'pasted-image'): File {
   const [header, base64 = ''] = dataUrl.split(',');
   const type = /^data:([^;]+)/.exec(header ?? '')?.[1] ?? 'application/octet-stream';
@@ -53,7 +54,7 @@ export class UploadManager {
   /** Inserts a placeholder per file at `pos` (or the selection) and uploads them. */
   uploadFiles(files: File[], pos?: number): Promise<void> {
     if (!this.enabled) {
-      this.toast('toast.uploadNotConfigured');
+      this.notifyDisabled();
       return Promise.resolve();
     }
     return Promise.all(files.map((file) => this.uploadNew(file, pos))).then(() => undefined);
@@ -76,13 +77,27 @@ export class UploadManager {
     this.listeners.clear();
   }
 
-  private uploadNew(file: File, pos?: number): Promise<void> {
+  /** Emits uploadError and shows why a file was refused; false when the file is acceptable. */
+  reject(file: File): boolean {
     const reason = this.rejection(file);
-    if (reason) {
-      this.editor.emit('uploadError', this.validate(file)!, file);
-      this.toast(REJECTION_TOAST[reason], { max: `${Math.round(this.options.maxSize / BYTES_PER_MB)}MB` });
-      return Promise.resolve();
-    }
+    if (!reason) return false;
+    this.editor.emit('uploadError', this.validate(file)!, file);
+    this.toast(REJECTION_TOAST[reason], { max: `${Math.round(this.options.maxSize / BYTES_PER_MB)}MB` });
+    return true;
+  }
+
+  /** Tells the user an image could not be read at all (e.g. corrupt pasted data). */
+  rejectUnreadable(): void {
+    this.toast(REJECTION_TOAST.type);
+  }
+
+  /** Tells the user uploads are not set up. */
+  notifyDisabled(): void {
+    this.toast('toast.uploadNotConfigured');
+  }
+
+  private uploadNew(file: File, pos?: number): Promise<void> {
+    if (this.reject(file)) return Promise.resolve();
     const id = this.nextId();
     const url = URL.createObjectURL(file);
     this.objectUrls.set(id, url);

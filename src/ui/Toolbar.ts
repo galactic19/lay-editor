@@ -1,7 +1,7 @@
 import type { Editor } from '../core/Editor';
 import { UI_CONTEXTS, type UIItem } from '../core/types';
 import { c } from './classes';
-import { createControl, syncControl } from './controls';
+import { createControl, createSeparator, syncControl } from './controls';
 import { h } from './dom';
 import type { EditorUI } from './EditorUI';
 import { listPanel } from './panels/listPanel';
@@ -28,7 +28,7 @@ export class Toolbar extends UIComponent<HTMLDivElement> {
     super(editor, h('div', { class: c('toolbar'), attrs: { role: 'toolbar', 'aria-label': editor.t('a11y.toolbar') } }));
     for (const entry of entries) {
       if (entry === SEPARATOR) {
-        this.el.appendChild(h('span', { class: c('separator'), attrs: { role: 'separator', 'aria-orientation': 'vertical' } }));
+        this.el.appendChild(createSeparator());
         continue;
       }
       const el = createControl(entry, editor, ui);
@@ -48,33 +48,32 @@ export class Toolbar extends UIComponent<HTMLDivElement> {
   /** The visible control for an item, used to anchor panels. */
   anchorFor(id: string): HTMLElement | null {
     const control = this.controls.find(({ item }) => item.id === id)?.el;
-    return control && !control.hidden ? control : this.more.hidden ? null : this.more;
+    if (!control) return null;
+    return control.hidden ? (this.more.hidden ? null : this.more) : control;
   }
 
   override update(): void {
     for (const { item, el } of this.controls) syncControl(el, item, this.editor, this.ui);
   }
 
-  /** Shows as many entries as fit; the rest go to the more menu. */
+  /**
+   * Shows as many entries as fit; the rest go to the more menu. Uses the real overflow
+   * (scrollWidth) so gaps, padding and separator margins are all accounted for.
+   */
   layout(): void {
     const children = Array.from(this.el.children).filter((el) => el !== this.more) as HTMLElement[];
     children.forEach((el) => (el.hidden = false));
     this.more.hidden = true;
     this.overflow = [];
-    const available = this.el.clientWidth;
-    const widths = children.map((el) => el.offsetWidth);
-    const total = widths.reduce((sum, w) => sum + w, 0);
-    if (available && total > available) {
+    const overflowing = (): boolean => this.el.scrollWidth > this.el.clientWidth;
+    if (overflowing()) {
       this.more.hidden = false;
-      const budget = available - this.more.offsetWidth;
-      let used = 0;
-      children.forEach((el, i) => {
-        if (this.overflow.length || used + widths[i]! > budget) {
-          el.hidden = true;
-          const control = this.controls.find((entry) => entry.el === el);
-          if (control) this.overflow.push(control.item);
-        } else used += widths[i]!;
-      });
+      for (let i = children.length - 1; i >= 0 && overflowing(); i--) {
+        const el = children[i]!;
+        el.hidden = true;
+        const control = this.controls.find((entry) => entry.el === el);
+        if (control) this.overflow.unshift(control.item);
+      }
       const lastVisible = children.filter((el) => !el.hidden).pop();
       if (lastVisible?.classList.contains(c('separator'))) lastVisible.hidden = true;
     }

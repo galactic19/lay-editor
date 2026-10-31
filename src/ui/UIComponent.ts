@@ -22,6 +22,17 @@ export abstract class UIComponent<E extends HTMLElement = HTMLElement> {
     this.disposers.push(fn);
   }
 
+  /** True while the editor or this component holds focus. */
+  protected hasFocusWithin(): boolean {
+    return this.editor.view.hasFocus() || this.el.contains(document.activeElement);
+  }
+
+  /** Re-runs update() on focus changes; blur waits a tick so focus can land in this component first. */
+  protected followEditorFocus(): void {
+    this.subscribe('focus', () => this.update());
+    this.subscribe('blur', () => queueMicrotask(() => this.update()));
+  }
+
   /** Re-reads editor state; called once per frame after editor updates. */
   update(): void {}
 

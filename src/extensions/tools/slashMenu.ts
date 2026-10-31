@@ -1,6 +1,7 @@
 import { Plugin, PluginKey, type EditorState, type Transaction } from 'prosemirror-state';
 import type { Editor } from '../../core/Editor';
 import { DEFAULTS } from '../../core/defaults';
+import { LEAF_CHAR } from '../../core/state-utils';
 import type { UIItem } from '../../core/types';
 import type { Translate } from '../../i18n';
 import { SlashMenu } from '../../ui/SlashMenu';
@@ -57,7 +58,7 @@ export function closeSlash(editor: Editor): void {
 function opened(state: EditorState): SlashState | null {
   const { $from, empty } = state.selection;
   if (!empty || $from.parent.type.spec.code || !$from.parent.isTextblock) return null;
-  const before = $from.parent.textBetween(Math.max(0, $from.parentOffset - 2), $from.parentOffset, undefined, '￼');
+  const before = $from.parent.textBetween(Math.max(0, $from.parentOffset - 2), $from.parentOffset, undefined, LEAF_CHAR);
   const atBoundary = before.length === 1 || /\s/.test(before[0]!);
   return before.endsWith(trigger) && atBoundary ? { active: true, from: $from.pos - trigger.length, query: '', index: 0 } : null;
 }
@@ -68,8 +69,8 @@ function continued(prev: SlashState, tr: Transaction, state: EditorState): Slash
   const { $from, empty } = state.selection;
   if (!empty || $from.pos <= from || $from.parent.type.spec.code) return INACTIVE;
   if (state.doc.resolve(from).parent !== $from.parent) return INACTIVE;
-  const text = state.doc.textBetween(from, $from.pos, undefined, '￼');
-  if (!text.startsWith(trigger) || text.includes('￼')) return INACTIVE;
+  const text = state.doc.textBetween(from, $from.pos, undefined, LEAF_CHAR);
+  if (!text.startsWith(trigger) || text.includes(LEAF_CHAR)) return INACTIVE;
   const query = text.slice(trigger.length);
   return { active: true, from, query, index: query === prev.query ? prev.index : 0 };
 }

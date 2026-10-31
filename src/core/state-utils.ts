@@ -1,6 +1,9 @@
 import type { Attrs, Mark, MarkType, Node as PMNode, NodeType } from 'prosemirror-model';
 import { NodeSelection, type EditorState } from 'prosemirror-state';
 
+/** Stand-in character for inline leaf nodes (images, breaks) when reading block text. */
+export const LEAF_CHAR = '\ufffc';
+
 export function attrsMatch(actual: Attrs, expected?: Attrs | null): boolean {
   if (!expected) return true;
   return Object.entries(expected).every(([key, value]) => actual[key] === value);

@@ -1,17 +1,15 @@
-import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { TextSelection } from 'prosemirror-state';
 import type { Editor } from '../core/Editor';
 import type { UIItem } from '../core/types';
 import { c, PORTAL_CLASS } from './classes';
 import { createControl, syncControl } from './controls';
 import { h } from './dom';
+import { placeFloating, rangeReference } from './floating';
 import type { EditorUI } from './EditorUI';
 import { BUBBLE_ITEMS } from './presets';
 import { RovingFocus } from './roving';
 import { UIComponent } from './UIComponent';
 
-const GAP = 8;
-const VIEWPORT_PADDING = 8;
 const BUBBLE_CONTEXTS = new Set(['text', 'link']);
 
 /** Desktop formatting bubble above a text selection. */
@@ -42,8 +40,7 @@ export class BubbleMenu extends UIComponent<HTMLDivElement> {
       this.pointerDown = false;
       this.update();
     });
-    this.subscribe('focus', () => this.update());
-    this.subscribe('blur', () => queueMicrotask(() => this.update()));
+    this.followEditorFocus();
   }
 
   /** Whether the current state calls for the bubble. */
@@ -59,33 +56,14 @@ export class BubbleMenu extends UIComponent<HTMLDivElement> {
   }
 
   override update(): void {
-    const focused = this.editor.view.hasFocus() || this.el.contains(document.activeElement);
-    if (this.pointerDown || !focused || !BubbleMenu.wanted(this.editor, this.ui)) {
+    if (this.pointerDown || !this.hasFocusWithin() || !BubbleMenu.wanted(this.editor, this.ui)) {
       this.el.hidden = true;
       return;
     }
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
     this.el.dataset.theme = this.editor.root.dataset.theme;
     this.el.hidden = false;
-    this.position();
-  }
-
-  private position(): void {
-    const { view } = this.editor;
-    const { from, to } = view.state.selection;
-    const reference = {
-      getBoundingClientRect: () => {
-        const start = view.coordsAtPos(from);
-        const end = view.coordsAtPos(to);
-        const left = Math.min(start.left, end.left);
-        const right = Math.max(start.right, end.right);
-        return { x: left, y: start.top, left, top: start.top, right, bottom: end.bottom, width: right - left, height: end.bottom - start.top };
-      },
-    };
-    void computePosition(reference, this.el, {
-      placement: 'top',
-      strategy: 'fixed',
-      middleware: [offset(GAP), flip(), shift({ padding: VIEWPORT_PADDING })],
-    }).then(({ x, y }) => Object.assign(this.el.style, { left: `${x}px`, top: `${y}px` }));
+    const { from, to } = this.editor.state.selection;
+    void placeFloating(rangeReference(this.editor.view, from, to), this.el, 'top', 'toolbar');
   }
 }

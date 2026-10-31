@@ -57,10 +57,11 @@ describe('Toolbar', () => {
   });
 
   it('moves overflowing items into the more menu', () => {
-    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(40);
     const ed = makeEditor({ toolbar: ['bold', 'italic', 'underline', 'strike', 'code', 'link'] });
     const bar = ed.root.querySelector<HTMLElement>('.le-toolbar')!;
+    // Each visible control is 40px wide; the bar is 200px.
     Object.defineProperty(bar, 'clientWidth', { configurable: true, get: () => 200 });
+    Object.defineProperty(bar, 'scrollWidth', { configurable: true, get: () => Array.from(bar.children).filter((el) => !(el as HTMLElement).hidden).length * 40 });
     triggerResize();
     const visible = toolbarIds(ed.root).filter((id) => !control(ed.root, id)?.hidden);
     expect(visible).toEqual(['bold', 'italic', 'underline', 'strike']);
@@ -68,7 +69,6 @@ describe('Toolbar', () => {
     expect(more.hidden).toBe(false);
     more.click();
     expect(Array.from(dialog()!.querySelectorAll<HTMLElement>('[data-item]')).map((el) => el.dataset.item)).toEqual(['code', 'link']);
-    width.mockRestore();
   });
 
   it('heading dropdown applies H2', () => {

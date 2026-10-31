@@ -3,7 +3,7 @@ import { DEFAULTS } from '../core/defaults';
 import type { UIContext, UIItem } from '../core/types';
 import { c, PORTAL_CLASS } from './classes';
 import { contextOnlyItems } from './context';
-import { createControl, syncControl } from './controls';
+import { createControl, createSeparator, syncControl } from './controls';
 import { h } from './dom';
 import type { EditorUI } from './EditorUI';
 import { SEPARATOR } from './presets';
@@ -33,8 +33,7 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
       editor.root.style.removeProperty('--le-mobile-bar-height');
       editor.view.setProps({ scrollMargin: undefined });
     });
-    this.subscribe('focus', () => this.update());
-    this.subscribe('blur', () => queueMicrotask(() => this.update()));
+    this.followEditorFocus();
   }
 
   /** Context-only tools first, then the regular tools that also work in this context. */
@@ -45,8 +44,7 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
   }
 
   override update(): void {
-    const focused = this.editor.view.hasFocus() || this.el.contains(document.activeElement);
-    if (!focused) {
+    if (!this.hasFocusWithin()) {
       this.el.hidden = true;
       return;
     }
@@ -63,7 +61,7 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
     this.controls = [];
     this.el.replaceChildren(
       ...this.entries(context).map((entry) => {
-        if (entry === SEPARATOR) return h('span', { class: c('separator'), attrs: { role: 'separator', 'aria-orientation': 'vertical' } });
+        if (entry === SEPARATOR) return createSeparator();
         const el = createControl(entry, this.editor, this.ui);
         this.controls.push({ item: entry, el });
         return el;

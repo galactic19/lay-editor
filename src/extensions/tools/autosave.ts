@@ -2,7 +2,7 @@ import type { Command } from 'prosemirror-state';
 import type { Editor } from '../../core/Editor';
 import { DEFAULTS } from '../../core/defaults';
 import { EditorError } from '../../core/errors';
-import { debounce } from '../../core/timing';
+import { debounce, type Debounced } from '../../core/timing';
 import { DraftStore, type Draft } from '../../io/autosave';
 import { c } from '../../ui/classes';
 import { h } from '../../ui/dom';
@@ -13,6 +13,7 @@ type AutosaveOptions = { key?: string; debounce: number };
 
 interface Session {
   store: DraftStore;
+  save: Debounced<[]>;
   /** A previous draft the user has not restored or discarded yet; saving would overwrite it. */
   pending: Draft | null;
 }
@@ -51,6 +52,7 @@ export const autosave = defineExtension<AutosaveOptions>({
       const session = sessions.get(editor);
       if (!session) return false;
       if (dispatch) {
+        session.save.cancel();
         session.store.clear();
         session.pending = null;
       }
@@ -66,11 +68,11 @@ export const autosave = defineExtension<AutosaveOptions>({
       return;
     }
     const draft = store.load();
-    const session: Session = { store, pending: draft && draft.html && draft.html !== editor.getHTML() ? draft : null };
-    sessions.set(editor, session);
     const save = debounce(() => {
       if (!session.pending) store.save(editor.getHTML());
     }, options.debounce);
+    const session: Session = { store, save, pending: draft && draft.html && draft.html !== editor.getHTML() ? draft : null };
+    sessions.set(editor, session);
     const off = editor.on('update', (tr) => {
       if (tr.docChanged) save();
     });

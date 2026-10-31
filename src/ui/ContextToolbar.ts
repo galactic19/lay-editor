@@ -1,16 +1,13 @@
-import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import type { Editor } from '../core/Editor';
 import type { UIContext, UIItem } from '../core/types';
 import { c, PORTAL_CLASS } from './classes';
 import { contextAnchor, contextOnlyItems } from './context';
 import { createControl, syncControl } from './controls';
 import { h } from './dom';
+import { placeFloating } from './floating';
 import type { EditorUI } from './EditorUI';
 import { RovingFocus } from './roving';
 import { UIComponent } from './UIComponent';
-
-const GAP = 8;
-const VIEWPORT_PADDING = 8;
 
 /** Desktop floating toolbar for images, tables, links and code blocks. */
 export class ContextToolbar extends UIComponent<HTMLDivElement> {
@@ -29,8 +26,7 @@ export class ContextToolbar extends UIComponent<HTMLDivElement> {
     document.body.appendChild(this.el);
     this.roving = new RovingFocus(this.el, `.${c('control')}`);
     this.addDisposer(() => this.roving.destroy());
-    this.subscribe('focus', () => this.update());
-    this.subscribe('blur', () => queueMicrotask(() => this.update()));
+    this.followEditorFocus();
   }
 
   override update(): void {
@@ -38,8 +34,7 @@ export class ContextToolbar extends UIComponent<HTMLDivElement> {
     // A range selection over a link belongs to the formatting bubble.
     const yields = context === 'link' && !this.editor.state.selection.empty;
     const items = context === 'text' || yields ? [] : contextOnlyItems(this.ui.registry, context);
-    const focused = this.editor.view.hasFocus() || this.el.contains(document.activeElement);
-    const anchor = items.length && focused && this.ui.device.mode === 'desktop' ? contextAnchor(this.editor.view, context) : null;
+    const anchor = items.length && this.hasFocusWithin() && this.ui.device.mode === 'desktop' ? contextAnchor(this.editor.view, context) : null;
     if (!anchor) {
       this.el.hidden = true;
       return;
@@ -48,11 +43,7 @@ export class ContextToolbar extends UIComponent<HTMLDivElement> {
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
     this.el.dataset.theme = this.editor.root.dataset.theme;
     this.el.hidden = false;
-    void computePosition(anchor, this.el, {
-      placement: 'top',
-      strategy: 'fixed',
-      middleware: [offset(GAP), flip(), shift({ padding: VIEWPORT_PADDING })],
-    }).then(({ x, y }) => Object.assign(this.el.style, { left: `${x}px`, top: `${y}px` }));
+    void placeFloating(anchor, this.el, 'top', 'toolbar');
   }
 
   private rebuild(context: UIContext, items: UIItem[]): void {

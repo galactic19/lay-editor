@@ -7,7 +7,7 @@ import { deepMerge } from '../core/merge';
 import { isNodeActive } from '../core/state-utils';
 import type { Extension, ExtensionContext, UIItem } from '../core/types';
 
-const capitalize = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+export const capitalize = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function commandName(verb: string, name: string): string {
   return verb + capitalize(name);

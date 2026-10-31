@@ -3,6 +3,7 @@ import { c } from './classes';
 import { DEFAULT_ICONS } from './icon-set';
 
 export const FALLBACK_ICON = 'circle-help';
+const SVG_NS = 'http://www.w3.org/2000/svg';
 const registry = new Map<string, string | IconNode>(Object.entries(DEFAULT_ICONS));
 const warned = new Set<string>();
 
@@ -11,8 +12,10 @@ export function registerIcon(name: string, icon: string | IconNode): void {
   registry.set(name, icon);
 }
 
+/** Icon markup is trusted developer input; a missing xmlns is added so it renders as SVG. */
 function fromMarkup(markup: string): SVGElement {
-  const doc = new window.DOMParser().parseFromString(markup, 'image/svg+xml');
+  const withNamespace = markup.replace(/<svg(?![^>]*\bxmlns=)/, `<svg xmlns="${SVG_NS}"`);
+  const doc = new window.DOMParser().parseFromString(withNamespace, 'image/svg+xml');
   return document.importNode(doc.documentElement, true) as unknown as SVGElement;
 }
 

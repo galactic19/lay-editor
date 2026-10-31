@@ -9,7 +9,7 @@ import { findParent } from '../../core/state-utils';
 import type { ExtensionContext, UIItem } from '../../core/types';
 import { clampWidth, oneOf, safeUrl } from '../../io/sanitize';
 import { dataUrlToFile, UploadManager } from '../../io/upload';
-import { defineExtension } from '../factories';
+import { capitalize, defineExtension } from '../factories';
 import { altPanel, imagePanel } from './imagePanel';
 import { ImageView } from './ImageView';
 
@@ -80,7 +80,18 @@ function insertImage(type: NodeType, input: ImageInput, pos?: number): Command {
 
 const imageFiles = (data: DataTransfer | null): File[] => Array.from(data?.files ?? []).filter((file) => file.type.startsWith('image/'));
 
-/** After a paste or drop, hands data: images to the uploader (or drops them when uploads are off). */
+function readDataImage(src: string): File | null {
+  try {
+    return dataUrlToFile(src);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * After a paste or drop, hands data: images to the uploader. Images that cannot be decoded,
+ * fail validation, or arrive while uploads are off are removed with a notice.
+ */
 function adoptDataImages(tr: Transaction, state: EditorState, type: NodeType, uploads: UploadManager): Transaction | null {
   const found: Array<{ pos: number; node: PMNode }> = [];
   state.doc.descendants((node, pos) => {
@@ -88,16 +99,22 @@ function adoptDataImages(tr: Transaction, state: EditorState, type: NodeType, up
   });
   if (!found.length) return null;
   const next = state.tr.setMeta('addToHistory', tr.getMeta('addToHistory'));
+  const notices: Array<() => void> = [];
   for (const { node, pos } of found.reverse()) {
-    if (!uploads.enabled) {
+    const file = uploads.enabled ? readDataImage(node.attrs.src) : null;
+    const accepted = file !== null && uploads.validate(file) === null;
+    if (!accepted) {
       next.delete(pos, pos + node.nodeSize);
+      if (uploads.enabled) notices.push(() => (file ? uploads.reject(file) : uploads.rejectUnreadable()));
       continue;
     }
     const id = uploads.nextId();
     next.setNodeMarkup(pos, undefined, { ...node.attrs, uploadId: id });
-    queueMicrotask(() => void uploads.uploadExisting(id, dataUrlToFile(node.attrs.src)));
+    notices.push(() => void uploads.uploadExisting(id, file));
   }
-  if (!uploads.enabled) void uploads.uploadFiles([]);
+  if (!uploads.enabled) notices.push(() => uploads.notifyDisabled());
+  // Side effects run after the transaction is applied.
+  queueMicrotask(() => notices.forEach((notice) => notice()));
   return next;
 }
 
@@ -115,10 +132,10 @@ const sizeItem = (n: number): UIItem => ({
 });
 
 const alignItem = (align: Align): UIItem => ({
-  id: `imageAlign${align[0]!.toUpperCase()}${align.slice(1)}`,
+  id: `imageAlign${capitalize(align)}`,
   kind: 'button',
   icon: `align-${align}`,
-  label: `toolbar.imageAlign${align[0]!.toUpperCase()}${align.slice(1)}`,
+  label: `toolbar.imageAlign${capitalize(align)}`,
   command: 'setImageAlign',
   args: [align],
   contexts: ['image'],

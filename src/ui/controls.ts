@@ -57,6 +57,11 @@ export function createControl(item: UIItem, editor: Editor, ui: EditorUI, option
   return button;
 }
 
+/** Vertical divider between toolbar groups. */
+export function createSeparator(): HTMLSpanElement {
+  return h('span', { class: c('separator'), attrs: { role: 'separator', 'aria-orientation': 'vertical' } });
+}
+
 function isItemEnabled(item: UIItem, editor: Editor, ui: EditorUI): boolean {
   if (!editor.isEditable || ui.isLocked(item)) return false;
   if (item.isEnabled) return item.isEnabled(editor);

@@ -1,5 +1,6 @@
 import { c, PORTAL_CLASS } from './classes';
 import { h } from './dom';
+import type { Anchor } from './floating';
 import { focusFirst, trapFocus } from './focus';
 import type { PanelContainer } from './PanelHost';
 
@@ -24,7 +25,7 @@ export abstract class PortalPanel implements PanelContainer {
     return this.dialog !== null;
   }
 
-  open(content: HTMLElement, anchor: HTMLElement | null, onClose: (hadFocus: boolean) => void): void {
+  open(content: HTMLElement, anchor: Anchor | null, onClose: (hadFocus: boolean) => void): void {
     this.close();
     const parts = this.render(content, anchor);
     this.dialog = parts.dialog;
@@ -66,5 +67,5 @@ export abstract class PortalPanel implements PanelContainer {
     return h('div', { class: `${PORTAL_CLASS} ${c(name)}`, attrs }, ...children);
   }
 
-  protected abstract render(content: HTMLElement, anchor: HTMLElement | null): PortalParts;
+  protected abstract render(content: HTMLElement, anchor: Anchor | null): PortalParts;
 }

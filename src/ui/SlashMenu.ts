@@ -1,14 +1,12 @@
-import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import type { Editor } from '../core/Editor';
 import { currentSlashItems, runSlashItem, slashKey } from '../extensions/tools/slashMenu';
 import { c, PORTAL_CLASS } from './classes';
 import { h } from './dom';
+import { placeFloating, rangeReference } from './floating';
 import type { EditorUI } from './EditorUI';
 import { renderIcon } from './icons';
 import { UIComponent } from './UIComponent';
 
-const GAP = 6;
-const VIEWPORT_PADDING = 8;
 let menuCount = 0;
 
 /** The "/" block menu, positioned under the trigger character. */
@@ -32,7 +30,7 @@ export class SlashMenu extends UIComponent<HTMLDivElement> {
     this.rendered = signature;
     this.el.dataset.theme = this.editor.root.dataset.theme;
     this.el.hidden = false;
-    this.position(state.from);
+    void placeFloating(rangeReference(this.editor.view, state.from), this.el, 'bottom-start', 'menu');
   }
 
   private render(items: ReturnType<typeof currentSlashItems>, index: number): void {
@@ -77,20 +75,5 @@ export class SlashMenu extends UIComponent<HTMLDivElement> {
       dom.removeAttribute('aria-activedescendant');
       dom.removeAttribute('aria-controls');
     }
-  }
-
-  private position(from: number): void {
-    const view = this.editor.view;
-    const reference = {
-      getBoundingClientRect: () => {
-        const rect = view.coordsAtPos(from);
-        return { x: rect.left, y: rect.top, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: 0, height: rect.bottom - rect.top };
-      },
-    };
-    void computePosition(reference, this.el, {
-      placement: 'bottom-start',
-      strategy: 'fixed',
-      middleware: [offset(GAP), flip(), shift({ padding: VIEWPORT_PADDING })],
-    }).then(({ x, y }) => Object.assign(this.el.style, { left: `${x}px`, top: `${y}px` }));
   }
 }

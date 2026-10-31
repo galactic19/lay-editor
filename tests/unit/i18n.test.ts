@@ -15,10 +15,10 @@ describe('i18n', () => {
     expect(t('no.such.key')).toBe('no.such.key');
   });
 
-  it('merges a partial custom pack over en', () => {
+  it('merges a partial custom pack over the default language', () => {
     const t = createTranslator({ toolbar: { more: '…' } });
     expect(t('toolbar.more')).toBe('…');
-    expect(t('placeholder')).toBe('Start writing…');
+    expect(t('placeholder')).toBe('내용을 입력하세요');
   });
 
   it('uses ko by code', () => {

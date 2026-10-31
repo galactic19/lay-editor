@@ -1,3 +1,4 @@
+import { DEFAULTS } from '../core/defaults';
 import { deepMerge } from '../core/merge';
 import { en } from './en';
 import { ko } from './ko';
@@ -15,10 +16,15 @@ export function registerLocale(code: string, pack: LocalePack): void {
   registry.set(code, pack);
 }
 
-/** Lookup order: requested pack → en → the key itself. */
+/**
+ * Lookup order: requested pack → en → the key itself. A pack passed as an object is a
+ * partial override of the default language (e.g. just the placeholder).
+ */
 export function createTranslator(locale: string | LocalePack): Translate {
-  const requested = typeof locale === 'string' ? registry.get(locale) : locale;
-  const pack = deepMerge<LocalePack>(registry.get(FALLBACK)!, requested);
+  const pack =
+    typeof locale === 'string'
+      ? deepMerge<LocalePack>(registry.get(FALLBACK)!, registry.get(locale))
+      : deepMerge<LocalePack>(registry.get(FALLBACK)!, registry.get(DEFAULTS.locale), locale);
   return (key, params) => interpolate(lookup(pack, key) ?? key, params);
 }
 

@@ -32,6 +32,7 @@
 
   --le-radius: 10px;
   --le-radius-sm: 6px;
+  --le-space-hair: 2px;
   --le-space-1: 4px;
   --le-space-2: 8px;
   --le-space-3: 12px;
@@ -44,6 +45,23 @@
   --le-indent-step: 2em;
   --le-grid-cell: 18px;
   --le-sheet-max-height: 70vh;
+  --le-font-size-small: 12px;
+  --le-font-size-source: 13px;
+  --le-icon-size: 18px;
+  --le-caret-size: 12px;
+  --le-tooltip-gap: 6px;
+  --le-dropdown-min-width: 180px;
+  --le-dropdown-max-width: 360px;
+  --le-menu-width: 260px;
+  --le-menu-max-height: 320px;
+  --le-find-panel-width: 280px;
+  --le-resize-handle-width: 10px;
+  --le-resize-handle-height: 40px;
+  --le-progress-height: 4px;
+  --le-sheet-handle-width: 40px;
+  --le-sheet-handle-height: 5px;
+  --le-sheet-duration: 160ms;
+  --le-backdrop: rgba(0, 0, 0, 0.35);
   --le-z-overlay: 1000;
   --le-z-fullscreen: 9999;
   --le-transition: 120ms ease;

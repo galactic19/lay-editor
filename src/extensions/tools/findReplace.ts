@@ -1,6 +1,7 @@
 import type { Node as PMNode } from 'prosemirror-model';
 import { Plugin, PluginKey, TextSelection, type Command, type EditorState } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
+import { LEAF_CHAR } from '../../core/state-utils';
 import { c } from '../../ui/classes';
 import { findPanel } from '../../ui/panels/findPanel';
 import { defineExtension } from '../factories';
@@ -22,8 +23,6 @@ type FindMeta = { type: 'query'; query: string; caseSensitive: boolean } | { typ
 
 export const findKey = new PluginKey<FindState>('findReplace');
 const EMPTY: FindState = { query: '', caseSensitive: false, matches: [], current: -1 };
-/** Stand-in for inline nodes (images, breaks) so matches never span them. */
-const LEAF = '￼';
 
 /** Literal matches inside each textblock; a match never crosses a block boundary. */
 export function findMatches(doc: PMNode, query: string, caseSensitive: boolean): Match[] {
@@ -36,7 +35,7 @@ export function findMatches(doc: PMNode, query: string, caseSensitive: boolean):
     const positions: number[] = [];
     block.forEach((child, offset) => {
       const start = blockPos + 1 + offset;
-      const chunk = child.isText ? child.text! : LEAF;
+      const chunk = child.isText ? child.text! : LEAF_CHAR;
       for (let i = 0; i < chunk.length; i++) positions.push(start + i);
       text += chunk;
     });

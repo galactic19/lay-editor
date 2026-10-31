@@ -70,6 +70,7 @@ export class ImageView implements NodeView {
 
   private startResize(event: PointerEvent, side: (typeof HANDLE_SIDES)[number]): void {
     event.preventDefault();
+    if (!this.view.editable) return;
     const content = this.view.dom as HTMLElement;
     const startX = event.clientX;
     const startWidth = this.dom.getBoundingClientRect().width;

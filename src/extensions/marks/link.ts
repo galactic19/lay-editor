@@ -12,7 +12,19 @@ export interface LinkInput {
 }
 
 const AUTOLINK = /(?:^|\s)((?:https?:\/\/|www\.)[^\s]+)\s$/;
-const withScheme = (url: string): string => (url.startsWith('www.') ? `https://${url}` : url);
+const EMAIL = /^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/;
+const HAS_SCHEME = /^(?:[a-z][a-z0-9+.-]*:\/\/|mailto:|tel:)/i;
+const RELATIVE = /^[/#?.]/;
+/** "naver.com", "www.a.com/x", "localhost:3000" — a host typed without a scheme. */
+const BARE_HOST = /^(?:www\.|[\w-]+(?:\.[\w-]+)+(?=[:/?#]|$)|[\w.-]+:\d+)/i;
+
+/** Adds the scheme people leave out: https:// for hosts, mailto: for e-mail addresses. */
+export function normalizeHref(input: string): string {
+  const value = String(input ?? '').trim();
+  if (EMAIL.test(value)) return `mailto:${value}`;
+  if (HAS_SCHEME.test(value) || RELATIVE.test(value)) return value;
+  return BARE_HOST.test(value) ? `https://${value}` : value;
+}
 
 /** The range a link command acts on: the selection, or the whole link around a bare cursor. */
 function linkRange(state: Parameters<Command>[0], type: MarkType): { from: number; to: number } | null {
@@ -24,7 +36,7 @@ function linkRange(state: Parameters<Command>[0], type: MarkType): { from: numbe
 const setLink =
   (type: MarkType, input: LinkInput): Command =>
   (state, dispatch) => {
-    const href = safeUrl(input?.href);
+    const href = safeUrl(normalizeHref(input?.href));
     if (!href) return false;
     const mark = type.create({ href, target: input.newTab ? '_blank' : null });
     if (!dispatch) return true;
@@ -84,7 +96,7 @@ export const link = defineExtension({
   inputRules: ({ schema }) => [
     new InputRule(AUTOLINK, (state, match, start, end) => {
       const url = match[1]!;
-      const href = safeUrl(withScheme(url));
+      const href = safeUrl(normalizeHref(url));
       if (!href) return null;
       const type = schema.marks.link!;
       const urlStart = start + match[0].indexOf(url);

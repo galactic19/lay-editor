@@ -9,7 +9,7 @@ import type { Editor } from '../../core/Editor';
 import { findParent } from '../../core/state-utils';
 import type { UIItem } from '../../core/types';
 import { c } from '../../ui/classes';
-import { defineExtension } from '../factories';
+import { commandName, defineExtension } from '../factories';
 
 type ListName = 'bulletList' | 'orderedList' | 'taskList';
 const ITEM_OF: Record<ListName, 'listItem' | 'taskItem'> = { bulletList: 'listItem', orderedList: 'listItem', taskList: 'taskItem' };
@@ -105,7 +105,7 @@ const listButton = (id: ListName, icon: string, shortcut: string, keywords: stri
   kind: 'button',
   icon,
   label: `toolbar.${id}`,
-  command: `toggle${id[0]!.toUpperCase()}${id.slice(1)}`,
+  command: commandName('toggle', id),
   shortcut,
   contexts: ['text', 'table'],
   isActive: (editor) => editor.isActive(id),
@@ -139,7 +139,7 @@ export const lists = defineExtension({
     },
   },
   commands: ({ schema }) => ({
-    ...Object.fromEntries(LIST_NAMES.map((name) => [`toggle${name[0]!.toUpperCase()}${name.slice(1)}`, () => toggleList(schema, name)])),
+    ...Object.fromEntries(LIST_NAMES.map((name) => [commandName('toggle', name), () => toggleList(schema, name)])),
     sinkListItem: () => anyItem(schema, sinkListItem),
     liftListItem: () => anyItem(schema, liftListItem),
     toggleTaskChecked: (pos: number): Command => (state, dispatch) => {

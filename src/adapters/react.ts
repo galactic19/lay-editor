@@ -29,6 +29,9 @@ export const LayEditor = forwardRef<Editor | null, LayEditorProps>(function LayE
   const synced = useRef<SyncedEditor | null>(null);
   const onChange = useRef(props.onChange);
   onChange.current = props.onChange;
+  // Once controlled, an undefined value means "empty", not "leave as is".
+  const controlled = useRef(props.value !== undefined);
+  if (props.value !== undefined) controlled.current = true;
 
   useLayoutEffect(() => {
     const { value, defaultValue, onChange: _onChange, className: _className, options, ...core } = props;
@@ -41,7 +44,7 @@ export const LayEditor = forwardRef<Editor | null, LayEditorProps>(function LayE
   useImperativeHandle<Editor | null, Editor | null>(ref, () => synced.current?.editor ?? null, []);
 
   useEffect(() => {
-    if (props.value !== undefined) synced.current?.applyValue(props.value);
+    if (controlled.current) synced.current?.applyValue(props.value);
   }, [props.value]);
   useUpdate(props.theme, (theme) => theme && synced.current?.editor.setTheme(theme));
   useUpdate(props.locale, (locale) => locale && synced.current?.editor.setLocale(locale));
