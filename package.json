@@ -3,6 +3,25 @@
   "version": "0.1.0",
   "description": "Framework-agnostic, mobile-friendly rich text editor built on ProseMirror",
   "license": "MIT",
+  "keywords": [
+    "editor",
+    "rich-text",
+    "wysiwyg",
+    "prosemirror",
+    "korean",
+    "hangul",
+    "mobile",
+    "react",
+    "vue"
+  ],
+  "homepage": "https://github.com/galactic19/lay-editor#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/galactic19/lay-editor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/galactic19/lay-editor/issues"
+  },
   "type": "module",
   "sideEffects": [
     "*.css"
@@ -25,18 +44,23 @@
       "import": "./dist/vue.js"
     },
     "./style.css": "./dist/style.css",
-    "./content.css": "./dist/content.css"
+    "./content.css": "./dist/content.css",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build && vite build --config vite.umd.config.ts && node scripts/build-css.mjs && tsc -p tsconfig.build.json && node scripts/verify-exports.mjs && node scripts/check-size.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@floating-ui/dom": "1.8.0",

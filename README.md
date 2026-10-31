@@ -55,3 +55,18 @@ npm run build      # dist/ 생성 + 내보내기 검사 + 용량 검사
 ```
 
 WebKit(iPhone) E2E는 WebKit 브라우저가 설치된 환경에서 `E2E_WEBKIT=1 npm run test:e2e`로 실행합니다.
+
+## npm 게시
+
+```bash
+npm login
+npm publish
+```
+
+- `prepublishOnly`가 린트, 타입 검사, 단위 테스트, 빌드(내보내기·용량 검사 포함)를 먼저 실행하고, 하나라도 실패하면 게시를 멈춥니다.
+- `publishConfig.access`가 `public`이라 `--access public`을 따로 붙이지 않아도 됩니다.
+- 버전은 `npm version patch`(또는 `minor`, `major`)로 올립니다.
+
+## 라이선스
+
+[MIT](LICENSE)
