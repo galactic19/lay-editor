@@ -87,6 +87,23 @@ test('applies a link typed without a scheme from the link panel', async ({ page 
   expect(await html(page)).toBe('<p><a href="https://naver.com">visit</a></p>');
 });
 
+test('completes the scheme in the image form and shows why the video form rejects a URL', async ({ page }) => {
+  await openEmpty(page);
+  const submit = async (item: string, url: string) => {
+    await page.evaluate((id) => window.__editor.ui!.openPanelFor(id), item);
+    await panel(page).locator('input[type="url"]').fill(url);
+    await panel(page).locator('button[type="submit"]').click();
+  };
+  await submit('image', 'example.com/photo.jpg');
+  await expect(panel(page)).toHaveCount(0);
+  expect(await html(page)).toContain('src="https://example.com/photo.jpg"');
+
+  await submit('video', 'example.com/clip');
+  await expect(panel(page).locator('input[type="url"]')).toHaveAttribute('aria-invalid', 'true');
+  await expect(panel(page).getByRole('alert')).toBeVisible();
+  await expect(page.locator('#editor [data-video]')).toHaveCount(0);
+});
+
 test('scrolls each find result into view, clear of a bottom sheet', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await openEmpty(page);

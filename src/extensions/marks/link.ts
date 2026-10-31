@@ -3,6 +3,7 @@ import { InputRule } from 'prosemirror-inputrules';
 import type { Command } from 'prosemirror-state';
 import { getMarkRange, isMarkActive } from '../../core/state-utils';
 import { safeUrl } from '../../io/sanitize';
+import { completeScheme } from '../../io/url';
 import { linkPanel } from '../../ui/panels/linkPanel';
 import { defineExtension } from '../factories';
 
@@ -13,17 +14,11 @@ export interface LinkInput {
 
 const AUTOLINK = /(?:^|\s)((?:https?:\/\/|www\.)[^\s]+)\s$/;
 const EMAIL = /^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/;
-const HAS_SCHEME = /^(?:[a-z][a-z0-9+.-]*:\/\/|mailto:|tel:)/i;
-const RELATIVE = /^[/#?.]/;
-/** "naver.com", "www.a.com/x", "localhost:3000" — a host typed without a scheme. */
-const BARE_HOST = /^(?:www\.|[\w-]+(?:\.[\w-]+)+(?=[:/?#]|$)|[\w.-]+:\d+)/i;
 
 /** Adds the scheme people leave out: https:// for hosts, mailto: for e-mail addresses. */
 export function normalizeHref(input: string): string {
   const value = String(input ?? '').trim();
-  if (EMAIL.test(value)) return `mailto:${value}`;
-  if (HAS_SCHEME.test(value) || RELATIVE.test(value)) return value;
-  return BARE_HOST.test(value) ? `https://${value}` : value;
+  return EMAIL.test(value) ? `mailto:${value}` : completeScheme(value);
 }
 
 /** The range a link command acts on: the selection, or the whole link around a bare cursor. */

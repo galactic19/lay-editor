@@ -118,6 +118,35 @@ describe('audit: panel forms validate through the editor, not the browser', () =
     form().requestSubmit();
     expect(ed.getHTML()).toContain('src="/uploads/a.png"');
   });
+
+  it.each([
+    ['image', 'example.com/photo.jpg', 'src="https://example.com/photo.jpg"'],
+    ['video', 'youtu.be/dQw4w9WgXcQ', 'data-id="dQw4w9WgXcQ"'],
+  ])('completes the scheme of a host typed into the %s URL form', (item, typed, inserted) => {
+    const ed = makeEditor();
+    ed.ui!.openPanelFor(item);
+    form().querySelector<HTMLInputElement>('input[type="url"]')!.value = typed;
+    form().requestSubmit();
+    expect(ed.getHTML()).toContain(inserted);
+    expect(document.querySelector('.le-dropdown')).toBeNull();
+  });
+
+  it.each([
+    ['image', 'javascript:alert(1)', 'Enter a valid image address'],
+    ['video', 'example.com/clip', 'Enter a YouTube or Vimeo address'],
+  ])('shows a visible error when the %s form value is rejected', (item, typed, message) => {
+    const ed = makeEditor({ locale: 'en' });
+    ed.ui!.openPanelFor(item);
+    const input = form().querySelector<HTMLInputElement>('input[type="url"]')!;
+    const error = () => form().querySelector<HTMLElement>('[role="alert"]')!;
+    expect(error().hidden).toBe(true);
+    input.value = typed;
+    form().requestSubmit();
+    expect(ed.getHTML()).toBe('');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(error().hidden).toBe(false);
+    expect(error().textContent).toBe(message);
+  });
 });
 
 describe('audit: find scrolls to the match', () => {
