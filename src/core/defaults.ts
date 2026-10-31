@@ -46,6 +46,8 @@ export const DEFAULTS = {
     exitBlankLines: 2,
     plainLanguage: 'plaintext',
     languages: ['plaintext', 'javascript', 'typescript', 'html', 'css', 'json', 'python', 'java', 'sql', 'bash'],
+    /** Short names (```js, language-py) the language menu shows as the entry for the full name; the saved class is kept. */
+    aliases: { js: 'javascript', jsx: 'javascript', mjs: 'javascript', ts: 'typescript', tsx: 'typescript', py: 'python', sh: 'bash', shell: 'bash', zsh: 'bash' },
   },
   paste: {
     /** Spaces a tab in pasted plain text becomes outside code (HTML would collapse a tab to one space). */

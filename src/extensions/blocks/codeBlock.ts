@@ -11,6 +11,11 @@ type CodeBlockOptions = { indent: string; exitBlankLines: number; plainLanguage:
 
 const inCode = (state: EditorState) => findParent(state, (node) => node.type.name === 'codeBlock');
 
+const ALIASES: Readonly<Record<string, string>> = DEFAULTS.codeBlock.aliases;
+
+/** A block's language as the language menu names it: a known short name (```js, language-py) reads as the full name. */
+const menuLanguage = (language: string | null): string | null => language && (ALIASES[language.toLowerCase()] ?? language);
+
 /** The caret when it sits at the very end of a code block. */
 function caretAtCodeEnd(state: EditorState) {
   const { $from, empty } = state.selection;
@@ -100,7 +105,11 @@ const languageOption = (language: string, plain: string): UIItem => {
     command: 'setCodeLanguage',
     args: [value],
     contexts: ['codeBlock'],
-    isActive: (editor) => editor.isActive('codeBlock', { language: value }),
+    // The saved class stays as written (language-js); only the menu reads the short name as its entry.
+    isActive: (editor) => {
+      const block = inCode(editor.state);
+      return block !== null && menuLanguage(block.node.attrs.language) === value;
+    },
   };
 };
 

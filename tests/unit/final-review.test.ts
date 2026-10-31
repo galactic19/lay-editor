@@ -354,3 +354,31 @@ describe('final review: Tab in the last table cell', () => {
     expect(editor.getHTML()).toBe('<table><tbody><tr><td><p>a</p></td><td><p>b</p></td></tr><tr><td><p>c</p></td><td><p></p></td></tr></tbody></table>');
   });
 });
+
+describe('final review: code block language aliases', () => {
+  /** The language menu entries marked current. */
+  const current = (editor: Editor): string[] =>
+    editor.ui!.registry.get('codeLanguage')!.options!.filter((option) => option.isActive?.(editor)).map((option) => option.id);
+
+  it.each([
+    ['js', 'javascript'],
+    ['ts', 'typescript'],
+    ['py', 'python'],
+    ['sh', 'bash'],
+    ['JS', 'javascript'],
+  ])('```%s keeps its class and marks %s current in the language menu', (alias, language) => {
+    const editor = makeEditor();
+    typeText(editor, `\`\`\`${alias} x = 1`);
+    expect(editor.getHTML()).toBe(`<pre><code class="language-${alias}">x = 1</code></pre>`);
+    expect(current(editor)).toEqual([`codeLanguage:${language}`]);
+  });
+
+  it('loaded short names count too; other names mark nothing', () => {
+    const editor = makeEditor({ content: '<pre><code class="language-py">a</code></pre><pre><code class="language-rust">b</code></pre>' });
+    caretAfter(editor, 'a');
+    expect(current(editor)).toEqual(['codeLanguage:python']);
+    caretAfter(editor, 'b');
+    expect(current(editor)).toEqual([]);
+    expect(editor.getHTML()).toBe('<pre><code class="language-py">a</code></pre><pre><code class="language-rust">b</code></pre>');
+  });
+});
