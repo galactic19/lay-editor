@@ -100,4 +100,13 @@ test.describe('textarea mode in a real form', () => {
     expect(await page.evaluate(() => (window as unknown as { __saved: unknown }).__saved)).toBe(await form.shown());
     expect(await form.shown()).toContain('마지막 문장');
   });
+
+  test('the reset button resets the editor and the post matches the screen', async ({ page }) => {
+    const form = await mountForm(page, '<textarea name="body"><p>원래 내용</p></textarea>');
+    await typeAtEnd(page, ' 추가한 글');
+    await page.click('#reset');
+    await expect(page.locator(content)).toHaveText('원래 내용');
+    await page.click('#save');
+    await expect.poll(() => form.posted).toEqual(['<p>원래 내용</p>']);
+  });
 });

@@ -20,7 +20,8 @@ function replaceEntry(data: FormData, name: string, from: string, to: string): v
 
 /**
  * Textarea mode: the editor takes the place of a form's <textarea>, which stays the field the form
- * posts. Whenever the form is read (submit, form.submit(), new FormData) it holds the editor's HTML.
+ * posts. Whenever the form is read (submit, form.submit(), new FormData) it holds the editor's HTML,
+ * and a form reset resets the editor too.
  */
 export class TextareaBinding {
   private readonly form: HTMLFormElement | null;
@@ -42,7 +43,11 @@ export class TextareaBinding {
     this.disposers.push(() => (textarea.style.display = previousDisplay), this.editor.on('change', (html) => (textarea.value = html)));
     if (!form) return;
     // Submit listeners may read the textarea directly; 'formdata' covers form.submit() and new FormData(form).
-    this.disposers.push(listen(form, 'submit', this.commit, true), listen(form, 'formdata', this.onFormData));
+    this.disposers.push(
+      listen(form, 'submit', this.commit, true),
+      listen(form, 'formdata', this.onFormData),
+      listen(form, 'reset', this.onReset),
+    );
   }
 
   /** Writes the editor's HTML into the textarea. */
@@ -65,5 +70,13 @@ export class TextareaBinding {
     const stale = this.textarea.value;
     this.commit();
     if (this.textarea.name) replaceEntry(event.formData, this.textarea.name, stale, this.textarea.value);
+  };
+
+  /** Back to the content the editor was created with, like every other field of the form. */
+  private readonly onReset = (event: Event): void => {
+    if (event.defaultPrevented) return;
+    this.editor.setHTML(this.editor.config.content);
+    // The form puts the textarea's default value back after this event; the flushed change then overwrites it.
+    setTimeout(() => this.editor.flushChange());
   };
 }

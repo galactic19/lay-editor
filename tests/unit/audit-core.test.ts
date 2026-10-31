@@ -191,3 +191,38 @@ describe('audit core: the textarea holds what the editor shows', () => {
     ]);
   });
 });
+
+describe('audit core: form.reset() resets the editor', () => {
+  it('restores the content the editor was created with and syncs the textarea after the reset', () => {
+    vi.useFakeTimers();
+    const { form, ta, ed } = formEditor('<textarea name="body"><p>원래 내용</p></textarea>');
+    typeText(ed, '추가 ');
+    vi.advanceTimersByTime(300);
+    form.reset();
+    expect(ed.getHTML()).toBe('<p>원래 내용</p>');
+    expect(ed.can('undo')).toBe(false);
+    vi.runAllTimers();
+    expect(ta.value).toBe('<p>원래 내용</p>');
+  });
+
+  it('restores the content option, not the textarea default', () => {
+    vi.useFakeTimers();
+    const { form, ta, ed } = formEditor('<textarea name="body"></textarea>', { content: '<p>loaded</p>' });
+    typeText(ed, 'x');
+    form.reset();
+    vi.runAllTimers();
+    expect(ed.getHTML()).toBe('<p>loaded</p>');
+    expect(ta.value).toBe('<p>loaded</p>');
+  });
+
+  it('leaves the editor alone when the reset is cancelled', () => {
+    document.body.innerHTML = '<form><textarea name="body"><p>a</p></textarea></form>';
+    const form = document.querySelector('form')!;
+    form.addEventListener('reset', (event) => event.preventDefault());
+    const ed = createEditor({ element: form.querySelector('textarea')! });
+    onCleanup(() => ed.destroy());
+    typeText(ed, 'b');
+    form.reset();
+    expect(ed.getHTML()).toBe('<p>ba</p>');
+  });
+});
