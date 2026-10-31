@@ -98,10 +98,13 @@ describe('audit #22: tables whose rows would need too many filler cells are read
   });
 
   it('a big table with every cell written is not limited', () => {
-    const big = `<table>${row(...Array.from({ length: 100 }, () => '<td></td>')).repeat(maxFillerCells / 100 + 1)}</table>`;
     const ed = makeEditor();
-    ed.setHTML(big);
-    expect(cellCount(ed)).toBe(writtenCells(big));
+    const { table, table_row, table_cell } = ed.schema.nodes;
+    const cells = Array.from({ length: 100 }, () => table_cell!.createAndFill()!);
+    const big = table!.create(null, Array.from({ length: maxFillerCells / cells.length + 1 }, () => table_row!.create(null, cells)));
+    // Built and applied without HTML or a view: parsing and drawing 10k cells in jsdom takes seconds.
+    const { state } = ed.state.applyTransaction(ed.state.tr.replaceWith(0, ed.state.doc.content.size, big));
+    expect(state.doc.firstChild).toBe(big);
   });
 
   it('a table merged in the editor reads back unchanged', () => {
