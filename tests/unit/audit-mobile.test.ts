@@ -1,5 +1,5 @@
 import { TextSelection } from 'prosemirror-state';
-import { setMedia } from '../setup';
+import { onCleanup, setMedia } from '../setup';
 import { findText, flushPromises, makeEditor, selectText } from '../helpers/editor';
 
 const COARSE = '(pointer: coarse)';
@@ -103,5 +103,31 @@ describe('audit: panel forms validate through the editor, not the browser', () =
     form().querySelector<HTMLInputElement>('input[type="url"]')!.value = '/uploads/a.png';
     form().requestSubmit();
     expect(ed.getHTML()).toContain('src="/uploads/a.png"');
+  });
+});
+
+describe('audit: find scrolls to the match', () => {
+  it('scrolls the current match into view even while focus sits in the find panel', () => {
+    const scrolled: Element[] = [];
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this);
+    };
+    onCleanup(() => delete (Element.prototype as Partial<Element>).scrollIntoView);
+    const ed = makeEditor({ content: '<p>NEEDLE one</p><p>two</p><p>NEEDLE three</p>' });
+    ed.ui!.openPanelFor('findReplace');
+    expect(ed.view.hasFocus()).toBe(false);
+    const find = document.querySelector<HTMLInputElement>('[data-field="find"]')!;
+    find.value = 'needle';
+    find.dispatchEvent(new Event('input'));
+
+    document.querySelector<HTMLButtonElement>('[data-action="next"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-action="next"]')!.click();
+    expect(scrolled.map((el) => el.textContent)).toEqual(['NEEDLE', 'NEEDLE']);
+    expect(scrolled.at(-1)).toBe(ed.view.dom.querySelector('.le-find-current'));
+    expect(scrolled.at(-1)!.closest('p')!.textContent).toBe('NEEDLE three');
+
+    (document.querySelector('[data-field="replace"]') as HTMLInputElement).value = 'pin';
+    document.querySelector<HTMLButtonElement>('[data-action="replaceOne"]')!.click();
+    expect(scrolled.at(-1)!.closest('p')!.textContent).toBe('NEEDLE one');
   });
 });
