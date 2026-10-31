@@ -1,5 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { contrast, control, openEmpty, WCAG_AA } from './helpers';
+import { contrast, control, html, openEmpty, WCAG_AA } from './helpers';
 
 const isMobile = (info: TestInfo): boolean => info.project.name.startsWith('mobile');
 
@@ -77,4 +77,16 @@ test.describe('final review: the mobile keyboard bar covers nothing it should no
     expect(box.bottom).toBeLessThanOrEqual(top);
     await expect(control(page, 'bold')).toBeVisible();
   });
+});
+
+test('final review: ticking a task box keeps typing in the text', async ({ page }, info) => {
+  await openEmpty(page);
+  await page.keyboard.type('[] task a');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('task b');
+  const box = page.locator('#editor .ProseMirror input[type="checkbox"]').first();
+  if (isMobile(info)) await box.tap();
+  else await box.click();
+  await page.keyboard.type(' more');
+  await expect.poll(() => html(page)).toBe('<ul data-type="taskList"><li data-checked="true"><p>task a</p></li><li data-checked="false"><p>task b more</p></li></ul>');
 });

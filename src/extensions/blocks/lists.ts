@@ -78,6 +78,8 @@ class TaskItemView implements NodeView {
     label.className = c('task-check');
     this.checkbox = outsideForms(h('input', { attrs: { type: 'checkbox' } }));
     this.checkbox.setAttribute('aria-label', editor.t('a11y.taskCheckbox'));
+    // A click ticks the box without taking focus from the text, so typing goes on where it was; Tab and Space still reach it.
+    this.checkbox.addEventListener('mousedown', (event) => event.preventDefault());
     this.checkbox.addEventListener('change', () => {
       const pos = getPos();
       if (pos !== undefined && view.editable) editor.exec('toggleTaskChecked', pos);

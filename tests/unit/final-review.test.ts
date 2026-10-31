@@ -402,3 +402,13 @@ describe('final review: autosave on leaving the page', () => {
     expect(JSON.parse(localStorage.getItem('le-draft:leave')!).html).toBe('<p>server copy last words</p>');
   });
 });
+
+describe('final review: task checkboxes and pointer clicks', () => {
+  it('a pointer press on a checkbox does not take focus from the text', () => {
+    const editor = makeEditor({ content: '<ul data-type="taskList"><li data-checked="false"><p>task</p></li></ul>' });
+    const box = editor.view.dom.querySelector('input')!;
+    const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    box.dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(true);
+  });
+});
