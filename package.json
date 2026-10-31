@@ -33,7 +33,8 @@
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/editor.umd.cjs"
     },
     "./react": {
       "types": "./dist/types/adapters/react.d.ts",
@@ -45,6 +46,7 @@
     },
     "./style.css": "./dist/style.css",
     "./content.css": "./dist/content.css",
+    "./editor.umd.js": "./dist/editor.umd.js",
     "./package.json": "./package.json"
   },
   "files": [
