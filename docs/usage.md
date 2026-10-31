@@ -218,6 +218,8 @@ createEditor({ element: '#editor', locale: 'ja' });
 ```
 
 - 빠진 키는 영어로 대체됩니다.
+- 언어 코드는 대소문자를 가리지 않고, `ko-KR`·`en-US`처럼 지역이 붙은 코드는 등록된 `ko`·`en` 팩을 씁니다.
+- 등록되지 않은 코드(예: `kr`)는 콘솔 경고와 함께 기본 언어(`ko`)로 표시됩니다. `registerLocale`은 `createEditor`보다 먼저 호출하세요.
 - 한 번만 쓰는 문구 수정은 `locale: { placeholder: '댓글을 입력하세요' }`처럼 객체로 넘겨도 됩니다.
 
 ## 10. React와 Vue

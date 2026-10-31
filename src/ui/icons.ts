@@ -1,4 +1,5 @@
 import { createElement, type IconNode } from 'lucide';
+import { warn } from '../core/errors';
 import { c } from './classes';
 import { DEFAULT_ICONS } from './icon-set';
 
@@ -24,7 +25,7 @@ export function renderIcon(name: string): SVGElement {
   if (!icon) {
     if (!warned.has(name)) {
       warned.add(name);
-      console.warn(`[laymaker] unknown icon "${name}"`);
+      warn(`unknown icon "${name}"`);
     }
     icon = registry.get(FALLBACK_ICON)!;
   }

@@ -1,3 +1,4 @@
+import { createTranslator, registerLocale } from '../../src/i18n';
 import { flushPromises, makeEditor, typeText } from '../helpers/editor';
 
 describe('audit core: every public method is safe after destroy', () => {
@@ -94,5 +95,42 @@ describe('audit core: every upload event passes the file first', () => {
     ed.exec('uploadImages', [file]);
     await flushPromises();
     expect(onError).toHaveBeenCalledWith(file, expect.objectContaining({ code }));
+  });
+});
+
+describe('audit core: locale codes are matched as language tags', () => {
+  const bold = (code: string) => createTranslator(code)('toolbar.bold');
+
+  it.each([
+    ['ko-KR', '굵게'],
+    ['KO', '굵게'],
+    ['en-US', 'Bold'],
+    ['en-GB', 'Bold'],
+  ])('%s resolves to its language pack', (code, label) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(bold(code)).toBe(label);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('matches a registered region pack case-insensitively, then its language', () => {
+    registerLocale('pt-BR', { placeholder: 'Escreva aqui' });
+    expect(createTranslator('pt-br')('placeholder')).toBe('Escreva aqui');
+    expect(createTranslator('pt-BR-x-test')('placeholder')).toBe('Escreva aqui');
+  });
+
+  it('an unknown code falls back to the default locale with a warning that lists the registered codes', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(bold('kr')).toBe('굵게');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]![0]).toEqual(expect.stringMatching(/"kr".*en, ko/));
+  });
+
+  it('createEditor and setLocale use the same fallback', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const ed = makeEditor({ locale: 'kr' });
+    expect(ed.root.querySelector('[data-item="bold"]')!.getAttribute('aria-label')).toContain('굵게');
+    ed.setLocale('en-US');
+    expect(ed.root.querySelector('[data-item="bold"]')!.getAttribute('aria-label')).toContain('Bold');
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,5 @@
 import { DEFAULTS } from '../core/defaults';
+import { warn } from '../core/errors';
 import { deepMerge } from '../core/merge';
 import { en } from './en';
 import { ko } from './ko';
@@ -12,8 +13,11 @@ const registry = new Map<string, LocalePack>([
   ['ko', ko],
 ]);
 
+/** Language tags are case-insensitive (BCP 47). */
+const normalizeTag = (code: string): string => code.toLowerCase();
+
 export function registerLocale(code: string, pack: LocalePack): void {
-  registry.set(code, pack);
+  registry.set(normalizeTag(code), pack);
 }
 
 /**
@@ -23,9 +27,20 @@ export function registerLocale(code: string, pack: LocalePack): void {
 export function createTranslator(locale: string | LocalePack): Translate {
   const pack =
     typeof locale === 'string'
-      ? deepMerge<LocalePack>(registry.get(FALLBACK)!, registry.get(locale))
+      ? deepMerge<LocalePack>(registry.get(FALLBACK)!, packFor(locale))
       : deepMerge<LocalePack>(registry.get(FALLBACK)!, registry.get(DEFAULTS.locale), locale);
   return (key, params) => interpolate(lookup(pack, key) ?? key, params);
+}
+
+/** The most specific registered pack for a tag ('ko-KR' → 'ko'); an unknown tag gets the default language. */
+function packFor(code: string): LocalePack {
+  const subtags = normalizeTag(code).split('-');
+  for (let length = subtags.length; length > 0; length--) {
+    const pack = registry.get(subtags.slice(0, length).join('-'));
+    if (pack) return pack;
+  }
+  warn(`unknown locale "${code}"; using "${DEFAULTS.locale}". Registered: ${[...registry.keys()].join(', ')}. Call registerLocale() before createEditor().`);
+  return registry.get(DEFAULTS.locale)!;
 }
 
 export function flattenKeys(pack: LocalePack, prefix = ''): string[] {

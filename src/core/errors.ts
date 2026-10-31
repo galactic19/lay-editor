@@ -28,6 +28,11 @@ const HINTS: Record<EditorErrorCode, string> = {
   STORAGE_UNAVAILABLE: 'localStorage is not available; autosave is disabled.',
 };
 
+/** Developer mistakes the editor can recover from: logged once, never thrown. */
+export function warn(message: string): void {
+  console.warn(`[laymaker] ${message}`);
+}
+
 export class EditorError extends Error {
   readonly code: EditorErrorCode;
 

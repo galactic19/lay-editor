@@ -6,7 +6,7 @@ import { getDefaultExtensions } from '../extensions';
 import { parseHTML, serializeHTML, isDocEmpty } from '../io/html';
 import { c } from '../ui/classes';
 import { EditorUI } from '../ui/EditorUI';
-import { EditorError } from './errors';
+import { EditorError, warn } from './errors';
 import { EventEmitter } from './EventEmitter';
 import { ExtensionManager } from './ExtensionManager';
 import { isMarkActive, isNodeActive } from './state-utils';
@@ -255,7 +255,7 @@ export class Editor {
 
   private command(name: string): CommandFactory | undefined {
     const factory = this.commands.get(name);
-    if (!factory) console.warn(`[laymaker] unknown command "${name}"`);
+    if (!factory) warn(`unknown command "${name}"`);
     return factory;
   }
 
