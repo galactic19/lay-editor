@@ -2,14 +2,27 @@ import { expect, type Page, test } from '@playwright/test';
 import { DEFAULTS } from '../../src/core/defaults';
 import { compose, control, html, openEmpty, panel } from './helpers';
 
+const { maxColspan } = DEFAULTS.tableLimits;
+
+/** Pastes HTML through a real paste event, as copying from another page does. */
+const pasteHTML = (page: Page, content: string): Promise<void> =>
+  page.evaluate((html) => {
+    const data = new DataTransfer();
+    data.setData('text/html', html);
+    window.__editor.view.dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  }, content);
+
 test('audit #22: pasting a table with a huge colspan stays within the browser limit', async ({ page }) => {
   await openEmpty(page);
-  await page.evaluate(() => {
-    const data = new DataTransfer();
-    data.setData('text/html', '<table><tr><td colspan="5000">a</td></tr><tr><td>b</td></tr></table>');
-    window.__editor.view.dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
-  });
-  await expect(page.locator('#editor td')).toHaveCount(DEFAULTS.tableLimits.maxColspan + 1);
+  await pasteHTML(page, '<table><tr><td colspan="5000">a</td></tr><tr><td>b</td></tr></table>');
+  await expect(page.locator('#editor td')).toHaveCount(maxColspan + 1);
+});
+
+test('audit #22: a wide row over many empty rows is pasted as plain blocks instead of being filled', async ({ page }) => {
+  await openEmpty(page);
+  await pasteHTML(page, `<table><tr><td colspan="${maxColspan}">wide</td></tr>${'<tr></tr>'.repeat(60)}</table>`);
+  await expect(page.locator('#editor .ProseMirror')).toHaveText('wide');
+  await expect(page.locator('#editor table')).toHaveCount(0);
 });
 
 /** Pixels two layouts of the same content may differ by (sub-pixel rounding). */

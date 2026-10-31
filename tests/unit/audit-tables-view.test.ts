@@ -5,7 +5,7 @@ import { DEFAULTS } from '../../src/core/defaults';
 import { sanitizeHTML } from '../../src/io/sanitize';
 import { findText, makeEditor, press, typeText } from '../helpers/editor';
 
-const { maxColspan, maxRowspan, maxColumnWidth } = DEFAULTS.tableLimits;
+const { maxColspan, maxRowspan, maxColumnWidth, maxFillerCells } = DEFAULTS.tableLimits;
 const cell = (attrs: string): string => `<table><tbody><tr><td ${attrs}><p>a</p></td></tr></tbody></table>`;
 const caretNear = (ed: Editor, pos: number): void => ed.view.dispatch(ed.state.tr.setSelection(TextSelection.near(ed.state.doc.resolve(pos))));
 const selectRange = (ed: Editor, anchor: number, head: number): void =>
@@ -42,6 +42,81 @@ describe('audit #22: cell spans are parsed as clamped integers', () => {
     expect(() => ed.exec('addColumnAfter')).not.toThrow();
     expect(ed.getHTML()).not.toMatch(/colspan="(0|NaN)"/);
     expect(ed.view.dom.querySelectorAll('tr:last-child td')).toHaveLength(3);
+  });
+});
+
+describe('audit #22: tables whose rows would need too many filler cells are read as plain blocks', () => {
+  const row = (...cells: string[]): string => `<tr>${cells.join('')}</tr>`;
+  const td = (text: string, attrs?: string): string => `<td${attrs ? ` ${attrs}` : ''}><p>${text}</p></td>`;
+  const wideTable = (text: string, emptyRows: number): string => `<table>${row(td(text, `colspan="${maxColspan}"`))}${row().repeat(emptyRows)}</table>`;
+  const STAIRCASE_ROWS = 6;
+  const COLLIDING_ROWS = 12;
+  const cellCount = (ed: Editor): number => ed.view.dom.querySelectorAll('td, th').length;
+  const writtenCells = (html: string): number => html.match(/<t[dh][ >]/g)?.length ?? 0;
+  const texts = (html: string): string[] => Array.from(html.matchAll(/<p>([^<]+)<\/p>/g), (match) => match[1]!);
+
+  it.each([
+    ['one wide row and many empty rows', wideTable('wide', 30)],
+    ['many tables that each stay under the limit', Array.from({ length: 12 }, (_, i) => wideTable(`table${i}`, 1)).join('')],
+    [
+      'rowspans that widen every later row',
+      `<table>${Array.from({ length: STAIRCASE_ROWS }, (_, i) => row(td(`step${i}`, `colspan="${maxColspan}" rowspan="${STAIRCASE_ROWS - i}"`))).join('')}</table>`,
+    ],
+    [
+      'cells that collide with rowspans from above',
+      `<table>${row(td('left', `rowspan="${COLLIDING_ROWS}"`), td('top'), td('right', `rowspan="${COLLIDING_ROWS}"`))}` +
+        `${row(td('wide', `colspan="${maxColspan}"`)).repeat(COLLIDING_ROWS - 1)}</table>`,
+    ],
+  ])('%s', (_, html) => {
+    const ed = makeEditor();
+    ed.setHTML(html);
+    expect(cellCount(ed)).toBeLessThanOrEqual(writtenCells(html) + maxFillerCells);
+    for (const text of texts(html)) expect(ed.getText()).toContain(text);
+  });
+
+  it('an oversized table nested in a cell is unwrapped inside that cell', () => {
+    const ed = makeEditor();
+    ed.setHTML(`<table>${row(`<td><p>outer</p>${wideTable('inner', 30)}</td>`)}</table>`);
+    expect(ed.view.dom.querySelectorAll('table')).toHaveLength(1);
+    expect(ed.getHTML()).toContain('<td><p>outer</p><p>inner</p></td>');
+  });
+
+  it('pasting into a table cell cannot grow the table from one rowspan', () => {
+    const ed = makeEditor({ content: `<table><tbody>${row(td('cell'), td('next'))}</tbody></table>` });
+    caretNear(ed, findText(ed, 'cell') + 1);
+    ed.view.pasteHTML(`<table>${row(td('tall', `rowspan="${maxFillerCells + 2}"`))}</table>`);
+    expect(ed.view.dom.querySelectorAll('tr')).toHaveLength(1);
+    expect(ed.getText()).toContain('tall');
+  });
+
+  it('tables that need a few filler cells, or none, keep their shape', () => {
+    const ragged = `<table><tbody>${row(td('a'), td('b'), td('c'))}${row(td('d'))}</tbody></table>`;
+    expect(sanitizeHTML(ragged)).toBe(ragged);
+    const ed = makeEditor({ content: ragged });
+    ed.setHTML(ragged);
+    expect(ed.view.dom.querySelectorAll('tr:last-child td')).toHaveLength(3);
+  });
+
+  it('a big table with every cell written is not limited', () => {
+    const big = `<table>${row(...Array.from({ length: 100 }, () => '<td></td>')).repeat(maxFillerCells / 100 + 1)}</table>`;
+    const ed = makeEditor();
+    ed.setHTML(big);
+    expect(cellCount(ed)).toBe(writtenCells(big));
+  });
+
+  it('a table merged in the editor reads back unchanged', () => {
+    const ed = makeEditor();
+    ed.exec('insertTable', 3, 3);
+    const cells: number[] = [];
+    ed.state.doc.descendants((node, pos) => {
+      if (node.type.spec.tableRole?.includes('cell')) cells.push(pos);
+    });
+    ed.view.dispatch(ed.state.tr.setSelection(CellSelection.create(ed.state.doc, cells[0]!, cells.at(-1)!)));
+    expect(ed.exec('mergeCells')).toBe(true);
+    const merged = ed.getHTML();
+    ed.setHTML(merged);
+    expect(ed.getHTML()).toBe(merged);
+    expect(ed.view.dom.querySelectorAll('table')).toHaveLength(1);
   });
 });
 

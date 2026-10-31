@@ -1,4 +1,4 @@
-import type { Attrs, NodeSpec, Node as PMNode, Schema } from 'prosemirror-model';
+import { type Attrs, Fragment, type NodeSpec, type Node as PMNode, type Schema, Slice } from 'prosemirror-model';
 import { type Command, Plugin, Selection, TextSelection, type Transaction } from 'prosemirror-state';
 import {
   addColumnAfter,
@@ -43,7 +43,7 @@ const nodes = tableNodes({
   },
 });
 
-const { maxColspan, maxRowspan, maxColumnWidth } = DEFAULTS.tableLimits;
+const { maxColspan, maxRowspan, maxColumnWidth, maxFillerCells } = DEFAULTS.tableLimits;
 
 /**
  * prosemirror-tables reads spans with a bare Number(): "abc" becomes NaN, and colspan="100000" makes
@@ -116,6 +116,116 @@ function caretToFirstCell(tr: Transaction, table: PMNode): Transaction {
 }
 
 /**
+ * Grid slots no written cell starts in: rows x widest row - cells, with rowspans widening the rows below them
+ * (past the last row too, as pasting into a table does). prosemirror-tables fills these slots with new cells, so
+ * a few bytes of HTML (<tr></tr> under a wide row, a tall rowspan, cells colliding with rowspans) can become
+ * hundreds of thousands of cells. Merged cells count as well: the figure is the most that can be added.
+ */
+function fillerCells(table: PMNode): number {
+  const widthChange: number[] = [];
+  const change = (row: number, by: number): void => {
+    widthChange[row] = (widthChange[row] ?? 0) + by;
+  };
+  let cells = 0;
+  table.forEach((row, _, index) =>
+    row.forEach(({ attrs }) => {
+      cells++;
+      change(index, attrs.colspan);
+      change(index + attrs.rowspan, -attrs.colspan);
+    }),
+  );
+  const height = Math.max(table.childCount, widthChange.length - 1);
+  let width = 0;
+  let widest = 0;
+  for (let row = 0; row < height; row++) widest = Math.max(widest, (width += widthChange[row] ?? 0));
+  return height * widest - cells;
+}
+
+/** The tables to unwrap, largest filler first, until the rest fit DEFAULTS.tableLimits.maxFillerCells. */
+function tablesToUnwrap(tables: readonly PMNode[]): Set<PMNode> {
+  const sized = tables.map((table) => ({ table, filler: fillerCells(table) })).sort((a, b) => b.filler - a.filler);
+  let total = sized.reduce((sum, { filler }) => sum + filler, 0);
+  const unwrap = new Set<PMNode>();
+  for (const { table, filler } of sized) {
+    if (total <= maxFillerCells) break;
+    unwrap.add(table);
+    total -= filler;
+  }
+  return unwrap;
+}
+
+const isTable = (node: PMNode): boolean => node.type.spec.tableRole === 'table';
+
+/** A table's content without the table: the blocks of each cell in reading order, appended to `blocks`. */
+function cellBlocks(table: PMNode, blocks: PMNode[] = []): PMNode[] {
+  table.forEach((row) => row.forEach((cell) => cell.forEach((block) => blocks.push(block))));
+  return blocks;
+}
+
+/** `content` with each table in `unwrap` (nested ones too) replaced by its cells' blocks. */
+function unwrapTables(content: Fragment, unwrap: ReadonlySet<PMNode>): Fragment {
+  const nodes: PMNode[] = [];
+  content.forEach((node) => {
+    const inner = node.isLeaf ? node : node.copy(unwrapTables(node.content, unwrap));
+    if (unwrap.has(node)) cellBlocks(inner, nodes);
+    else nodes.push(inner);
+  });
+  return Fragment.fromArray(nodes);
+}
+
+/** prosemirror-tables' changedDescendants (not exported), so tables are checked where fixTables looks. */
+function changedDescendants(old: PMNode, cur: PMNode, offset: number, visit: (node: PMNode, pos: number) => void): void {
+  let match = 0;
+  cur.forEach((child, childOffset, index) => {
+    const pos = offset + childOffset;
+    for (let scan = match; scan < Math.min(old.childCount, index + 3); scan++) {
+      if (old.child(scan) === child) {
+        match = scan + 1;
+        return;
+      }
+    }
+    visit(child, pos);
+    if (match < old.childCount && old.child(match).sameMarkup(child)) changedDescendants(old.child(match), child, pos + 1, visit);
+    else child.nodesBetween(0, child.content.size, visit, pos + 1);
+  });
+}
+
+/**
+ * Keeps prosemirror-tables from filling more than maxFillerCells slots at once: tables past the budget become
+ * their cells' blocks. Pasted slices are checked before tableEditing's handlePaste, which evens out a table
+ * pasted into a cell on its own; other changes are checked before its fixTables (this plugin runs first).
+ */
+const limitTableFiller = (): Plugin =>
+  new Plugin({
+    props: {
+      transformPasted: (slice) => {
+        const tables: PMNode[] = [];
+        slice.content.descendants((node) => {
+          if (isTable(node)) tables.push(node);
+        });
+        const unwrap = tablesToUnwrap(tables);
+        return unwrap.size ? new Slice(unwrapTables(slice.content, unwrap), 0, 0) : slice;
+      },
+    },
+    appendTransaction: (_trs, old, state) => {
+      if (old.doc === state.doc) return null;
+      const changed: Array<{ table: PMNode; pos: number }> = [];
+      changedDescendants(old.doc, state.doc, 0, (node, pos) => {
+        if (isTable(node)) changed.push({ table: node, pos });
+      });
+      const unwrap = tablesToUnwrap(changed.map(({ table }) => table));
+      if (!unwrap.size) return null;
+      const tr = state.tr;
+      // Last first, so nested tables go before the tables around them and earlier positions stay valid.
+      for (const { pos } of changed.filter(({ table }) => unwrap.has(table)).sort((a, b) => b.pos - a.pos)) {
+        const table = tr.doc.nodeAt(pos)!;
+        tr.replaceWith(pos, pos + table.nodeSize, cellBlocks(table));
+      }
+      return tr;
+    },
+  });
+
+/**
  * Only a mouse drag or Shift makes a cell selection. Touch selection handles dragged across cells leave a
  * TextSelection, so Merge stays disabled and typing moves text between cells. Turn it into a CellSelection.
  * Runs after tableEditing, which first shrinks a selection ending at the next cell's start (triple click).
@@ -175,7 +285,7 @@ export const table = defineExtension<TableOptions>({
     clearCellBackground: () => setCellAttr('background', null),
   }),
   keymap: () => ({ Tab: goToNextCell(1), 'Shift-Tab': goToNextCell(-1) }),
-  plugins: () => [columnResizing(), tableEditing(), textToCellSelection()],
+  plugins: () => [columnResizing(), limitTableFiller(), tableEditing(), textToCellSelection()],
   ui: ({ options, editor }) => [
     {
       id: 'table',
