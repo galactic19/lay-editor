@@ -62,6 +62,7 @@ export class EditorUI {
     this.disposers.push(
       editor.on('update', () => this.batch.schedule()),
       this.device.onChange((mode) => this.switchMode(mode)),
+      this.viewport.onChange(() => this.toaster.place()),
     );
     this.updateAll();
   }

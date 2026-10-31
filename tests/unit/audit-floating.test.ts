@@ -91,6 +91,21 @@ describe('audit #45: toasts stay in view whatever the document length', () => {
     ed.ui!.toaster.show('x', 'error');
     expect(region().style.getPropertyValue('--le-toast-offset')).toBe('352px');
   });
+
+  it('moves with the on-screen keyboard while it shows', () => {
+    setMedia('(pointer: coarse)', true);
+    const ed = makeEditor();
+    ed.focus();
+    ed.ui!.flush();
+    Object.defineProperty(document.querySelector('.le-mobile-bar')!, 'offsetHeight', { value: 52 });
+    ed.ui!.toaster.show('x', 'error');
+    const offset = () => region().style.getPropertyValue('--le-toast-offset');
+    expect(offset()).toBe('52px');
+    setViewport({ height: window.innerHeight - 300, offsetTop: 0 });
+    expect(offset()).toBe('352px');
+    setViewport({ height: window.innerHeight, offsetTop: 0 });
+    expect(offset()).toBe('52px');
+  });
 });
 
 describe('audit #41: tapping the sheet backdrop only closes the sheet', () => {

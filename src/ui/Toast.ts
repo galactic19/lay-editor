@@ -22,15 +22,21 @@ export class Toaster {
   }
 
   show(message: string, kind: ToastKind = 'info'): void {
-    this.region.dataset.theme = this.themeSource.dataset.theme;
-    this.region.style.setProperty('--le-toast-offset', `${this.coveredBottom()}px`);
     const toast = h('div', { class: c('toast', `toast-${kind}`) }, message);
     this.region.appendChild(toast);
+    this.place();
     const timer = setTimeout(() => {
       toast.remove();
       this.timers.delete(timer);
     }, DEFAULTS.toast.duration);
     this.timers.add(timer);
+  }
+
+  /** Follows the theme and keeps the toasts clear of whatever covers the bottom; a no-op while none shows. */
+  place(): void {
+    if (!this.region.childElementCount) return;
+    this.region.dataset.theme = this.themeSource.dataset.theme;
+    this.region.style.setProperty('--le-toast-offset', `${this.coveredBottom()}px`);
   }
 
   destroy(): void {
