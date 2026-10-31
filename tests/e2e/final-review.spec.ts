@@ -1,4 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { DEFAULTS } from '../../src/core/defaults';
 import { contrast, control, html, openEmpty, paste, WCAG_AA } from './helpers';
 
 const isMobile = (info: TestInfo): boolean => info.project.name.startsWith('mobile');
@@ -14,13 +15,13 @@ const textContrasts = (page: Page, selector: string): Promise<number[]> =>
 
 test('final review: shaded table cells stay readable in the dark theme, palette and pasted fills alike', async ({ page }) => {
   await openEmpty(page, 'theme=dark');
-  const fills = await page.evaluate(() => window.__editor.root.dataset.theme);
-  expect(fills).toBe('dark');
-  await page.evaluate(() => {
-    const palette = ['#ffec99', '#ffd8a8', '#ffc9c9', '#d3f9d8', '#d0ebff', '#e5dbff', '#fcc2d7', '#c5f6fa', '#e9ecef', '#fff3bf', '#d9d9d9', '#ffff00'];
-    const cells = palette.map((color) => `<td style="background-color: ${color};"><p>cell</p></td>`).join('');
-    window.__editor.setHTML(`<table><tbody><tr>${cells}</tr><tr>${palette.map(() => '<td><p>plain</p></td>').join('')}</tr></tbody></table>`);
-  });
+  expect(await page.evaluate(() => window.__editor.root.dataset.theme)).toBe('dark');
+  // The cell color palette, plus shading Word pastes (grey, yellow).
+  const fills = [...DEFAULTS.colors.highlight, DEFAULTS.paste.namedColors.silver, DEFAULTS.paste.namedColors.yellow];
+  await page.evaluate((colors) => {
+    const cells = colors.map((color) => `<td style="background-color: ${color};"><p>cell</p></td>`).join('');
+    window.__editor.setHTML(`<table><tbody><tr>${cells}</tr><tr>${colors.map(() => '<td><p>plain</p></td>').join('')}</tr></tbody></table>`);
+  }, fills);
   for (const ratio of await textContrasts(page, 'td[style*="background-color"]')) expect(ratio).toBeGreaterThanOrEqual(WCAG_AA.text);
   // Cells without a fill keep the theme's text color on the theme background.
   const plain = await page.locator('#editor .ProseMirror td:not([style])').first().evaluate((el) => getComputedStyle(el).color);
