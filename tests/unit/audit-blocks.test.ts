@@ -1,5 +1,5 @@
 import { AllSelection, TextSelection } from 'prosemirror-state';
-import { findText, makeEditor, press, typeText } from '../helpers/editor';
+import { findText, makeEditor, press, selectText, typeText } from '../helpers/editor';
 import type { Editor } from '../../src/core/Editor';
 import { filterSlashItems, slashKey } from '../../src/extensions/tools/slashMenu';
 import type { UIItem } from '../../src/core/types';
@@ -106,6 +106,18 @@ describe('divider in an empty list item (#19)', () => {
     expect(ed.exec('insertHorizontalRule')).toBe(true);
     typeText(ed, 'next');
     expect(ed.getHTML()).toBe('<ul data-type="taskList"><li data-checked="false"><p>first</p></li><li data-checked="false"><p></p><hr><p>next</p></li></ul>');
+  });
+
+  it.each([
+    ['<p>abc</p>', 'b', '<p>ac</p><hr><p>N</p>'],
+    ['<p>hello world</p>', 'world', '<p>hello&nbsp;</p><hr><p>N</p>'],
+    ['<ul><li><p>abc</p></li></ul>', 'b', '<ul><li><p>ac</p><hr><p>N</p></li></ul>'],
+  ])('insertHorizontalRule over a selection in %s puts the caret after the divider', (content, selected, expected) => {
+    const ed = makeEditor({ content });
+    selectText(ed, selected);
+    expect(ed.exec('insertHorizontalRule')).toBe(true);
+    typeText(ed, 'N');
+    expect(ed.getHTML()).toBe(expected);
   });
 });
 

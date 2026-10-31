@@ -6,10 +6,12 @@ import { defineExtension } from '../factories';
 /**
  * Replaces the block range [from, to) with an hr and an empty paragraph, cursor in the paragraph.
  * The cursor is found from the end of the insertion: a list item keeps a leading paragraph in front of the hr.
+ * `to` is a position in `tr.doc` as it stands, so only the replace's own steps map it (not an earlier deleteSelection).
  */
 function replaceWithRule(tr: Transaction, schema: Schema, from: number, to: number): Transaction {
+  const steps = tr.steps.length;
   tr.replaceWith(from, to, [schema.nodes.horizontalRule!.create(), schema.nodes.paragraph!.create()]);
-  return tr.setSelection(Selection.near(tr.doc.resolve(tr.mapping.map(to)), -1)).scrollIntoView();
+  return tr.setSelection(Selection.near(tr.doc.resolve(tr.mapping.slice(steps).map(to)), -1)).scrollIntoView();
 }
 
 export const horizontalRule = defineExtension({

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { control, html, MOD, openEmpty } from './helpers';
+import { clickControl, control, html, MOD, openEmpty } from './helpers';
 
 const pastePlainText = (page: Page, text: string) =>
   page.evaluate((data) => {
@@ -62,6 +62,15 @@ test('--- in an empty list item keeps typing after the divider (#19)', async ({ 
   await page.keyboard.type('---');
   await page.keyboard.type('next');
   expect(await html(page)).toBe('<ul><li><p>first</p></li><li><p></p><hr><p>next</p></li></ul>');
+});
+
+test('the divider button with text selected keeps typing after the divider (#19)', async ({ page }) => {
+  await openEmpty(page);
+  await page.keyboard.type('hello world');
+  for (let i = 0; i < 2; i++) await page.keyboard.press('Shift+ArrowLeft');
+  await clickControl(page, 'horizontalRule');
+  await page.keyboard.type('N');
+  expect(await html(page)).toBe('<p>hello wor</p><hr><p>N</p>');
 });
 
 test.describe('checklist toggle (#20)', () => {
