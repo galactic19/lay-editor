@@ -13,12 +13,15 @@ import {
   deleteTable,
   goToNextCell,
   inSameTable,
+  isInTable,
   mergeCells,
+  rowIsHeader,
+  selectedRect,
   setCellAttr,
   splitCell,
   tableEditing,
   tableNodes,
-  toggleHeaderRow,
+  toggleHeader,
 } from 'prosemirror-tables';
 import { DEFAULTS } from '../../core/defaults';
 import type { UIItem } from '../../core/types';
@@ -251,6 +254,13 @@ const textToCellSelection = (): Plugin =>
     },
   });
 
+/** Whether the table holding the selection has a header row: its whole first row is header cells. */
+function hasHeaderRow(state: EditorState): boolean {
+  if (!isInTable(state)) return false;
+  const { map, table } = selectedRect(state);
+  return rowIsHeader(map, table, 0);
+}
+
 const TABLE_COMMANDS: Record<string, Command> = {
   addRowBefore,
   addRowAfter,
@@ -261,7 +271,8 @@ const TABLE_COMMANDS: Record<string, Command> = {
   deleteTable,
   mergeCells,
   splitCell,
-  toggleHeaderRow,
+  // The table's first row from any cell; prosemirror-tables' own toggleHeaderRow turns the selected rows into headers.
+  toggleHeaderRow: toggleHeader('row'),
 };
 
 const contextItem = (id: string, icon: string, command: string): UIItem => ({
@@ -312,7 +323,11 @@ export const table = defineExtension<TableOptions>({
     contextItem('tableDeleteColumn', 'table-columns-split', 'deleteColumn'),
     contextItem('tableMerge', 'table-cells-merge', 'mergeCells'),
     contextItem('tableSplit', 'table-cells-split', 'splitCell'),
-    { ...contextItem('tableHeaderRow', 'panel-top', 'toggleHeaderRow'), isEnabled: (e) => e.can('toggleHeaderRow') },
+    {
+      ...contextItem('tableHeaderRow', 'panel-top', 'toggleHeaderRow'),
+      isEnabled: (e) => e.can('toggleHeaderRow'),
+      isActive: (e) => hasHeaderRow(e.state),
+    },
     {
       id: 'tableCellColor',
       kind: 'panel',

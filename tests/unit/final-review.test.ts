@@ -325,3 +325,22 @@ describe('final review: Enter, Shift+Enter and Mod+Enter in an image caption', (
     expect(editor.can('insertHardBreak')).toBe(false);
   });
 });
+
+const TABLE = '<table><tbody><tr><th><p>Name</p></th><th><p>Score</p></th></tr><tr><td><p>Kim</p></td><td><p>90</p></td></tr><tr><td><p>Lee</p></td><td><p>85</p></td></tr></tbody></table>';
+const contextControl = (editor: Editor, id: string): HTMLButtonElement => document.querySelector<HTMLButtonElement>(`.le-context-toolbar [data-item="${id}"]`)!;
+
+describe('final review: the header row tool', () => {
+  it('turns the first row off and on from any cell, and shows its state', () => {
+    const editor = makeEditor({ content: TABLE });
+    caretAfter(editor, 'Lee');
+    editor.focus();
+    editor.ui!.flush();
+    expect(contextControl(editor, 'tableHeaderRow').getAttribute('aria-pressed')).toBe('true');
+    editor.exec('toggleHeaderRow');
+    expect(editor.getHTML()).toBe(TABLE.replace(/<(\/?)th>/g, '<$1td>'));
+    editor.ui!.flush();
+    expect(contextControl(editor, 'tableHeaderRow').getAttribute('aria-pressed')).toBe('false');
+    editor.exec('toggleHeaderRow');
+    expect(editor.getHTML()).toBe(TABLE);
+  });
+});
