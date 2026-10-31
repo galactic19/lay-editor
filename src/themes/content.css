@@ -50,6 +50,9 @@
 .le-prose th, .le-prose td { border: 1px solid var(--le-color-border); padding: var(--le-space-2) var(--le-space-3); min-width: 3em; vertical-align: top; }
 .le-prose th { background: var(--le-color-surface); font-weight: 600; text-align: left; }
 .le-prose td > p, .le-prose th > p { margin: 0; }
+/* Cell fills come from the same light palette as highlights (and pasted shading), so their text stays dark in both themes;
+   a text colour or link inside keeps its own. */
+.le-prose :is(td, th)[style*='background-color'] { color: var(--le-color-highlight-fg); }
 .le-prose [data-indent='1'] { margin-left: calc(var(--le-indent-step) * 1); }
 .le-prose [data-indent='2'] { margin-left: calc(var(--le-indent-step) * 2); }
 .le-prose [data-indent='3'] { margin-left: calc(var(--le-indent-step) * 3); }

@@ -15,11 +15,13 @@
   --le-color-primary: #1f6feb;
   --le-color-primary-fg: #ffffff;
   --le-color-danger: #cf222e;
+  /* Text on --le-color-danger (error toasts): at least 4.5:1. */
+  --le-color-danger-fg: #ffffff;
   --le-color-danger-ring: rgba(207, 34, 46, 0.18);
   --le-color-selection: rgba(31, 111, 235, 0.18);
   --le-color-code-bg: #eff2f5;
   --le-color-quote: #d1d9e0;
-  /* Highlighter colours are light in both themes, so the text on them stays dark (not redefined for dark). */
+  /* Highlighter and table cell fill colours are light in both themes, so the text on them stays dark (not redefined for dark). */
   --le-color-highlight-fg: #1f2328;
   --le-color-mark-match: rgba(255, 196, 0, 0.45);
   --le-color-mark-current: rgba(255, 140, 0, 0.75);
@@ -93,6 +95,7 @@
   --le-color-primary: #4493f8;
   --le-color-primary-fg: #0d1117;
   --le-color-danger: #f85149;
+  --le-color-danger-fg: #0d1117;
   --le-color-danger-ring: rgba(248, 81, 73, 0.3);
   --le-color-selection: rgba(68, 147, 248, 0.3);
   --le-color-code-bg: #1f2630;

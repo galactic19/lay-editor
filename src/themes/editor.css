@@ -100,7 +100,7 @@
 /* --le-toast-offset: screen height covered at the bottom (keyboard, mobile bar), kept current while toasts show. */
 .le-toasts { position: fixed; left: 50%; bottom: calc(var(--le-space-3) + max(var(--le-toast-offset, 0px), env(safe-area-inset-bottom, 0px))); transform: translateX(-50%); z-index: var(--le-z-toast); display: flex; flex-direction: column; gap: var(--le-space-2); pointer-events: none; }
 .le-toast { padding: var(--le-space-2) var(--le-space-3); border-radius: var(--le-radius-sm); background: var(--le-color-fg); color: var(--le-color-bg); box-shadow: var(--le-shadow); }
-.le-toast-error { background: var(--le-color-danger); color: #ffffff; }
+.le-toast-error { background: var(--le-color-danger); color: var(--le-color-danger-fg); }
 
 /* ProseMirror helpers */
 .le-content .ProseMirror-gapcursor { display: none; pointer-events: none; position: absolute; }
