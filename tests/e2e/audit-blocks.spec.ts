@@ -145,6 +145,18 @@ test('typed spaces survive a reload and show on the view page (#18)', async ({ p
   expect(result.text.replace(/\u00a0/g, ' ')).toBe('Name:    Kim\n\n    indented line');
 });
 
+test('a saved trailing space is a plain space after a reload, before the next word (#18)', async ({ page }) => {
+  await openEmpty(page);
+  await page.keyboard.type('a  b ');
+  await page.evaluate(() => window.__editor.setHTML(window.__editor.getHTML()));
+  await page.locator('#editor .ProseMirror p').click();
+  await page.keyboard.press('End');
+  await page.evaluate(() => window.__editor.syncSelection());
+  await page.keyboard.type('c');
+  expect(await html(page)).toBe('<p>a &nbsp;b c</p>');
+  expect(await page.evaluate(() => window.__editor.getText())).toBe('a  b c');
+});
+
 test('list items starting with a heading or image stay in their ordered list (#17)', async ({ page }) => {
   await openEmpty(page);
   const result = await page.evaluate(() => {

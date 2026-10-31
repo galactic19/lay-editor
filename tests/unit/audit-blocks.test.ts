@@ -234,7 +234,30 @@ describe('typed spaces survive saving (#18)', () => {
     ed.exec('toggleSourceView');
     ed.exec('toggleSourceView');
     expect(ed.getHTML()).toBe(before);
-    expect(ed.getText()).toContain('이름: \u00a0 \u00a0김철수');
+    expect(ed.getText()).toBe('이름:    김철수');
+  });
+
+  it('reloading turns the saved no-break spaces back into plain spaces', () => {
+    const ed = makeEditor();
+    typeText(ed, 'hello ');
+    ed.setHTML(ed.getHTML());
+    caretAt(ed, ed.state.doc.content.size - 1);
+    typeText(ed, 'world');
+    expect(ed.getHTML()).toBe('<p>hello world</p>');
+    expect(ed.getText()).toBe('hello world');
+  });
+
+  it('reloaded indented lines become code with plain spaces', () => {
+    const ed = makeEditor({ content: '<p>if (x) {</p><p>&nbsp;&nbsp; &nbsp;run();</p><p>}</p>' });
+    selectAll(ed);
+    ed.exec('toggleCodeBlock');
+    expect(ed.getHTML()).toBe('<pre><code>if (x) {\n    run();\n}</code></pre>');
+  });
+
+  it('keeps a no-break space between two words, where a plain space would not collapse', () => {
+    const ed = makeEditor({ content: '<p>10&nbsp;km, a &nbsp;b</p>' });
+    expect(ed.getText()).toBe('10\u00a0km, a  b');
+    expect(roundTrip(ed)).toBe('<p>10&nbsp;km, a &nbsp;b</p>');
   });
 
   it('leaves single spaces between words and code blocks alone', () => {
