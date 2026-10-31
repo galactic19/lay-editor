@@ -1,6 +1,6 @@
 import { DEFAULTS } from '../../../core/defaults';
 import { safeColor } from '../../sanitize';
-import { filterStyle, styleDeclarations, withDocument } from '../dom';
+import { mapStyle, styleDeclarations, withDocument, type StyleDeclaration } from '../dom';
 
 /** Inline styles that mean a semantic tag. */
 const STYLE_TAGS: Array<{ prop: string; test: RegExp; tag: string }> = [
@@ -12,7 +12,8 @@ const STYLE_TAGS: Array<{ prop: string; test: RegExp; tag: string }> = [
   { prop: 'text-decoration-line', test: /line-through/, tag: 's' },
 ];
 const BLOCK_TAGS = /^(P|H[1-6]|LI|UL|OL|DIV|TD|TH|TABLE|BLOCKQUOTE|PRE|BODY)$/;
-const { keepStyles, keepDataAttrs, pageColors } = DEFAULTS.paste;
+const { keepStyles, colorStyles, styleAliases, namedColors, keepDataAttrs, pageColors } = DEFAULTS.paste;
+const includes = (list: readonly string[], value: string): boolean => list.includes(value);
 
 /** Red, green and blue (0-255) of a color in safeColor's output format. */
 function channels(color: string): number[] {
@@ -22,9 +23,7 @@ function channels(color: string): number[] {
 }
 
 /** Greys the source page used for its text or background; intentional colors keep a hue or a mid-grey shade. */
-function isPageColor(prop: string, value: string): boolean {
-  const color = safeColor(value);
-  if (!color) return false;
+function isPageColor(prop: string, color: string): boolean {
   const rgb = channels(color);
   const max = Math.max(...rgb);
   const min = Math.min(...rgb);
@@ -45,9 +44,18 @@ function stylesToTags(el: HTMLElement): void {
   }
 }
 
+/** A declaration the schema can read: shorthand resolved, color validated, page colors and other styles dropped. */
+function cleanDeclaration(prop: string, value: string): StyleDeclaration | null {
+  const name = (styleAliases as Record<string, string>)[prop] ?? prop;
+  if (!includes(keepStyles, name)) return null;
+  if (!includes(colorStyles, name)) return [name, value];
+  const color = safeColor((namedColors as Record<string, string>)[value.toLowerCase()] ?? value);
+  return color && !isPageColor(name, color) ? [name, color] : null;
+}
+
 function cleanAttributes(el: HTMLElement): void {
   for (const { name } of Array.from(el.attributes)) {
-    if (name === 'class' || name === 'id' || (name.startsWith('data-') && !(keepDataAttrs as readonly string[]).includes(name))) {
+    if (name === 'class' || name === 'id' || (name.startsWith('data-') && !includes(keepDataAttrs, name))) {
       el.removeAttribute(name);
     }
   }
@@ -59,7 +67,7 @@ export function normalizeStyles(html: string): string {
     for (const el of Array.from(doc.body.querySelectorAll<HTMLElement>('*'))) {
       if (el.hasAttribute('style')) {
         stylesToTags(el);
-        filterStyle(el, (prop, value) => (keepStyles as readonly string[]).includes(prop) && !isPageColor(prop, value));
+        mapStyle(el, cleanDeclaration);
       }
       cleanAttributes(el);
     }

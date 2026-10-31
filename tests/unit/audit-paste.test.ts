@@ -49,3 +49,39 @@ describe('paste drops the source page colors (audit #23)', () => {
     );
   });
 });
+
+/** Wraps a fragment the way Word puts it on the clipboard. */
+const word = (body: string): string =>
+  `<html xmlns:o="urn:schemas-microsoft-com:office:office"><body><!--StartFragment-->${body}<!--EndFragment--></body></html>`;
+
+describe('Word colors, highlights and cell shading (audit #24)', () => {
+  it('keeps named font colors and highlights written as the background shorthand', () => {
+    const out = paste(
+      word(
+        "<p class=MsoNormal><span style='color:red'>빨강</span><span style='color:yellow'>노랑</span><span style='background:lime;mso-highlight:lime'>연두</span><o:p></o:p></p>",
+      ),
+    );
+    expect(out).toBe(
+      '<p><span style="color: rgb(255, 0, 0);">빨강</span><span style="color: rgb(255, 255, 0);">노랑</span><mark style="background-color: rgb(0, 255, 0);">연두</mark></p>',
+    );
+  });
+
+  it('keeps table cell shading written as the background shorthand', () => {
+    const out = paste(
+      word(
+        "<table class=MsoTableGrid><tr><td width=301 valign=top style='width:225.4pt;border:solid windowtext 1.0pt;background:#FFC000;padding:0cm 5.4pt 0cm 5.4pt'><p class=MsoNormal><b>헤더1</b></p></td></tr></table>",
+      ),
+    );
+    expect(out).toBe('<table><tbody><tr><td style="background-color: rgb(255, 192, 0);"><p><strong>헤더1</strong></p></td></tr></tbody></table>');
+  });
+
+  it('reads a plain-color background shorthand from any source', () => {
+    expect(paste('<p><span style="background: #ffec99">hl</span></p>')).toBe('<p><mark style="background-color: rgb(255, 236, 153);">hl</mark></p>');
+  });
+
+  it('drops shorthands and keywords that are not a plain color', () => {
+    expect(paste('<p><span style="background: url(x.png) no-repeat">a</span><span style="color: windowtext">b</span><span style="color: black">c</span></p>')).toBe(
+      '<p>abc</p>',
+    );
+  });
+});

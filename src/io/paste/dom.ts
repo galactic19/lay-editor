@@ -24,18 +24,30 @@ export function styleDeclarations(el: HTMLElement): Array<[string, string]> {
   });
 }
 
-/** Rewrites the style attribute keeping only declarations for which `keep` is true. */
-export function filterStyle(el: HTMLElement, keep: (prop: string, value: string) => boolean): void {
+/** A style declaration as [property, value]. */
+export type StyleDeclaration = [string, string];
+
+/**
+ * Rewrites the style attribute declaration by declaration; `map` returns the declaration to write or null to drop it.
+ * Reads the raw attribute so shorthands and vendor properties arrive exactly as the source wrote them.
+ */
+export function mapStyle(el: HTMLElement, map: (prop: string, value: string) => StyleDeclaration | null): void {
   const raw = el.getAttribute('style');
   if (raw === null) return;
   const kept = raw
     .split(';')
-    .map((decl) => decl.trim())
-    .filter(Boolean)
-    .filter((decl) => {
+    .map((decl) => {
       const colon = decl.indexOf(':');
-      return colon > 0 && keep(decl.slice(0, colon).trim().toLowerCase(), decl.slice(colon + 1).trim());
-    });
+      const prop = decl.slice(0, Math.max(colon, 0)).trim().toLowerCase();
+      return prop ? map(prop, decl.slice(colon + 1).trim()) : null;
+    })
+    .filter((decl): decl is StyleDeclaration => decl !== null)
+    .map(([prop, value]) => `${prop}:${value}`);
   if (kept.length) el.setAttribute('style', kept.join(';'));
   else el.removeAttribute('style');
+}
+
+/** Rewrites the style attribute keeping only declarations for which `keep` is true. */
+export function filterStyle(el: HTMLElement, keep: (prop: string, value: string) => boolean): void {
+  mapStyle(el, (prop, value) => (keep(prop, value) ? [prop, value] : null));
 }
