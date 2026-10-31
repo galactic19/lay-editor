@@ -54,3 +54,12 @@ test.describe('leaving a code block at the end of the document (#16)', () => {
     expect(await html(page)).toBe(`${CODE}<p>B</p>`);
   });
 });
+
+test('--- in an empty list item keeps typing after the divider (#19)', async ({ page }) => {
+  await openEmpty(page);
+  await page.keyboard.type('- first');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('---');
+  await page.keyboard.type('next');
+  expect(await html(page)).toBe('<ul><li><p>first</p></li><li><p></p><hr><p>next</p></li></ul>');
+});

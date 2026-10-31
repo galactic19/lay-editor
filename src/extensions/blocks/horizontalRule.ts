@@ -1,12 +1,15 @@
 import { InputRule } from 'prosemirror-inputrules';
 import type { Schema } from 'prosemirror-model';
-import { TextSelection, type Command, type Transaction } from 'prosemirror-state';
+import { Selection, type Command, type Transaction } from 'prosemirror-state';
 import { defineExtension } from '../factories';
 
-/** Replaces the block range [from, to) with an hr and an empty paragraph, cursor in the paragraph. */
+/**
+ * Replaces the block range [from, to) with an hr and an empty paragraph, cursor in the paragraph.
+ * The cursor is found from the end of the insertion: a list item keeps a leading paragraph in front of the hr.
+ */
 function replaceWithRule(tr: Transaction, schema: Schema, from: number, to: number): Transaction {
   tr.replaceWith(from, to, [schema.nodes.horizontalRule!.create(), schema.nodes.paragraph!.create()]);
-  return tr.setSelection(TextSelection.create(tr.doc, from + 2)).scrollIntoView();
+  return tr.setSelection(Selection.near(tr.doc.resolve(tr.mapping.map(to)), -1)).scrollIntoView();
 }
 
 export const horizontalRule = defineExtension({

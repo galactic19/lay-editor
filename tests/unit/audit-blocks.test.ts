@@ -86,3 +86,23 @@ describe('leaving a code block (#16)', () => {
     expect(ed.getHTML()).toBe('<pre><code>a\n\n\nb</code></pre>');
   });
 });
+
+describe('divider in an empty list item (#19)', () => {
+  it('--- in an empty bullet item puts the caret after the divider', () => {
+    const ed = makeEditor();
+    typeText(ed, '- first');
+    press(ed, 'Enter');
+    typeText(ed, '---');
+    expect(ed.state.selection.$from.parent.type.name).toBe('paragraph');
+    typeText(ed, 'next');
+    expect(ed.getHTML()).toBe('<ul><li><p>first</p></li><li><p></p><hr><p>next</p></li></ul>');
+  });
+
+  it('insertHorizontalRule in an empty task item does the same', () => {
+    const ed = makeEditor({ content: '<ul data-type="taskList"><li data-checked="false"><p>first</p></li><li data-checked="false"><p></p></li></ul>' });
+    caretAt(ed, ed.state.doc.content.size - 3);
+    expect(ed.exec('insertHorizontalRule')).toBe(true);
+    typeText(ed, 'next');
+    expect(ed.getHTML()).toBe('<ul data-type="taskList"><li data-checked="false"><p>first</p></li><li data-checked="false"><p></p><hr><p>next</p></li></ul>');
+  });
+});
