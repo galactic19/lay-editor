@@ -142,7 +142,7 @@ test('typed spaces survive a reload and show on the view page (#18)', async ({ p
     return { reloaded: window.__editor.getHTML(), text };
   }, saved);
   expect(result.reloaded).toBe(saved);
-  expect(result.text.replace(/ /g, ' ')).toBe('Name:    Kim\n\n    indented line');
+  expect(result.text.replace(/\u00a0/g, ' ')).toBe('Name:    Kim\n\n    indented line');
 });
 
 test('list items starting with a heading or image stay in their ordered list (#17)', async ({ page }) => {

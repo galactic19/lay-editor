@@ -2,7 +2,7 @@ import { exitCode, setBlockType } from 'prosemirror-commands';
 import type { Attrs, Node as PMNode, NodeType } from 'prosemirror-model';
 import { Plugin, Selection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
 import { DEFAULTS } from '../../core/defaults';
-import { findParent, isNodeActive } from '../../core/state-utils';
+import { findParent, isNodeActive, NEWLINE } from '../../core/state-utils';
 import type { UIItem } from '../../core/types';
 import { safeLanguage } from '../../io/sanitize';
 import { blockExtension, sequence } from '../factories';
@@ -10,7 +10,6 @@ import { blockExtension, sequence } from '../factories';
 type CodeBlockOptions = { indent: string; exitBlankLines: number; plainLanguage: string; languages: readonly string[] };
 
 const LANGUAGE_CLASS = /^language-/;
-const NEWLINE = '\n';
 const inCode = (state: EditorState) => findParent(state, (node) => node.type.name === 'codeBlock');
 
 /** The caret when it sits at the very end of a code block. */

@@ -1,9 +1,8 @@
 import { DOMParser as PMDOMParser, DOMSerializer, Fragment, type Node as PMNode, type NodeType, type Schema, type TagParseRule } from 'prosemirror-model';
-import { LEAF_CHAR } from '../core/state-utils';
+import { LEAF_CHAR, NEWLINE } from '../core/state-utils';
 import type { ExtNodeSpec } from '../core/types';
 
 const NBSP = '\u00a0';
-const NEWLINE = '\n';
 
 /** Node types whose content must open with a textblock while other blocks may follow (a list item: `paragraph block*`). */
 function textblockFirstTypes(schema: Schema): Set<NodeType> {
@@ -80,12 +79,13 @@ export function isDocEmpty(doc: PMNode): boolean {
 
 const isTransient = (node: PMNode): boolean => Boolean((node.type.spec as ExtNodeSpec).transient?.(node));
 
+const SPACE_PAIR = / {2}/g;
+const LINE_START_SPACE = /(^|\n) /g;
+const LINE_END_SPACE = / (\n|$)/g;
+
 /** HTML collapses runs of spaces and drops them at line edges: those become no-break spaces, alternating like other editors. */
 const keepSpaces = (text: string): string =>
-  text
-    .replace(/ {2}/g, ` ${NBSP}`)
-    .replace(new RegExp(`(^|${NEWLINE}) `, 'g'), `$1${NBSP}`)
-    .replace(new RegExp(` (${NEWLINE}|$)`, 'g'), `${NBSP}$1`);
+  text.replace(SPACE_PAIR, ` ${NBSP}`).replace(LINE_START_SPACE, `$1${NBSP}`).replace(LINE_END_SPACE, `${NBSP}$1`);
 
 /** Applies keepSpaces across a textblock's inline content (marks and line breaks included), one character per inline node. */
 function keepBlockSpaces(block: PMNode): PMNode {
