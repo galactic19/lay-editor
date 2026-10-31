@@ -70,3 +70,29 @@ describe('audit #13/#62: inserting a table puts the caret in the first cell', ()
     expect(ed.getHTML()).toContain('<tr><th><p>Name</p></th><th><p>Age</p></th></tr>');
   });
 });
+
+describe('audit #14: column widths reach saved HTML', () => {
+  const RESIZED =
+    '<table><tbody><tr><th data-colwidth="350"><p>a</p></th><th colspan="2" data-colwidth="0,120"><p>b</p></th></tr>' +
+    '<tr><td data-colwidth="350"><p>c</p></td><td><p>d</p></td><td data-colwidth="120"><p>e</p></td></tr></tbody></table>';
+  const COLGROUP = '<colgroup><col style="width: 350px;"><col><col style="width: 120px;"></colgroup>';
+
+  it('getHTML writes the first row widths as a colgroup and keeps data-colwidth for re-parsing', () => {
+    const ed = makeEditor({ content: RESIZED });
+    const html = ed.getHTML();
+    expect(html).toContain(`<table>${COLGROUP}<tbody><tr><th data-colwidth="350">`);
+    ed.setHTML(html);
+    expect(ed.getHTML()).toBe(html);
+  });
+
+  it('tables without dragged widths keep the plain output', () => {
+    expect(sanitizeHTML(cell(''))).toBe('<table><tbody><tr><td><p>a</p></td></tr></tbody></table>');
+  });
+
+  it('sanitizeHTML and pasting saved HTML keep the widths', () => {
+    expect(sanitizeHTML(RESIZED)).toContain(COLGROUP);
+    const ed = makeEditor();
+    ed.view.pasteHTML(sanitizeHTML(RESIZED));
+    expect(ed.getHTML()).toContain(COLGROUP);
+  });
+});

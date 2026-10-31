@@ -35,3 +35,36 @@ test('audit #62: IME composition right after inserting a table goes into the fir
   await compose(page, ['ㅁ', '머', '멀', '머리'], '머리');
   expect(await html(page)).toContain('<tr><th><p>머리</p></th><th><p></p></th></tr>');
 });
+
+/** Renders saved HTML the way a read-only page does: in a .le-prose container styled by content.css. */
+async function renderViewPage(page: Page, content: string): Promise<void> {
+  await page.evaluate((html) => {
+    const view = document.createElement('div');
+    view.className = 'le-prose';
+    view.id = 'view-page';
+    view.style.width = '800px';
+    view.innerHTML = html;
+    document.body.appendChild(view);
+  }, content);
+}
+
+const width = (page: Page, selector: string): Promise<number> => page.locator(selector).first().evaluate((el) => el.getBoundingClientRect().width);
+
+test('audit #14: column widths dragged in the editor show on the view page', async ({ page }, info) => {
+  await openEmpty(page);
+  await insertTable(page, 2, 3);
+  if (info.project.name.startsWith('mobile')) {
+    // Column resizing is a desktop mouse gesture; on mobile only the saved widths are rendered.
+    await page.evaluate(() => window.__editor.setHTML(window.__editor.getHTML().replace('<th>', '<th data-colwidth="350">').replace('<td>', '<td data-colwidth="350">')));
+  } else {
+    const th = (await page.locator('#editor th').first().boundingBox())!;
+    await page.mouse.move(th.x + th.width - 2, th.y + th.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(th.x + th.width + 250, th.y + th.height / 2, { steps: 5 });
+    await page.mouse.up();
+  }
+  const editorWidth = await width(page, '#editor th');
+  expect(editorWidth).toBeGreaterThan(300);
+  await renderViewPage(page, await html(page));
+  expect(Math.abs((await width(page, '#view-page th')) - editorWidth)).toBeLessThanOrEqual(2);
+});

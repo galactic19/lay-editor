@@ -74,6 +74,28 @@ function createTable(schema: Schema, rows: number, cols: number, withHeader: boo
   return schema.nodes.table!.create(null, Array.from({ length: rows }, (_, i) => row(withHeader && i === 0)));
 }
 
+/** Column widths from the first row, read the way prosemirror-tables' TableView reads them (0 = not resized). */
+function columnWidths(table: PMNode): number[] {
+  const widths: number[] = [];
+  table.firstChild?.forEach((cell) => {
+    for (let i = 0; i < cell.attrs.colspan; i++) widths.push(cell.attrs.colwidth?.[i] ?? 0);
+  });
+  return widths;
+}
+
+/**
+ * Dragged widths live in data-colwidth, which only the editor's TableView reads. Saved HTML also gets
+ * the <colgroup> the editor draws, so view pages show the same widths; parsing ignores the colgroup.
+ */
+const tableSpec: NodeSpec = {
+  ...nodes.table,
+  toDOM: (node) => {
+    const widths = columnWidths(node);
+    if (!widths.some(Boolean)) return nodes.table.toDOM!(node);
+    return ['table', ['colgroup', ...widths.map((width) => ['col', width ? { style: `width: ${width}px;` } : {}])], ['tbody', 0]];
+  },
+};
+
 /**
  * replaceSelectionWith leaves the caret after the new table (in its last cell, or in the next block);
  * start typing in its first cell instead. The table may land beside the selection, so find it by identity.
@@ -113,7 +135,7 @@ export const table = defineExtension<TableOptions>({
   // Below lists (200) so Tab indents a list inside a cell before moving to the next cell.
   priority: 150,
   defaults: { ...DEFAULTS.table, cellColors: DEFAULTS.colors.highlight },
-  nodes: { table: nodes.table, table_row: nodes.table_row, table_cell: withClampedCells(nodes.table_cell), table_header: withClampedCells(nodes.table_header) },
+  nodes: { table: tableSpec, table_row: nodes.table_row, table_cell: withClampedCells(nodes.table_cell), table_header: withClampedCells(nodes.table_header) },
   commands: ({ schema, options }) => ({
     ...Object.fromEntries(Object.entries(TABLE_COMMANDS).map(([name, command]) => [name, () => command])),
     insertTable:

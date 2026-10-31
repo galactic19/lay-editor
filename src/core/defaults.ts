@@ -42,7 +42,7 @@ export const DEFAULTS = {
   },
   paste: {
     keepStyles: ['color', 'background-color', 'text-align'],
-    keepDataAttrs: ['data-type', 'data-checked', 'data-indent', 'data-align', 'data-video', 'data-provider', 'data-id'],
+    keepDataAttrs: ['data-type', 'data-checked', 'data-indent', 'data-align', 'data-video', 'data-provider', 'data-id', 'data-colwidth'],
     /** Colors that equal the page default; dropping them keeps pasted text readable in dark mode. */
     defaultColors: {
       color: ['#000', '#000000', 'rgb(0,0,0)'],
