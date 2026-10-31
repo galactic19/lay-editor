@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 5173;
+const PORT = Number(process.env.E2E_PORT) || 5173;
 const projects = [
   { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
   { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
