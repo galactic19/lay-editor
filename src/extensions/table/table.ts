@@ -1,5 +1,5 @@
-import { type Attrs, Fragment, type NodeSpec, type Node as PMNode, type Schema, Slice } from 'prosemirror-model';
-import { type Command, Plugin, Selection, TextSelection, type Transaction } from 'prosemirror-state';
+import { type Attrs, Fragment, type NodeSpec, type Node as PMNode, type ResolvedPos, type Schema, Slice } from 'prosemirror-model';
+import { type Command, type EditorState, Plugin, Selection, TextSelection, type Transaction } from 'prosemirror-state';
 import {
   addColumnAfter,
   addColumnBefore,
@@ -226,18 +226,28 @@ const limitTableFiller = (): Plugin =>
   });
 
 /**
+ * A cell selection puts the native selection over its head cell, so a handle dragged on starts from there.
+ * When the new selection starts in that cell, keep the cell the selection started in.
+ */
+function firstCell(old: EditorState, state: EditorState, $anchor: ResolvedPos): ResolvedPos {
+  const previous = old.selection;
+  const grown = previous instanceof CellSelection && old.doc === state.doc && previous.$headCell.pos === $anchor.pos;
+  return grown ? previous.$anchorCell : $anchor;
+}
+
+/**
  * Only a mouse drag or Shift makes a cell selection. Touch selection handles dragged across cells leave a
  * TextSelection, so Merge stays disabled and typing moves text between cells. Turn it into a CellSelection.
  * Runs after tableEditing, which first shrinks a selection ending at the next cell's start (triple click).
  */
 const textToCellSelection = (): Plugin =>
   new Plugin({
-    appendTransaction: (_trs, _old, state) => {
+    appendTransaction: (_trs, old, state) => {
       if (!(state.selection instanceof TextSelection)) return null;
       const $anchor = cellAround(state.selection.$anchor);
       const $head = cellAround(state.selection.$head);
       if (!$anchor || !$head || $anchor.pos === $head.pos || !inSameTable($anchor, $head)) return null;
-      return state.tr.setSelection(new CellSelection($anchor, $head));
+      return state.tr.setSelection(new CellSelection(firstCell(old, state, $anchor), $head));
     },
   });
 

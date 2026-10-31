@@ -101,14 +101,22 @@ test('audit #14: column widths dragged in the editor show on the view page', asy
 const tableTool = (page: Page, id: string) =>
   page.locator(`.le-context-toolbar [data-item="${id}"], .le-mobile-bar:not([hidden]) [data-item="${id}"]`).first();
 
-/** Selects text from the first cell into the second the way touch selection handles do (a native DOM range). */
-async function selectAcrossCells(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    const [first, second] = Array.from(document.querySelectorAll('#editor td p'), (p) => p.firstChild!);
-    getSelection()!.setBaseAndExtent(first!, 1, second!, 2);
-    window.__editor.syncSelection();
-  });
-}
+/**
+ * Moves the native selection the way touch selection handles do: 'select' spans from the first cell into cell
+ * `to`, 'extend' drags the end on into cell `to` from wherever the browser has the selection start.
+ */
+const selectInCells = (page: Page, mode: 'select' | 'extend', to: number): Promise<void> =>
+  page.evaluate(
+    ([how, cell]) => {
+      const texts = Array.from(document.querySelectorAll('#editor td p'), (p) => p.firstChild!);
+      if (how === 'extend') getSelection()!.extend(texts[cell]!, 2);
+      else getSelection()!.setBaseAndExtent(texts[0]!, 1, texts[cell]!, 2);
+      window.__editor.syncSelection();
+    },
+    [mode, to] as const,
+  );
+
+const selectAcrossCells = (page: Page): Promise<void> => selectInCells(page, 'select', 1);
 
 const TWO_BY_TWO = '<table><tbody><tr><td><p>aaaa</p></td><td><p>bbbb</p></td></tr><tr><td><p>c</p></td><td><p>d</p></td></tr></tbody></table>';
 
@@ -132,6 +140,16 @@ test.describe('audit #44: a selection dragged across cells becomes a cell select
     await expect(page.locator('#editor tr:first-child td')).toHaveCount(2);
     await expect(page.locator('#editor tr:first-child')).toHaveText('Z');
   });
+});
+
+test('audit #44: dragging a handle on into a third cell keeps the first cell selected', async ({ page }) => {
+  await openEmpty(page);
+  await setContent(page, '<table><tbody><tr><td><p>aaaa</p></td><td><p>bbbb</p></td><td><p>cccc</p></td></tr></tbody></table>');
+  await page.locator('#editor td').first().click();
+  await selectAcrossCells(page);
+  await selectInCells(page, 'extend', 2);
+  await tableTool(page, 'tableMerge').click();
+  await expect.poll(() => html(page)).toContain('<td colspan="3"><p>aaaa</p><p>bbbb</p><p>cccc</p></td>');
 });
 
 const TASKS =

@@ -198,6 +198,16 @@ describe('audit #44: a text selection across cells becomes a cell selection', ()
     expect(ed.state.selection.$to.parent.textContent).toBe('aaaa');
   });
 
+  it('that keeps growing from the head cell (a handle dragged on) keeps its first cell', () => {
+    const ed = makeEditor({ content: '<table><tbody><tr><td><p>aaaa</p></td><td><p>bbbb</p></td><td><p>cccc</p></td></tr></tbody></table>' });
+    selectRange(ed, findText(ed, 'aaaa') + 1, findText(ed, 'bbbb') + 2);
+    // The cell selection puts the native selection over the head cell, so the drag goes on from its start.
+    selectRange(ed, findText(ed, 'bbbb'), findText(ed, 'cccc') + 2);
+    expect(ed.state.selection.ranges).toHaveLength(3);
+    expect(ed.exec('mergeCells')).toBe(true);
+    expect(ed.getHTML()).toContain('<td colspan="3">');
+  });
+
   it('and one that starts outside the table is left alone', () => {
     const ed = makeEditor({ content: `<p>intro</p>${TABLE}` });
     selectRange(ed, findText(ed, 'intro') + 1, findText(ed, 'bbbb') + 2);
