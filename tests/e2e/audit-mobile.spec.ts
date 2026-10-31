@@ -1,5 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { control, openEmpty, panel, touchDrag } from './helpers';
+import { control, html, MOD, openEmpty, panel, touchDrag } from './helpers';
 
 const mobileOnly = (info: TestInfo): void => test.skip(!info.project.name.startsWith('mobile'), 'the keyboard bar and bottom sheets exist only in mobile mode');
 const visibleBar = (page: Page) => page.locator('.le-mobile-bar:not([hidden])');
@@ -74,4 +74,15 @@ test('gives the bottom-sheet drag area and checkbox rows a full touch target', a
   // A drag that starts a little below the visible grip still closes the sheet.
   await touchDrag(page, handle.x + handle.width / 2, handle.y + handle.height / 2 + 10, 150);
   await expect(sheet).toHaveCount(0);
+});
+
+test('applies a link typed without a scheme from the link panel', async ({ page }) => {
+  await openEmpty(page);
+  await page.keyboard.type('visit');
+  await page.keyboard.press('Shift+Home');
+  await page.keyboard.press(`${MOD}+k`);
+  await panel(page).locator('input[type="url"]').fill('naver.com');
+  await panel(page).locator('button[type="submit"]').click();
+  await expect(panel(page)).toHaveCount(0);
+  expect(await html(page)).toBe('<p><a href="https://naver.com">visit</a></p>');
 });

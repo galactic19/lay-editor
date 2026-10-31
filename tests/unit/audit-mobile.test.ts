@@ -1,6 +1,6 @@
 import { TextSelection } from 'prosemirror-state';
 import { setMedia } from '../setup';
-import { findText, flushPromises, makeEditor } from '../helpers/editor';
+import { findText, flushPromises, makeEditor, selectText } from '../helpers/editor';
 
 const COARSE = '(pointer: coarse)';
 const DARK = '(prefers-color-scheme: dark)';
@@ -81,5 +81,27 @@ describe('audit: mobile keyboard bar', () => {
     expect(portals()).toHaveLength(2);
     ed.setTheme('dark');
     expect(portals().map((el) => el.dataset.theme)).toEqual(['dark', 'dark']);
+  });
+});
+
+describe('audit: panel forms validate through the editor, not the browser', () => {
+  const form = () => document.querySelector<HTMLFormElement>('.le-dropdown form')!;
+
+  it('applies a link typed without a scheme', () => {
+    const ed = makeEditor({ content: '<p>visit</p>' });
+    selectText(ed, 'visit');
+    ed.ui!.openPanelFor('link');
+    form().querySelector<HTMLInputElement>('input[type="url"]')!.value = 'naver.com';
+    form().requestSubmit();
+    expect(ed.getHTML()).toBe('<p><a href="https://naver.com">visit</a></p>');
+    expect(document.querySelector('.le-dropdown')).toBeNull();
+  });
+
+  it('inserts an image from a site-relative URL the browser would call invalid', () => {
+    const ed = makeEditor();
+    ed.ui!.openPanelFor('image');
+    form().querySelector<HTMLInputElement>('input[type="url"]')!.value = '/uploads/a.png';
+    form().requestSubmit();
+    expect(ed.getHTML()).toContain('src="/uploads/a.png"');
   });
 });
