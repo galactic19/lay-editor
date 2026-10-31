@@ -1,11 +1,15 @@
 import { TextSelection } from 'prosemirror-state';
 import { CellSelection } from 'prosemirror-tables';
+import type { Editor } from '../../src/core/Editor';
 import { DEFAULTS } from '../../src/core/defaults';
 import { sanitizeHTML } from '../../src/io/sanitize';
 import { findText, makeEditor, press, typeText } from '../helpers/editor';
 
 const { maxColspan, maxRowspan, maxColumnWidth } = DEFAULTS.tableLimits;
 const cell = (attrs: string): string => `<table><tbody><tr><td ${attrs}><p>a</p></td></tr></tbody></table>`;
+const caretNear = (ed: Editor, pos: number): void => ed.view.dispatch(ed.state.tr.setSelection(TextSelection.near(ed.state.doc.resolve(pos))));
+const selectRange = (ed: Editor, anchor: number, head: number): void =>
+  ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, anchor, head)));
 
 describe('audit #22: cell spans are parsed as clamped integers', () => {
   it('a huge colspan no longer materialises thousands of cells', () => {
@@ -29,7 +33,7 @@ describe('audit #22: cell spans are parsed as clamped integers', () => {
 
   it('malformed spans do not corrupt sibling cells or crash table commands', () => {
     const ed = makeEditor({ content: '<table><tr><td colspan="2.5">a</td></tr><tr><td>b</td></tr></table>' });
-    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.near(ed.state.doc.resolve(findText(ed, 'b') + 1))));
+    caretNear(ed, findText(ed, 'b') + 1);
     ed.view.dispatch(ed.state.tr.insertText('X'));
     expect(() => ed.exec('addColumnAfter')).not.toThrow();
     expect(ed.getHTML()).not.toMatch(/colspan="(0|NaN)"/);
@@ -40,7 +44,7 @@ describe('audit #22: cell spans are parsed as clamped integers', () => {
 const CELL_ROLES = new Set(['cell', 'header_cell']);
 
 /** [row, column] of the cell holding the caret. */
-function caretCell(ed: ReturnType<typeof makeEditor>): [number, number] {
+function caretCell(ed: Editor): [number, number] {
   const { $from } = ed.state.selection;
   for (let depth = $from.depth; depth > 0; depth--) {
     if (CELL_ROLES.has($from.node(depth).type.spec.tableRole)) return [$from.index(depth - 2), $from.index(depth - 1)];
@@ -57,7 +61,7 @@ describe('audit #13/#62: inserting a table puts the caret in the first cell', ()
   ] as const)('in %s', (_, content, caret) => {
     const ed = makeEditor({ content });
     const pos = caret === 'end' ? ed.state.doc.content.size - 1 : Math.max(1, caret);
-    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.near(ed.state.doc.resolve(pos))));
+    caretNear(ed, pos);
     ed.exec('insertTable', 3, 3);
     expect(caretCell(ed)).toEqual([0, 0]);
   });
@@ -100,26 +104,24 @@ describe('audit #14: column widths reach saved HTML', () => {
 
 describe('audit #44: a text selection across cells becomes a cell selection', () => {
   const TABLE = '<table><tbody><tr><td><p>aaaa</p></td><td><p>bbbb</p></td></tr></tbody></table>';
-  const selectText = (ed: ReturnType<typeof makeEditor>, anchor: number, head: number) =>
-    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, anchor, head)));
 
   it('spanning two cells, so Merge works', () => {
     const ed = makeEditor({ content: TABLE });
-    selectText(ed, findText(ed, 'aaaa') + 1, findText(ed, 'bbbb') + 2);
+    selectRange(ed, findText(ed, 'aaaa') + 1, findText(ed, 'bbbb') + 2);
     expect(ed.state.selection).toBeInstanceOf(CellSelection);
     expect(ed.can('mergeCells')).toBe(true);
   });
 
   it('but a selection that ends at the start of the next cell (triple click) stays in its cell', () => {
     const ed = makeEditor({ content: TABLE });
-    selectText(ed, findText(ed, 'aaaa'), findText(ed, 'bbbb'));
+    selectRange(ed, findText(ed, 'aaaa'), findText(ed, 'bbbb'));
     expect(ed.state.selection).toBeInstanceOf(TextSelection);
     expect(ed.state.selection.$to.parent.textContent).toBe('aaaa');
   });
 
   it('and one that starts outside the table is left alone', () => {
     const ed = makeEditor({ content: `<p>intro</p>${TABLE}` });
-    selectText(ed, findText(ed, 'intro') + 1, findText(ed, 'bbbb') + 2);
+    selectRange(ed, findText(ed, 'intro') + 1, findText(ed, 'bbbb') + 2);
     expect(ed.state.selection).toBeInstanceOf(TextSelection);
   });
 });

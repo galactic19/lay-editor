@@ -12,6 +12,11 @@ test('audit #22: pasting a table with a huge colspan stays within the browser li
   await expect(page.locator('#editor td')).toHaveCount(DEFAULTS.tableLimits.maxColspan + 1);
 });
 
+/** Pixels two layouts of the same content may differ by (sub-pixel rounding). */
+const PX_TOLERANCE = 2;
+
+const setContent = (page: Page, content: string): Promise<void> => page.evaluate((html) => window.__editor.setHTML(html), content);
+
 async function insertTable(page: Page, rows: number, cols: number): Promise<void> {
   await control(page, 'table').click();
   await panel(page).locator(`[data-rows="${rows}"][data-cols="${cols}"]`).click();
@@ -36,37 +41,47 @@ test('audit #62: IME composition right after inserting a table goes into the fir
   expect(await html(page)).toContain('<tr><th><p>머리</p></th><th><p></p></th></tr>');
 });
 
-/** Renders saved HTML the way a read-only page does: in a .le-prose container styled by content.css. */
-async function renderViewPage(page: Page, content: string): Promise<void> {
-  await page.evaluate((html) => {
-    const view = document.createElement('div');
-    view.className = 'le-prose';
-    view.id = 'view-page';
-    view.style.width = '800px';
-    view.innerHTML = html;
-    document.body.appendChild(view);
-  }, content);
+/** The editor body and a read-only page: saved HTML in a .le-prose container styled by content.css. */
+const ROOTS = ['#editor .ProseMirror', '#view-page'];
+
+async function renderViewPage(page: Page, content: string, theme?: 'dark'): Promise<void> {
+  await page.evaluate(
+    ([html, dark]) => {
+      const view = document.createElement('div');
+      view.className = 'le-prose';
+      view.id = 'view-page';
+      view.style.width = '800px';
+      if (dark) view.dataset.theme = dark;
+      view.innerHTML = html!;
+      document.body.appendChild(view);
+    },
+    [content, theme],
+  );
 }
 
 const width = (page: Page, selector: string): Promise<number> => page.locator(selector).first().evaluate((el) => el.getBoundingClientRect().width);
+
+const WIDE_COLUMN = 350;
 
 test('audit #14: column widths dragged in the editor show on the view page', async ({ page }, info) => {
   await openEmpty(page);
   await insertTable(page, 2, 3);
   if (info.project.name.startsWith('mobile')) {
     // Column resizing is a desktop mouse gesture; on mobile only the saved widths are rendered.
-    await page.evaluate(() => window.__editor.setHTML(window.__editor.getHTML().replace('<th>', '<th data-colwidth="350">').replace('<td>', '<td data-colwidth="350">')));
+    const resized = (await html(page)).replace('<th>', `<th data-colwidth="${WIDE_COLUMN}">`).replace('<td>', `<td data-colwidth="${WIDE_COLUMN}">`);
+    await setContent(page, resized);
   } else {
     const th = (await page.locator('#editor th').first().boundingBox())!;
-    await page.mouse.move(th.x + th.width - 2, th.y + th.height / 2);
+    const y = th.y + th.height / 2;
+    await page.mouse.move(th.x + th.width - PX_TOLERANCE, y);
     await page.mouse.down();
-    await page.mouse.move(th.x + th.width + 250, th.y + th.height / 2, { steps: 5 });
+    await page.mouse.move(th.x + WIDE_COLUMN, y, { steps: 5 });
     await page.mouse.up();
   }
   const editorWidth = await width(page, '#editor th');
-  expect(editorWidth).toBeGreaterThan(300);
+  expect(Math.abs(editorWidth - WIDE_COLUMN)).toBeLessThanOrEqual(PX_TOLERANCE);
   await renderViewPage(page, await html(page));
-  expect(Math.abs((await width(page, '#view-page th')) - editorWidth)).toBeLessThanOrEqual(2);
+  expect(Math.abs((await width(page, '#view-page th')) - editorWidth)).toBeLessThanOrEqual(PX_TOLERANCE);
 });
 
 /** A table tool: the desktop context toolbar or the mobile keyboard bar in table context. */
@@ -87,7 +102,7 @@ const TWO_BY_TWO = '<table><tbody><tr><td><p>aaaa</p></td><td><p>bbbb</p></td></
 test.describe('audit #44: a selection dragged across cells becomes a cell selection', () => {
   test.beforeEach(async ({ page }) => {
     await openEmpty(page);
-    await page.evaluate((content) => window.__editor.setHTML(content), TWO_BY_TWO);
+    await setContent(page, TWO_BY_TWO);
     await page.locator('#editor td').first().click();
     await selectAcrossCells(page);
   });
@@ -124,18 +139,18 @@ const taskBoxes = (page: Page, root: string) =>
 
 test('audit #15: the view page stacks nested task lists and extra paragraphs like the editor', async ({ page }) => {
   await openEmpty(page);
-  await page.evaluate((content) => window.__editor.setHTML(content), TASKS);
+  await setContent(page, TASKS);
   await renderViewPage(page, TASKS);
-  for (const root of ['#editor .ProseMirror', '#view-page']) {
+  for (const root of ROOTS) {
     const boxes = await taskBoxes(page, root);
     expect(boxes['Child task']!.top, root).toBeGreaterThanOrEqual(boxes['Parent task']!.bottom);
     expect(boxes['Second para two']!.top, root).toBeGreaterThanOrEqual(boxes['Second para one']!.bottom);
     expect(boxes['Second para two']!.left, root).toBe(boxes['Second para one']!.left);
   }
-  const [editor, view] = [await taskBoxes(page, '#editor .ProseMirror'), await taskBoxes(page, '#view-page')];
-  for (const text of Object.keys(editor)) {
-    expect(Math.abs(view[text]!.left - editor[text]!.left), `${text} left`).toBeLessThanOrEqual(1);
-    expect(Math.abs(view[text]!.top - editor[text]!.top), `${text} top`).toBeLessThanOrEqual(1);
+  const [editor, view] = await Promise.all(ROOTS.map((root) => taskBoxes(page, root)));
+  for (const text of Object.keys(editor!)) {
+    expect(Math.abs(view![text]!.left - editor![text]!.left), `${text} left`).toBeLessThanOrEqual(PX_TOLERANCE);
+    expect(Math.abs(view![text]!.top - editor![text]!.top), `${text} top`).toBeLessThanOrEqual(PX_TOLERANCE);
   }
 });
 
@@ -150,9 +165,9 @@ for (const [name, reset] of Object.entries(RESETS)) {
   test(`audit #50: list markers survive a CSS reset (${name})`, async ({ page }) => {
     await openEmpty(page);
     await page.addStyleTag({ content: reset });
-    await page.evaluate((content) => window.__editor.setHTML(content), LISTS);
+    await setContent(page, LISTS);
     await renderViewPage(page, LISTS);
-    for (const root of ['#editor .ProseMirror', '#view-page']) {
+    for (const root of ROOTS) {
       for (const [selector, type] of Object.entries(MARKERS)) {
         const actual = await page.locator(`${root} ${selector}`).first().evaluate((el) => getComputedStyle(el).listStyleType);
         expect(actual, `${root} ${selector}`).toBe(type);
@@ -177,13 +192,12 @@ test.describe('audit #51: highlighted text in dark mode', () => {
   test.use({ colorScheme: 'dark' });
 
   test('every default highlight colour keeps readable text in the editor and on a dark view page', async ({ page }) => {
-    const marks = DEFAULTS.colors.highlight.map((color) => `<mark style="background-color: ${color}">형광펜 텍스트</mark>`).join(' ');
+    const marks = `<p>${DEFAULTS.colors.highlight.map((color) => `<mark style="background-color: ${color}">형광펜 텍스트</mark>`).join(' ')}</p>`;
     await openEmpty(page);
     expect(await page.evaluate(() => window.__editor.root.dataset.theme)).toBe('dark');
-    await page.evaluate((content) => window.__editor.setHTML(content), `<p>${marks}</p>`);
-    await renderViewPage(page, `<p>${marks}</p>`);
-    await page.locator('#view-page').evaluate((el) => el.setAttribute('data-theme', 'dark'));
-    for (const root of ['#editor .ProseMirror', '#view-page']) {
+    await setContent(page, marks);
+    await renderViewPage(page, marks, 'dark');
+    for (const root of ROOTS) {
       const colors = await page.locator(`${root} mark`).evaluateAll((els) => els.map((el) => [getComputedStyle(el).color, getComputedStyle(el).backgroundColor]));
       expect(colors).toHaveLength(DEFAULTS.colors.highlight.length);
       for (const [fg, bg] of colors) expect(contrast(fg!, bg!), `${root} ${fg} on ${bg}`).toBeGreaterThanOrEqual(WCAG_AA);
