@@ -3,6 +3,7 @@ import type { Command, Plugin } from 'prosemirror-state';
 import { inputRules as inputRulesPlugin, type InputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
 import type { NodeViewConstructor } from 'prosemirror-view';
+import { checkOptionShape } from './config';
 import type { Editor } from './Editor';
 import { EditorError } from './errors';
 import { deepMerge, isPlainObject } from './merge';
@@ -134,7 +135,9 @@ export class ExtensionManager {
 const priorityOf = (ext: Extension): number => ext.priority ?? DEFAULT_PRIORITY;
 
 function resolveOptions(ext: Extension, config: EditorConfig): unknown {
-  const raw = config.raw[ext.optionsKey ?? ext.name];
+  const key = ext.optionsKey ?? ext.name;
+  const raw = config.raw[key];
+  checkOptionShape(key, ext.defaults, raw);
   return deepMerge(ext.defaults ?? {}, isPlainObject(raw) ? raw : undefined);
 }
 

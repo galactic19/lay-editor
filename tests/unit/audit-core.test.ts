@@ -276,3 +276,63 @@ describe('audit core: a required textarea reports an empty editor visibly', () =
     expect(ed.root.querySelector('.le-toast-error')).toBeNull();
   });
 });
+
+describe('audit core: invalid options fail at creation', () => {
+  const create = (options: unknown) => () => createEditor(options as Parameters<typeof createEditor>[0]);
+  const withElement = (bad: object) => {
+    document.body.innerHTML = '<div id="e"></div>';
+    return create({ element: '#e', ...bad });
+  };
+  const code = (expected: string) => expect.objectContaining({ code: expected });
+
+  it.each([
+    [{ onChange: 'x' }],
+    [{ onReady: 'x' }],
+    [{ content: {} }],
+    [{ content: 5 }],
+    [{ extensions: [null] }],
+    [{ extensions: [{}] }],
+    [{ image: { maxSize: '5MB' } }],
+    [{ image: { maxSize: Number.NaN } }],
+    [{ image: { accept: 'image/png' } }],
+    [{ image: { widths: ['50'] } }],
+    [{ image: 'big' }],
+    [{ table: { maxGrid: '8' } }],
+    [{ colors: { text: '#000000' } }],
+    [{ codeBlock: { languages: [1] } }],
+    [{ autosave: { debounce: '1s' } }],
+  ])('throws INVALID_OPTION for %o', (bad) => {
+    expect(withElement(bad)).toThrowError(code('INVALID_OPTION'));
+  });
+
+  it('names the offending option path in the message', () => {
+    expect(withElement({ image: { maxSize: '5MB' } })).toThrowError(/image\.maxSize/);
+  });
+
+  it('accepts valid extension options, unknown keys and null content', () => {
+    expect(withElement({ image: { maxSize: 5 * 1024 * 1024, accept: ['image/png'] }, autosave: { key: 'k' }, video: { allowedHosts: ['x'] }, content: null })).not.toThrow();
+  });
+
+  it('checks a user extension against its defaults, leaving null defaults open', () => {
+    const mention = { name: 'mention', defaults: { limit: 5, onPick: null } };
+    expect(withElement({ extensions: [mention], mention: { onPick: () => {} } })).not.toThrow();
+    expect(withElement({ extensions: [mention], mention: { limit: 'five' } })).toThrowError(/mention\.limit/);
+  });
+
+  it('throws INVALID_OPTION without options at all', () => {
+    expect(create(undefined)).toThrowError(code('INVALID_OPTION'));
+  });
+
+  it('throws ELEMENT_NOT_FOUND for a malformed selector', () => {
+    expect(create({ element: '##x' })).toThrowError(code('ELEMENT_NOT_FOUND'));
+  });
+
+  it('explains that an element of another document (an iframe) is not supported', () => {
+    const frame = document.createElement('iframe');
+    document.body.appendChild(frame);
+    const foreign = frame.contentDocument!.createElement('div');
+    frame.contentDocument!.body.appendChild(foreign);
+    expect(create({ element: foreign })).toThrowError(code('INVALID_OPTION'));
+    expect(create({ element: foreign })).toThrowError(/another document/);
+  });
+});
