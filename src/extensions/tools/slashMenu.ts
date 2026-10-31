@@ -27,18 +27,12 @@ export function slashItems(editor: Editor): UIItem[] {
   return all.filter((item) => item.slash);
 }
 
-const WHITESPACE = /\s+/;
-
-/** True when the text, or one of its words, starts with `needle`: a query names a block, it is not a substring search. */
-const startsWord = (text: string, needle: string): boolean => {
-  const lower = text.toLowerCase();
-  return lower.startsWith(needle) || lower.split(WHITESPACE).some((word) => word.startsWith(needle));
-};
+const WHITESPACE = /\s/;
 
 export function filterSlashItems(items: UIItem[], query: string, t: Translate): UIItem[] {
   const needle = query.trim().toLowerCase();
   const matches = (item: UIItem): boolean =>
-    [t(item.label, item.labelParams), ...(item.slash?.keywords ?? [])].some((text) => startsWord(text, needle));
+    [t(item.label, item.labelParams), ...(item.slash?.keywords ?? [])].some((text) => text.toLowerCase().includes(needle));
   return items.filter(matches).slice(0, maxItems);
 }
 

@@ -1,8 +1,7 @@
 import { AllSelection, TextSelection } from 'prosemirror-state';
 import { findText, makeEditor, press, selectText, typeText } from '../helpers/editor';
 import type { Editor } from '../../src/core/Editor';
-import { filterSlashItems, slashKey } from '../../src/extensions/tools/slashMenu';
-import type { UIItem } from '../../src/core/types';
+import { filterSlashItems, slashItems, slashKey } from '../../src/extensions/tools/slashMenu';
 
 const caretAt = (ed: Editor, pos: number): void => {
   ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, pos)));
@@ -170,15 +169,14 @@ describe('slash menu leaves prose alone (#31)', () => {
     expect(slashKey.getState(ed.state)!.active).toBe(false);
   });
 
-  it('matches the start of a label word or keyword, not text inside a word', () => {
-    const t = (key: string) => key;
-    const table: UIItem = { id: 'table', kind: 'button', icon: 'x', label: 'Insert table', contexts: ['text'], slash: { keywords: ['grid'] } };
-    const ids = (query: string) => filterSlashItems([table], query, t).map((item) => item.id);
-    expect(ids('ta')).toEqual(['table']);
-    expect(ids('INS')).toEqual(['table']);
-    expect(ids('gr')).toEqual(['table']);
-    expect(ids('able')).toEqual([]);
-    expect(ids('b')).toEqual([]);
+  it.each([
+    ['ko', '리스트', 'taskList'],
+    ['ko', '선', 'horizontalRule'],
+    ['en', 'list', 'taskList'],
+    ['en', 'ul', 'bulletList'],
+  ] as const)('a %s query "%s" still finds %s by text inside its label', (locale, query, id) => {
+    const ed = makeEditor({ locale });
+    expect(filterSlashItems(slashItems(ed), query, ed.t).map((item) => item.id)).toContain(id);
   });
 });
 
