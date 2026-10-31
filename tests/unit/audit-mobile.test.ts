@@ -1,5 +1,6 @@
+import { TextSelection } from 'prosemirror-state';
 import { setMedia } from '../setup';
-import { flushPromises, makeEditor } from '../helpers/editor';
+import { findText, flushPromises, makeEditor } from '../helpers/editor';
 
 const COARSE = '(pointer: coarse)';
 const bar = () => document.querySelector<HTMLElement>('.le-mobile-bar')!;
@@ -52,5 +53,14 @@ describe('audit: mobile keyboard bar', () => {
     setMedia(COARSE, false);
     expect(ed.view.someProp('scrollMargin')).toBeUndefined();
     expect(ed.view.someProp('scrollThreshold')).toBeUndefined();
+  });
+
+  it('scrolls back to the start after a context switch so the new tools are in view', () => {
+    const ed = mobileEditor('<p>text</p><table><tbody><tr><td><p>cell</p></td></tr></tbody></table>');
+    bar().scrollLeft = 300;
+    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, findText(ed, 'cell'))));
+    ed.ui!.flush();
+    expect(bar().querySelector('[data-item]')!.getAttribute('data-item')).toBe('tableAddRowAfter');
+    expect(bar().scrollLeft).toBe(0);
   });
 });

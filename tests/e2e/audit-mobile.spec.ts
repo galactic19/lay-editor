@@ -1,5 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { control, openEmpty } from './helpers';
+import { control, openEmpty, panel } from './helpers';
 
 const mobileOnly = (info: TestInfo): void => test.skip(!info.project.name.startsWith('mobile'), 'the keyboard bar and bottom sheets exist only in mobile mode');
 const visibleBar = (page: Page) => page.locator('.le-mobile-bar:not([hidden])');
@@ -33,4 +33,12 @@ test('keeps the caret line above the keyboard bar while typing past one screen',
     await page.keyboard.press('Enter');
     await expect.poll(clearance, { message: `caret of line ${line + 1}` }).toBeGreaterThanOrEqual(0);
   }
+});
+
+test('shows the table tools after inserting a table from the end of the bar', async ({ page }, info) => {
+  mobileOnly(info);
+  await openEmpty(page);
+  await control(page, 'table').tap();
+  await panel(page).locator('[data-rows="2"][data-cols="2"]').tap();
+  await expect(control(page, 'tableAddRowAfter')).toBeInViewport({ ratio: 1 });
 });
