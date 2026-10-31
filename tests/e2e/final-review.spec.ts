@@ -1,5 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { contrast, control, html, openEmpty, WCAG_AA } from './helpers';
+import { contrast, control, html, openEmpty, paste, WCAG_AA } from './helpers';
 
 const isMobile = (info: TestInfo): boolean => info.project.name.startsWith('mobile');
 
@@ -89,4 +89,84 @@ test('final review: ticking a task box keeps typing in the text', async ({ page 
   else await box.click();
   await page.keyboard.type(' more');
   await expect.poll(() => html(page)).toBe('<ul data-type="taskList"><li data-checked="true"><p>task a</p></li><li data-checked="false"><p>task b more</p></li></ul>');
+});
+
+test('final review: a form reset with the source view open keeps the restored content', async ({ page }, info) => {
+  test.skip(isMobile(info), 'the form editor is driven through the desktop toolbar here');
+  const initial = '<p>폼 안의 <strong>textarea</strong>가 에디터로 바뀝니다.</p>';
+  await page.goto('./');
+  const form = page.locator('#form');
+  await form.evaluate((el) => el.append(Object.assign(document.createElement('button'), { type: 'reset', id: 'reset' })));
+  await form.locator('.ProseMirror').click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(' edited');
+  const toggleSource = async (): Promise<void> => {
+    const direct = form.locator('.le-toolbar [data-item="sourceView"]');
+    if (await direct.isVisible()) return direct.click();
+    await form.locator('.le-toolbar [data-item="more"]').click();
+    await page.locator('.le-dropdown [data-item="sourceView"]').click();
+  };
+  await toggleSource();
+  const source = form.locator('textarea.le-source');
+  await expect(source).toBeVisible();
+  await page.click('#reset');
+  await expect(source).toHaveValue(initial);
+  await toggleSource();
+  await expect(source).toHaveCount(0);
+  await page.click('#form button[type="submit"]');
+  await expect(page.locator('#form-output')).toHaveText(initial);
+});
+
+test('final review: read-only full screen keeps a control that leaves it', async ({ page }, info) => {
+  await openEmpty(page);
+  await page.keyboard.type('hello');
+  await page.evaluate(() => {
+    window.__editor.exec('toggleFullscreen');
+    window.__editor.setEditable(false);
+  });
+  const fullscreen = control(page, 'fullscreen');
+  await expect(fullscreen).toBeVisible();
+  if (isMobile(info)) await fullscreen.tap();
+  else await fullscreen.click();
+  await expect(page.locator('#editor .le-editor')).not.toHaveClass(/le-fullscreen/);
+  await expect(page.locator('html')).not.toHaveClass(/le-scroll-locked/);
+});
+
+test('final review: Enter in an image caption starts a paragraph after the image', async ({ page }) => {
+  await openEmpty(page);
+  await page.keyboard.type('before');
+  await page.evaluate(() => {
+    window.__editor.exec('insertImage', { src: 'https://example.com/a.png' });
+  });
+  await page.keyboard.type('caption');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('next');
+  await expect
+    .poll(() => html(page))
+    .toBe('<p>before</p><figure data-align="center"><img src="https://example.com/a.png" alt=""><figcaption>caption</figcaption></figure><p>next</p>');
+  // No caption the browser split off (Chrome on Android) is left on screen.
+  await expect(page.locator('#editor .ProseMirror figcaption')).toHaveCount(1);
+});
+
+test('final review: typing right after a video inserted at the end keeps the video', async ({ page }) => {
+  await openEmpty(page);
+  await page.keyboard.type('intro');
+  await page.keyboard.press('Enter');
+  await paste(page, { 'text/plain': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+  await page.keyboard.type('Next line');
+  await expect.poll(() => html(page)).toMatch(/^<p>intro<\/p><div data-video="" data-provider="youtube".*<\/div><p>Next line<\/p>$/);
+});
+
+test('final review: Tab in the last table cell adds a row', async ({ page }, info) => {
+  test.skip(isMobile(info), 'Tab needs a hardware keyboard');
+  await openEmpty(page);
+  await page.evaluate(() => window.__editor.exec('insertTable', 1, 2, false));
+  await page.keyboard.type('a');
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('b');
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('c');
+  await expect
+    .poll(() => html(page))
+    .toBe('<table><tbody><tr><td><p>a</p></td><td><p>b</p></td></tr><tr><td><p>c</p></td><td><p></p></td></tr></tbody></table>');
 });

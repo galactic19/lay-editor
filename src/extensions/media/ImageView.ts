@@ -51,7 +51,12 @@ export class ImageView implements NodeView {
     return (event.target as HTMLElement).classList?.contains(c('resize-handle'));
   }
 
+  /**
+   * Only caption edits count, plus the browser splitting the caption on Enter (Chrome on Android leaves Enter to the
+   * browser): prosemirror-view reads that as Enter, which leaves the caption, and redraws the figure.
+   */
   ignoreMutation(mutation: { type: string; target: Node }): boolean {
+    if (mutation.type === 'childList' && mutation.target === this.dom) return false;
     return mutation.type !== 'selection' && !this.contentDOM.contains(mutation.target);
   }
 
