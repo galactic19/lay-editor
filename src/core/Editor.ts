@@ -10,6 +10,7 @@ import { EditorError, warn } from './errors';
 import { EventEmitter } from './EventEmitter';
 import { ExtensionManager } from './ExtensionManager';
 import { isMarkActive, isNodeActive } from './state-utils';
+import { TextareaBinding } from './TextareaBinding';
 import { debounce, type Debounced } from './timing';
 import type { CommandFactory, DeviceMode, EditorConfig, LocaleInput, ThemeMode } from './types';
 
@@ -41,7 +42,7 @@ export class Editor {
 
   private readonly events: EventEmitter<EditorEvents>;
   private readonly changeDebounced: Debounced<[]>;
-  private readonly disposers: Array<() => void> = [];
+  private readonly textarea: TextareaBinding | null;
   private editable = true;
   /** Set when destroy() starts, so a 'destroy' listener that calls destroy() again is ignored. */
   private destroying = false;
@@ -65,7 +66,9 @@ export class Editor {
     this.content = document.createElement('div');
     this.content.className = c('content');
     this.root.appendChild(this.content);
-    this.mount();
+    this.textarea = config.textarea ? new TextareaBinding(this, config.textarea) : null;
+    if (this.textarea) this.textarea.mount(this.root);
+    else config.element.appendChild(this.root);
 
     this.commands = this.manager.createCommands(this);
     this.view = new EditorView(this.content, {
@@ -85,6 +88,8 @@ export class Editor {
     });
     this.manager.runCreate(this);
     this.ui = new EditorUI(this);
+    // The form posts the textarea, so it must hold what the editor shows (the content option, sanitized) from the start.
+    this.textarea?.sync();
     this.safeCall('onReady', () => config.onReady?.(this));
   }
 
@@ -209,31 +214,14 @@ export class Editor {
     this.destroying = true;
     this.events.emit('destroy');
     this.changeDebounced.cancel();
-    if (this.config.textarea) this.config.textarea.value = this.getHTML();
+    this.textarea?.sync();
     this.destroyed = true;
     this.ui?.destroy();
     this.manager.runDestroy();
     this.view.destroy();
-    this.disposers.forEach((dispose) => dispose());
+    this.textarea?.destroy();
     this.root.remove();
     this.events.clear();
-  }
-
-  private mount(): void {
-    const { element, textarea } = this.config;
-    if (!textarea) {
-      element.appendChild(this.root);
-      return;
-    }
-    const previousDisplay = textarea.style.display;
-    textarea.style.display = 'none';
-    textarea.after(this.root);
-    const onSubmit = (): void => this.flushChange();
-    textarea.form?.addEventListener('submit', onSubmit, true);
-    this.disposers.push(() => {
-      textarea.form?.removeEventListener('submit', onSubmit, true);
-      textarea.style.display = previousDisplay;
-    });
   }
 
   private dispatch(tr: Transaction): void {
@@ -248,7 +236,6 @@ export class Editor {
   private emitChange(): void {
     if (this.destroyed) return;
     const html = this.getHTML();
-    if (this.config.textarea) this.config.textarea.value = html;
     this.events.emit('change', html);
     this.safeCall('onChange', () => this.config.onChange?.(html));
   }

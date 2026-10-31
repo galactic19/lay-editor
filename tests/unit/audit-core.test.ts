@@ -1,4 +1,6 @@
+import { createEditor } from '../../src/core/createEditor';
 import { createTranslator, registerLocale } from '../../src/i18n';
+import { onCleanup } from '../setup';
 import { flushPromises, makeEditor, typeText } from '../helpers/editor';
 
 describe('audit core: every public method is safe after destroy', () => {
@@ -132,5 +134,60 @@ describe('audit core: locale codes are matched as language tags', () => {
     ed.setLocale('en-US');
     expect(ed.root.querySelector('[data-item="bold"]')!.getAttribute('aria-label')).toContain('Bold');
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+});
+
+/** A form with one textarea-mode editor; extra markup goes before the textarea. */
+function formEditor(textarea: string, options: Record<string, unknown> = {}, before = '') {
+  document.body.innerHTML = `<form>${before}${textarea}<button>save</button></form>`;
+  const form = document.querySelector('form')!;
+  const ta = form.querySelector('textarea')!;
+  const ed = createEditor({ element: ta, ...options });
+  onCleanup(() => ed.destroy());
+  return { form, ta, ed };
+}
+
+/** jsdom has no FormDataEvent: builds the entry list and fires 'formdata' the way browsers do. */
+function readForm(form: HTMLFormElement): FormData {
+  const formData = new FormData(form);
+  form.dispatchEvent(Object.assign(new Event('formdata'), { formData }));
+  return formData;
+}
+
+describe('audit core: the textarea holds what the editor shows', () => {
+  it('writes the content option into the textarea at creation', () => {
+    const { form, ta, ed } = formEditor('<textarea name="body">server value</textarea>', { content: '<p>from content option</p>' });
+    expect(ed.getHTML()).toBe('<p>from content option</p>');
+    expect(ta.value).toBe('<p>from content option</p>');
+    expect(new FormData(form).get('body')).toBe('<p>from content option</p>');
+  });
+
+  it('writes the sanitized HTML, not the raw textarea value, before any edit', () => {
+    const { ta } = formEditor('<textarea name="body"><p onclick="alert(1)">x</p><script>alert(2)</script></textarea>');
+    expect(ta.value).toBe('<p>x</p>');
+  });
+
+  it('serializing the form right after typing includes the last keystrokes', () => {
+    vi.useFakeTimers();
+    const onChange = vi.fn();
+    const { form, ed } = formEditor('<textarea name="body"><p>orig</p></textarea>', { onChange });
+    typeText(ed, 'new ');
+    expect(readForm(form).get('body')).toBe('<p>new orig</p>');
+    expect(onChange).toHaveBeenCalledWith('<p>new orig</p>');
+  });
+
+  it('keeps each entry of same-name textareas in place', () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<form><textarea name="answers[]"></textarea><input name="x" value="1"><textarea name="answers[]"></textarea></form>';
+    const form = document.querySelector('form')!;
+    const [first, second] = [...form.querySelectorAll('textarea')].map((ta) => createEditor({ element: ta }));
+    onCleanup(() => [first, second].forEach((ed) => ed!.destroy()));
+    typeText(second!, 'two');
+    typeText(first!, 'one');
+    expect([...readForm(form).entries()]).toEqual([
+      ['answers[]', '<p>one</p>'],
+      ['x', '1'],
+      ['answers[]', '<p>two</p>'],
+    ]);
   });
 });

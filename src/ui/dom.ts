@@ -8,6 +8,12 @@ export interface ElementProps {
   style?: Partial<CSSStyleDeclaration>;
 }
 
+/** Adds an event listener and returns the function that removes it. */
+export function listen(target: EventTarget, type: string, fn: (event: any) => void, options?: AddEventListenerOptions | boolean): () => void {
+  target.addEventListener(type, fn, options);
+  return () => target.removeEventListener(type, fn, options);
+}
+
 /** Creates an element; `true` attributes are set empty, false/null ones are skipped. */
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: ElementProps = {}, ...children: Child[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
