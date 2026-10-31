@@ -35,7 +35,7 @@ export const DEFAULTS = {
   heading: { levels: [1, 2, 3, 4] },
   codeBlock: {
     indent: '  ',
-    /** Enter on the last of this many empty trailing lines leaves the block (0, or anything but a positive whole number, turns it off). */
+    /** Enter on the last of this many empty trailing lines leaves the block (0, or any other number that is not a positive whole number, turns it off; NaN is rejected). */
     exitBlankLines: 2,
     plainLanguage: 'plaintext',
     languages: ['plaintext', 'javascript', 'typescript', 'html', 'css', 'json', 'python', 'java', 'sql', 'bash'],

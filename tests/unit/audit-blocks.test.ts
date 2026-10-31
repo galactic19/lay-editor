@@ -89,12 +89,16 @@ describe('leaving a code block (#16)', () => {
     expect(ed.getHTML()).toBe('<pre><code class="language-js">x();</code></pre><p>B</p>');
   });
 
-  it.each([0, -1, 1.5, Number.POSITIVE_INFINITY, Number.NaN])('exitBlankLines %s turns the exit off and Enter keeps adding lines', (exitBlankLines) => {
+  it.each([0, -1, 1.5, Number.POSITIVE_INFINITY])('exitBlankLines %s turns the exit off and Enter keeps adding lines', (exitBlankLines) => {
     const ed = makeEditor({ codeBlock: { exitBlankLines }, content: '<pre><code>x</code></pre>' });
     caretAt(ed, ed.state.doc.content.size - 1);
     for (let i = 0; i < 3; i++) press(ed, 'Enter');
     typeText(ed, '\n');
     expect(ed.getHTML()).toBe('<pre><code>x\n\n\n\n</code></pre>');
+  });
+
+  it('exitBlankLines NaN is not a usable number and is rejected at creation', () => {
+    expect(() => makeEditor({ codeBlock: { exitBlankLines: Number.NaN } })).toThrowError(expect.objectContaining({ code: 'INVALID_OPTION' }));
   });
 
   it('blank lines in the middle of the code keep Enter as a newline', () => {
