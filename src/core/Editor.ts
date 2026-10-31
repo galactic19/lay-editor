@@ -3,6 +3,7 @@ import { EditorState, type Transaction } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { createTranslator, type Translate } from '../i18n';
 import { getDefaultExtensions } from '../extensions';
+import { withFreshHistory } from '../extensions/base/history';
 import { parseHTML, serializeHTML, isDocEmpty } from '../io/html';
 import { c } from '../ui/classes';
 import { EditorUI } from '../ui/EditorUI';
@@ -108,12 +109,12 @@ export class Editor {
   /**
    * Loads new content. Like the initial content it starts a fresh undo history and is not an
    * undo step itself, so Ctrl+Z can neither empty the editor nor bring back the previous document.
+   * Other plugin state (an open search) and the DOM of unchanged blocks are kept.
    */
   setHTML(html: string): void {
     if (this.destroyed) return;
     const doc = parseHTML(this.schema, html);
-    const { selection, plugins } = this.state;
-    this.view.updateState(EditorState.create({ doc: this.state.doc, selection, plugins }));
+    this.view.updateState(withFreshHistory(this.state));
     this.view.dispatch(this.state.tr.replaceWith(0, this.state.doc.content.size, doc.content).setMeta('addToHistory', false));
   }
 

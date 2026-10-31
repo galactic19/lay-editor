@@ -1,6 +1,7 @@
 import { createEditor } from '../../src/core/createEditor';
 import type { Editor } from '../../src/core/Editor';
 import { createHighlightPlugin } from '../../src/extensions/blocks/codeHighlight';
+import { findKey } from '../../src/extensions/tools/findReplace';
 import { defineExtension } from '../../src/extensions/factories';
 import { createTranslator, registerLocale } from '../../src/i18n';
 import { onCleanup } from '../setup';
@@ -82,6 +83,30 @@ describe('audit core: setHTML starts a fresh undo history', () => {
     resolve(() => [{ from: 0, to: 5, className: 'hljs-keyword' }]);
     await flushPromises();
     expect(ed.view.dom.querySelector('.hljs-keyword')?.textContent).toBe('const');
+  });
+
+  it('keeps the DOM of unchanged blocks and embeds with the default extensions', () => {
+    const ed = makeEditor({ content: '<p>keep</p><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe><p>old</p>' });
+    const paragraph = ed.view.dom.firstElementChild;
+    const embed = ed.view.dom.querySelector('iframe');
+    expect(embed).not.toBeNull();
+    ed.setHTML(ed.getHTML().replace('old', 'new'));
+    expect(ed.getHTML()).toContain('<p>new</p>');
+    expect(ed.view.dom.firstElementChild).toBe(paragraph);
+    expect(ed.view.dom.querySelector('iframe')).toBe(embed);
+  });
+
+  it('keeps the state of the other plugins, such as the search query', () => {
+    const ed = makeEditor({ content: '<p>apple pie</p>' });
+    ed.exec('setFindQuery', 'apple');
+    ed.setHTML('<p>apple tart, apple jam</p>');
+    expect(findKey.getState(ed.state)).toMatchObject({ query: 'apple', matches: [expect.anything(), expect.anything()] });
+  });
+
+  it('loads content without the history extension', () => {
+    const ed = makeEditor({ content: '<p>A</p>', disable: ['history'] });
+    ed.setHTML('<p>B</p>');
+    expect(ed.getHTML()).toBe('<p>B</p>');
   });
 
   it('still emits update and change for the load', () => {

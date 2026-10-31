@@ -92,7 +92,7 @@ export function createHighlightPlugin(load: () => Promise<Highlighter>): Plugin 
         load()
           .then((loaded) => {
             highlighter = loaded;
-            // Plugin views are rebuilt when the state is replaced (setHTML), so ask the editor view, not this one.
+            // Plugin views are rebuilt when setHTML resets the history plugin, so ask the editor view, not this one.
             if (!view.isDestroyed) view.dispatch(view.state.tr.setMeta(key, true));
           })
           .catch((error) => {
