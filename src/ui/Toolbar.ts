@@ -1,7 +1,7 @@
 import type { Editor } from '../core/Editor';
 import { UI_CONTEXTS, type UIItem } from '../core/types';
 import { c } from './classes';
-import { createControl, createSeparator, syncControl } from './controls';
+import { createControl, createSeparator, isDisabled, syncControl } from './controls';
 import { h } from './dom';
 import type { EditorUI } from './EditorUI';
 import { listPanel } from './panels/listPanel';
@@ -54,6 +54,7 @@ export class Toolbar extends UIComponent<HTMLDivElement> {
 
   override update(): void {
     for (const { item, el } of this.controls) syncControl(el, item, this.editor, this.ui);
+    this.syncMore();
   }
 
   /**
@@ -77,6 +78,13 @@ export class Toolbar extends UIComponent<HTMLDivElement> {
       const lastVisible = children.filter((el) => !el.hidden).pop();
       if (lastVisible?.classList.contains(c('separator'))) lastVisible.hidden = true;
     }
+    this.syncMore();
     this.roving.refresh();
+  }
+
+  /** "More" is usable while any item inside it is, e.g. the source view toggle while everything else is locked. */
+  private syncMore(): void {
+    const usable = this.controls.some(({ el }) => el.hidden && !isDisabled(el));
+    this.more.setAttribute('aria-disabled', String(!usable));
   }
 }
