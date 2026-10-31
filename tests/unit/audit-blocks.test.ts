@@ -200,6 +200,16 @@ describe('typed spaces survive saving (#18)', () => {
     expect(roundTrip(marked)).toBe('<p>a <strong>&nbsp;b</strong></p>');
   });
 
+  it('opening and closing the source view without edits keeps the spaces', () => {
+    const ed = makeEditor();
+    typeText(ed, '이름:    김철수');
+    const before = ed.getHTML();
+    ed.exec('toggleSourceView');
+    ed.exec('toggleSourceView');
+    expect(ed.getHTML()).toBe(before);
+    expect(ed.getText()).toContain('이름: \u00a0 \u00a0김철수');
+  });
+
   it('leaves single spaces between words and code blocks alone', () => {
     const ed = makeEditor({ content: '<p>a b c</p><pre><code>  a\n    b</code></pre>' });
     expect(roundTrip(ed)).toBe('<p>a b c</p><pre><code>  a\n    b</code></pre>');
