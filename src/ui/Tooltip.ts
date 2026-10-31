@@ -1,14 +1,14 @@
 import { c, PORTAL_CLASS } from './classes';
 import { h } from './dom';
 import { placeFloating } from './floating';
-import { copyTheme } from './theme';
+import { copyTheme, type ThemedPortal } from './theme';
 
 /**
  * The label + shortcut hint of icon-only controls. It lives in a body portal so the main
  * toolbar's overflow clipping cannot hide it, and shows on mouse hover and keyboard focus.
  * Hidden from assistive technology: the control's aria-label already carries the label.
  */
-export class Tooltip {
+export class Tooltip implements ThemedPortal {
   private readonly el = h('div', { class: `${PORTAL_CLASS} ${c('tooltip')}`, attrs: { 'aria-hidden': 'true', hidden: true } });
   private target: HTMLElement | null = null;
 
@@ -39,6 +39,11 @@ export class Tooltip {
     this.el.hidden = true;
   }
 
+  /** Repaints a tooltip that is showing in the editor's current theme. */
+  syncTheme(): void {
+    if (!this.el.hidden) copyTheme(this.el, this.themeSource);
+  }
+
   destroy(): void {
     this.el.remove();
   }
@@ -48,8 +53,8 @@ export class Tooltip {
     if (!text) return;
     this.target = control;
     this.el.textContent = text;
-    copyTheme(this.el, this.themeSource);
     this.el.hidden = false;
+    this.syncTheme();
     void placeFloating(control, this.el, 'bottom', 'tooltip');
   }
 }

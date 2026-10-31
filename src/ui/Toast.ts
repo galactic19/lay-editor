@@ -1,7 +1,7 @@
 import { DEFAULTS } from '../core/defaults';
 import { c, PORTAL_CLASS } from './classes';
 import { h } from './dom';
-import { copyTheme } from './theme';
+import { copyTheme, type ThemedPortal } from './theme';
 
 export type ToastKind = 'info' | 'error';
 
@@ -9,7 +9,7 @@ export type ToastKind = 'info' | 'error';
  * Short, polite, auto-dismissing notices announced to screen readers. They live in a body portal at
  * the bottom of the screen, so a long document cannot push them out of view.
  */
-export class Toaster {
+export class Toaster implements ThemedPortal {
   private readonly region: HTMLElement;
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -37,6 +37,10 @@ export class Toaster {
   /** A repeated notice replaces its twin still on screen: it is announced again but never stacks up. */
   private removeTwins(toast: HTMLElement): void {
     [...this.region.children].filter((shown) => shown.isEqualNode(toast)).forEach((twin) => twin.remove());
+  }
+
+  syncTheme(): void {
+    this.place();
   }
 
   /** Follows the theme and keeps the toasts clear of whatever covers the bottom; a no-op while none shows. */

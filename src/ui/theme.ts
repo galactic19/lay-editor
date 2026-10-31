@@ -11,6 +11,11 @@ export function copyTheme(portal: HTMLElement, root: HTMLElement): void {
   portal.dataset.theme = root.dataset.theme;
 }
 
+/** Chrome in a body portal: it copies the editor's theme when it shows, and again through syncTheme() when the theme changes. */
+export interface ThemedPortal {
+  syncTheme(): void;
+}
+
 /** Applies data-theme to its targets; 'auto' follows the OS. onChange lets portals follow along. */
 export class ThemeController {
   private readonly media = window.matchMedia(DARK_QUERY);

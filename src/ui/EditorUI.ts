@@ -15,7 +15,7 @@ import { MobileToolbar } from './MobileToolbar';
 import { listPanel } from './panels/listPanel';
 import { PanelHost } from './PanelHost';
 import { PRESETS, SEPARATOR } from './presets';
-import { ThemeController } from './theme';
+import { ThemeController, type ThemedPortal } from './theme';
 import { Toaster } from './Toast';
 import { Toolbar, type ToolbarEntry } from './Toolbar';
 import { Tooltip } from './Tooltip';
@@ -37,6 +37,8 @@ export class EditorUI {
   readonly viewport = new ViewportTracker();
   readonly theme: ThemeController;
   readonly tooltip: Tooltip;
+  /** Body portals outside the component updates (which repaint the others): they follow theme changes through syncTheme(). */
+  private readonly portals: ThemedPortal[];
   private readonly slots: Record<Exclude<UISlot, 'overlay'>, HTMLElement>;
   private readonly extensionComponents: UIComponent[] = [];
   private modeComponents: UIComponent[] = [];
@@ -60,6 +62,7 @@ export class EditorUI {
     this.theme = new ThemeController(() => [editor.root], editor.theme);
     this.toaster = new Toaster(editor.root, () => this.mobileBar?.coveredHeight ?? this.viewport.bottomInset);
     this.tooltip = new Tooltip(editor.root);
+    this.portals = [this.panels, this.toaster, this.tooltip];
 
     for (const spec of editor.manager.createComponents(editor)) {
       const component = spec.create(editor, this);
@@ -197,10 +200,9 @@ export class EditorUI {
     return tidySeparators(entries);
   }
 
-  /** Portals copy the root's theme only when they update, so repaint them now rather than on the next transaction. */
+  /** Portals copy the root's theme only when they show or update, so repaint them now rather than on the next transaction. */
   private syncTheme(): void {
-    this.panels.syncTheme();
-    this.toaster.place();
+    this.portals.forEach((portal) => portal.syncTheme());
     this.flush();
   }
 

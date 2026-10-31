@@ -428,3 +428,16 @@ describe('final review: the video panel names the providers the editor accepts',
     expect(document.querySelector('.le-dropdown [role="alert"]')!.textContent).toBe(error);
   });
 });
+
+describe('final review: a tooltip that is showing follows the theme', () => {
+  it('setTheme() and an OS scheme change repaint it at once', () => {
+    const editor = makeEditor({ theme: 'auto' });
+    toolbarControl(editor, 'bold').focus();
+    const tooltip = document.querySelector<HTMLElement>('.le-tooltip')!;
+    expect([tooltip.hidden, tooltip.dataset.theme]).toEqual([false, 'light']);
+    setMedia('(prefers-color-scheme: dark)', true);
+    expect(tooltip.dataset.theme).toBe('dark');
+    editor.setTheme('light');
+    expect(tooltip.dataset.theme).toBe('light');
+  });
+});

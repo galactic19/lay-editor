@@ -3,19 +3,18 @@ import type { DeviceMode, PanelFactory } from '../core/types';
 import { BottomSheet } from './BottomSheet';
 import { Dropdown } from './Dropdown';
 import { selectionReference, type Anchor } from './floating';
+import type { ThemedPortal } from './theme';
 
-export interface PanelContainer {
+export interface PanelContainer extends ThemedPortal {
   /** `label` names the dialog; `onClose(hadFocus)` reports whether focus was inside the panel when it closed. */
   open(content: HTMLElement, anchor: Anchor | null, label: string | null, onClose: (hadFocus: boolean) => void): void;
   close(): void;
   readonly isOpen: boolean;
-  /** Re-reads the editor's theme after it changed while open. */
-  syncTheme(): void;
   destroy(): void;
 }
 
 /** Opens panel content in the container that fits the device: dropdown on desktop, bottom sheet on mobile. */
-export class PanelHost {
+export class PanelHost implements ThemedPortal {
   private container: PanelContainer | null = null;
 
   constructor(
