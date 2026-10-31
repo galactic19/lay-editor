@@ -1,16 +1,14 @@
 import type { Command } from 'prosemirror-state';
 import { DEFAULTS } from '../../core/defaults';
 import { findParent } from '../../core/state-utils';
+import { clampInteger } from '../../io/sanitize';
 import { ATTR_BLOCK_TYPES, updateBlockAttr } from './textblockAttr';
 import { defineExtension } from '../factories';
 
 const MAX = DEFAULTS.indent.max;
 const LIST_ITEMS = new Set(['listItem', 'taskItem']);
 
-function parseIndent(dom: HTMLElement): number {
-  const n = Math.floor(Number(dom.dataset.indent));
-  return Number.isFinite(n) ? Math.min(MAX, Math.max(0, n)) : 0;
-}
+const parseIndent = (dom: HTMLElement): number => clampInteger(dom.dataset.indent, 0, MAX);
 
 /** In a list, delegates to the list command; elsewhere changes the indent attribute by `delta`. */
 const shift =

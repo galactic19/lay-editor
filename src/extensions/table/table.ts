@@ -1,4 +1,4 @@
-import type { Node as PMNode, Schema } from 'prosemirror-model';
+import type { Attrs, NodeSpec, Node as PMNode, Schema } from 'prosemirror-model';
 import type { Command } from 'prosemirror-state';
 import {
   addColumnAfter,
@@ -19,7 +19,7 @@ import {
 } from 'prosemirror-tables';
 import { DEFAULTS } from '../../core/defaults';
 import type { UIItem } from '../../core/types';
-import { safeColor } from '../../io/sanitize';
+import { clampInteger, safeColor } from '../../io/sanitize';
 import { colorPanel } from '../../ui/panels/colorPanel';
 import { defineExtension } from '../factories';
 import { tablePanel } from './tablePanel';
@@ -38,6 +38,34 @@ const nodes = tableNodes({
       },
     },
   },
+});
+
+const { maxColspan, maxRowspan, maxColumnWidth } = DEFAULTS.tableLimits;
+
+/**
+ * prosemirror-tables reads spans with a bare Number(): "abc" becomes NaN, and colspan="100000" makes
+ * fixTables build 100k cells. Spans and widths are clamped to whole numbers like browsers do.
+ */
+function clampCellAttrs(attrs: Attrs): Attrs {
+  const colspan = clampInteger(attrs.colspan, 1, maxColspan);
+  const widths = attrs.colwidth as number[] | null;
+  return {
+    ...attrs,
+    colspan,
+    rowspan: clampInteger(attrs.rowspan, 1, maxRowspan),
+    colwidth: widths?.length === colspan ? widths.map((width) => clampInteger(width, 0, maxColumnWidth)) : null,
+  };
+}
+
+const withClampedCells = (spec: NodeSpec): NodeSpec => ({
+  ...spec,
+  parseDOM: spec.parseDOM?.map((rule) => ({
+    ...rule,
+    getAttrs: (dom: HTMLElement) => {
+      const attrs = rule.getAttrs?.(dom) ?? null;
+      return attrs && clampCellAttrs(attrs);
+    },
+  })),
 });
 
 function createTable(schema: Schema, rows: number, cols: number, withHeader: boolean): PMNode {
@@ -73,7 +101,7 @@ export const table = defineExtension<TableOptions>({
   // Below lists (200) so Tab indents a list inside a cell before moving to the next cell.
   priority: 150,
   defaults: { ...DEFAULTS.table, cellColors: DEFAULTS.colors.highlight },
-  nodes: { table: nodes.table, table_row: nodes.table_row, table_cell: nodes.table_cell, table_header: nodes.table_header },
+  nodes: { table: nodes.table, table_row: nodes.table_row, table_cell: withClampedCells(nodes.table_cell), table_header: withClampedCells(nodes.table_header) },
   commands: ({ schema, options }) => ({
     ...Object.fromEntries(Object.entries(TABLE_COMMANDS).map(([name, command]) => [name, () => command])),
     insertTable:
