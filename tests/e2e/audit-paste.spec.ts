@@ -71,4 +71,17 @@ test.describe('paste from other pages (audit)', () => {
     await expect.poll(() => html(page)).toContain('원문자');
     expect(await html(page)).toBe('<ol><li><p>가항목</p></li><li><p>나항목</p></li></ol><ol><li><p>원문자</p></li></ol>');
   });
+
+  test('Google Sheets bold header cells stay bold (#27)', async ({ page }) => {
+    await pasteHTML(
+      page,
+      '<google-sheets-html-origin><table data-sheets-root="1"><tbody><tr><td style="background-color:#ffff00;font-weight:bold;">이름</td><td style="font-weight:bold;color:#ff0000;">점수</td></tr><tr><td>철수</td><td>90</td></tr></tbody></table></google-sheets-html-origin>',
+    );
+    await expect.poll(() => html(page)).toContain('철수');
+    const weights = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('#editor .ProseMirror td p'), (p) => Number(getComputedStyle(p.firstElementChild ?? p).fontWeight)),
+    );
+    expect(weights.slice(0, 2).every((weight) => weight >= 600)).toBe(true);
+    expect(weights.slice(2).every((weight) => weight < 600)).toBe(true);
+  });
 });

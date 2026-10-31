@@ -1,3 +1,4 @@
+import { normalizeStyles } from '../../src/io/paste/cleaners/normalizeStyles';
 import { makeEditor } from '../helpers/editor';
 
 const paste = (html: string): string => {
@@ -135,5 +136,45 @@ describe('Word numbered lists (audit #26)', () => {
   it('starts a new list when Word restarts the numbering of the same list', () => {
     const out = paste(word(wordItem(0, 1, '1.', 'A1') + wordItem(0, 1, '2.', 'A2') + wordItem(0, 1, '1.', 'B1', 2)));
     expect(out).toBe('<ol><li><p>A1</p></li><li><p>A2</p></li></ol><ol><li><p>B1</p></li></ol>');
+  });
+});
+
+describe('formatting set on blocks and cells (audit #27)', () => {
+  it('keeps Google Sheets bold header cells next to their colors', () => {
+    const cell = 'overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;';
+    const out = paste(
+      `<google-sheets-html-origin><table data-sheets-root="1" style="table-layout:fixed;font-size:10pt;font-family:Arial;border-collapse:collapse"><colgroup><col width="100"><col width="100"></colgroup><tbody>` +
+        `<tr style="height:21px;"><td style="${cell}background-color:#ffff00;font-weight:bold;">이름</td><td style="${cell}font-weight:bold;color:#ff0000;">점수</td></tr>` +
+        `<tr style="height:21px;"><td style="${cell}font-style:italic;">90</td><td style="${cell}"></td></tr></tbody></table></google-sheets-html-origin>`,
+    );
+    expect(out).toBe(
+      '<table><tbody><tr><td style="background-color: rgb(255, 255, 0);"><p><strong>이름</strong></p></td><td><p><strong><span style="color: rgb(255, 0, 0);">점수</span></strong></p></td></tr>' +
+        '<tr><td><p><em>90</em></p></td><td><p></p></td></tr></tbody></table>',
+    );
+  });
+
+  it('turns bold, italic and underline on paragraphs, divs and list items into marks', () => {
+    expect(paste('<p style="font-weight:bold">굵게</p><div style="font-style:italic">기울임</div><ul><li style="text-decoration:underline">밑줄</li></ul>')).toBe(
+      '<p><strong>굵게</strong></p><p><em>기울임</em></p><ul><li><p><u>밑줄</u></p></li></ul>',
+    );
+  });
+
+  it('marks block children and nested lists of a styled container', () => {
+    expect(paste('<div style="font-weight:700"><p>a</p><ul><li>b</li></ul></div>')).toBe('<p><strong>a</strong></p><ul><li><p><strong>b</strong></p></li></ul>');
+  });
+
+  it('passes row and list styles down to cells and items without breaking the table', () => {
+    expect(paste('<table><tbody><tr style="font-weight:bold"><td>x</td><td>y</td></tr></tbody></table><ol style="font-style:italic"><li>z</li></ol>')).toBe(
+      '<table><tbody><tr><td><p><strong>x</strong></p></td><td><p><strong>y</strong></p></td></tr></tbody></table><ol><li><p><em>z</em></p></li></ol>',
+    );
+    expect(normalizeStyles('<table style="font-weight:bold"><colgroup><col width="10"></colgroup><tbody><tr><td>x</td></tr></tbody></table>')).toBe(
+      '<table><colgroup><col width="10"></colgroup><tbody><tr><td><strong>x</strong></td></tr></tbody></table>',
+    );
+  });
+
+  it('does not add bold to headings and header cells, which are already bold', () => {
+    expect(paste('<h2 style="font-weight:600;font-style:italic">제목</h2><table><tbody><tr><th style="font-weight:bold">머리</th></tr></tbody></table>')).toBe(
+      '<h2><em>제목</em></h2><table><tbody><tr><th><p>머리</p></th></tr></tbody></table>',
+    );
   });
 });

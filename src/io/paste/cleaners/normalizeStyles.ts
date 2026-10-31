@@ -2,16 +2,24 @@ import { DEFAULTS } from '../../../core/defaults';
 import { classLanguage, languageClass, safeColor } from '../../sanitize';
 import { mapStyle, styleDeclarations, withDocument, type StyleDeclaration } from '../dom';
 
-/** Inline styles that mean a semantic tag. */
-const STYLE_TAGS: Array<{ prop: string; test: RegExp; tag: string }> = [
-  { prop: 'font-weight', test: /^(bold(er)?|[6-9]\d{2})$/, tag: 'strong' },
+/** An inline style that means a semantic tag; `implied` matches elements that already render that way. */
+interface StyleTag {
+  prop: string;
+  test: RegExp;
+  tag: string;
+  implied?: RegExp;
+}
+
+const STYLE_TAGS: StyleTag[] = [
+  { prop: 'font-weight', test: /^(bold(er)?|[6-9]\d{2})$/, tag: 'strong', implied: /^(H[1-6]|TH)$/ },
   { prop: 'font-style', test: /^italic$/, tag: 'em' },
   { prop: 'text-decoration', test: /underline/, tag: 'u' },
   { prop: 'text-decoration-line', test: /underline/, tag: 'u' },
   { prop: 'text-decoration', test: /line-through/, tag: 's' },
   { prop: 'text-decoration-line', test: /line-through/, tag: 's' },
 ];
-const BLOCK_TAGS = /^(P|H[1-6]|LI|UL|OL|DIV|TD|TH|TABLE|BLOCKQUOTE|PRE|BODY)$/;
+/** Elements whose children are rows, cells or items: a wrapper cannot go inside them, so it goes into each child. */
+const STRUCTURE_TAGS = /^(UL|OL|TABLE|THEAD|TBODY|TFOOT|TR|COLGROUP)$/;
 const { keepStyles, colorStyles, styleAliases, namedColors, keepDataAttrs, pageColors } = DEFAULTS.paste;
 const includes = (list: readonly string[], value: string): boolean => list.includes(value);
 
@@ -32,16 +40,23 @@ function isPageColor(prop: string, color: string): boolean {
   return prop === 'color' || lightness <= pageColors.darkBackground || lightness >= pageColors.lightBackground;
 }
 
-/** Wraps an inline element's children in the tags its styles imply. */
-function stylesToTags(el: HTMLElement): void {
-  if (BLOCK_TAGS.test(el.tagName)) return;
-  const decls = styleDeclarations(el);
-  const tags = new Set(STYLE_TAGS.filter(({ prop, test }) => decls.some(([p, v]) => p === prop && test.test(v))).map((s) => s.tag));
-  for (const tag of tags) {
-    const wrapper = el.ownerDocument.createElement(tag);
-    wrapper.append(...Array.from(el.childNodes));
-    el.appendChild(wrapper);
+/** Wraps the content of `el` in `tag`; rows, tables and lists pass it down to their cells and items. */
+function wrapContent(el: Element, tag: string): void {
+  if (STRUCTURE_TAGS.test(el.tagName)) {
+    Array.from(el.children).forEach((child) => wrapContent(child, tag));
+    return;
   }
+  const wrapper = el.ownerDocument.createElement(tag);
+  wrapper.append(...Array.from(el.childNodes));
+  el.appendChild(wrapper);
+}
+
+/** Wraps an element's content in the tags its styles imply, so formatting set on a block or cell becomes marks. */
+function stylesToTags(el: HTMLElement): void {
+  const decls = styleDeclarations(el);
+  const implies = ({ prop, test, implied }: StyleTag) =>
+    !implied?.test(el.tagName) && decls.some(([p, v]) => p === prop && test.test(v));
+  new Set(STYLE_TAGS.filter(implies).map((s) => s.tag)).forEach((tag) => wrapContent(el, tag));
 }
 
 /** A declaration the schema can read: shorthand resolved, color validated, page colors and other styles dropped. */
