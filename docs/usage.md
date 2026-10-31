@@ -199,11 +199,12 @@ CSS 변수로 바꿉니다. `.le-editor, .le-portal`(드롭다운·바텀시트 
 | `--le-color-bg`, `--le-color-fg`, `--le-color-muted` | 배경, 글자, 보조 글자 |
 | `--le-color-primary`, `--le-color-primary-fg` | 강조색과 그 위 글자 |
 | `--le-color-border`, `--le-color-surface`, `--le-color-hover`, `--le-color-active` | 테두리, 툴바 배경, 상태 배경 |
+| `--le-color-active-fg`, `--le-color-control-border` | 선택된 항목의 글자(`--le-color-active` 위 4.5:1 이상), 입력란·버튼·색상 칸 테두리(배경 대비 3:1 이상) |
 | `--le-font`, `--le-font-mono`, `--le-font-size`, `--le-line-height` | 글꼴 |
 | `--le-radius`, `--le-control-size`, `--le-touch-target` | 모서리, 버튼 크기, 모바일 터치 영역(44px) |
 | `--le-min-height`, `--le-content-padding` | 편집 영역 크기 |
 
-다크 테마 값은 `[data-theme='dark']` 선택자에서 다시 정의합니다.
+다크 테마 값은 `[data-theme='dark']` 선택자에서 다시 정의합니다. 기본 값은 두 테마 모두 WCAG AA 대비를 지키므로, 색을 바꿀 때도 위 대비를 유지하세요.
 
 ## 9. 언어팩
 

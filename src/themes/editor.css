@@ -53,7 +53,7 @@
   transition: background var(--le-transition);
 }
 .le-control:hover { background: var(--le-color-hover); }
-.le-control[aria-pressed='true'] { background: var(--le-color-active); color: var(--le-color-primary); }
+.le-control[aria-pressed='true'] { background: var(--le-color-active); color: var(--le-color-active-fg); }
 .le-control:disabled, .le-control[aria-disabled='true'] { opacity: 0.4; cursor: default; background: transparent; }
 .le-control:focus-visible { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
 .le-icon { width: var(--le-icon-size); height: var(--le-icon-size); flex: none; }
@@ -83,9 +83,10 @@
 .le-panel { display: flex; flex-direction: column; gap: var(--le-space-2); }
 .le-panel-row { display: flex; gap: var(--le-space-2); align-items: center; flex-wrap: wrap; }
 .le-panel label { display: flex; align-items: center; gap: var(--le-space-2); }
-.le-input { width: 100%; min-height: var(--le-control-size); padding: 0 var(--le-space-2); border: 1px solid var(--le-color-border); border-radius: var(--le-radius-sm); background: var(--le-color-bg); color: var(--le-color-fg); font: inherit; }
+.le-input { width: 100%; min-height: var(--le-control-size); padding: 0 var(--le-space-2); border: 1px solid var(--le-color-control-border); border-radius: var(--le-radius-sm); background: var(--le-color-bg); color: var(--le-color-fg); font: inherit; }
 .le-input:focus { outline: 2px solid var(--le-color-primary); outline-offset: -1px; }
-.le-button { min-height: var(--le-control-size); padding: 0 var(--le-space-3); border: 1px solid var(--le-color-border); border-radius: var(--le-radius-sm); background: var(--le-color-bg); color: var(--le-color-fg); font: inherit; cursor: pointer; }
+.le-input::placeholder { color: var(--le-color-muted); opacity: 1; }
+.le-button { min-height: var(--le-control-size); padding: 0 var(--le-space-3); border: 1px solid var(--le-color-control-border); border-radius: var(--le-radius-sm); background: var(--le-color-bg); color: var(--le-color-fg); font: inherit; cursor: pointer; }
 .le-button:hover { background: var(--le-color-hover); }
 .le-button-primary { background: var(--le-color-primary); border-color: var(--le-color-primary); color: var(--le-color-primary-fg); }
 .le-button-primary:hover { background: var(--le-color-primary); filter: brightness(1.08); }
@@ -93,8 +94,9 @@
 .le-menu .le-control { justify-content: flex-start; width: 100%; padding: 0 var(--le-space-2); gap: var(--le-space-2); }
 .le-menu .le-control-label { flex: 1; text-align: left; }
 .le-menu .le-control-hint { color: var(--le-color-muted); font-size: var(--le-font-size-small); }
+.le-menu .le-control[aria-pressed='true'] .le-control-hint { color: inherit; }
 .le-swatches { display: grid; grid-template-columns: repeat(5, var(--le-control-size)); gap: var(--le-space-1); }
-.le-swatch { width: var(--le-control-size); height: var(--le-control-size); border: 1px solid var(--le-color-border); border-radius: var(--le-radius-sm); cursor: pointer; }
+.le-swatch { width: var(--le-control-size); height: var(--le-control-size); border: 1px solid var(--le-color-control-border); border-radius: var(--le-radius-sm); cursor: pointer; }
 .le-swatch[aria-pressed='true'] { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
 
 /* Toasts */
@@ -157,7 +159,7 @@
 
 /* Table size picker */
 .le-grid { display: grid; gap: var(--le-space-hair); }
-.le-grid-cell { width: var(--le-grid-cell); height: var(--le-grid-cell); padding: 0; border: 1px solid var(--le-color-border); border-radius: 2px; background: var(--le-color-bg); cursor: pointer; }
+.le-grid-cell { width: var(--le-grid-cell); height: var(--le-grid-cell); padding: 0; border: 1px solid var(--le-color-control-border); border-radius: 2px; background: var(--le-color-bg); cursor: pointer; }
 .le-grid-cell.le-grid-on { background: var(--le-color-active); border-color: var(--le-color-primary); }
 .le-grid-cell:focus-visible { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
 .le-grid-label { text-align: center; color: var(--le-color-muted); font-size: var(--le-font-size-small); }

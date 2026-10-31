@@ -5,9 +5,13 @@
   --le-color-fg: #1f2328;
   --le-color-muted: #59636e;
   --le-color-border: #d1d9e0;
+  /* Inputs, buttons and swatches: at least 3:1 against the background (WCAG 1.4.11). */
+  --le-color-control-border: #818b98;
   --le-color-surface: #f6f8fa;
   --le-color-hover: #eaeef2;
   --le-color-active: #dbe7ff;
+  /* Text and icons on --le-color-active: at least 4.5:1 (WCAG 1.4.3). */
+  --le-color-active-fg: #0a58ca;
   --le-color-primary: #1f6feb;
   --le-color-primary-fg: #ffffff;
   --le-color-danger: #cf222e;
@@ -21,7 +25,7 @@
   --le-code-string: #0a3069;
   --le-code-comment: #59636e;
   --le-code-number: #0550ae;
-  --le-code-title: #8250df;
+  --le-code-title: #7a45d9;
   --le-code-attr: #953800;
 
   --le-font: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
@@ -72,9 +76,11 @@
   --le-color-fg: #e6edf3;
   --le-color-muted: #9198a1;
   --le-color-border: #3d444d;
+  --le-color-control-border: #6e7681;
   --le-color-surface: #151b23;
   --le-color-hover: #262c36;
   --le-color-active: #1f3460;
+  --le-color-active-fg: #79c0ff;
   --le-color-primary: #4493f8;
   --le-color-primary-fg: #0d1117;
   --le-color-danger: #f85149;
