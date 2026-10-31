@@ -1,6 +1,7 @@
 import { DEFAULTS } from '../core/defaults';
 import { c, PORTAL_CLASS } from './classes';
 import { h } from './dom';
+import { copyTheme } from './theme';
 
 export type ToastKind = 'info' | 'error';
 
@@ -41,7 +42,7 @@ export class Toaster {
   /** Follows the theme and keeps the toasts clear of whatever covers the bottom; a no-op while none shows. */
   place(): void {
     if (!this.region.childElementCount) return;
-    this.region.dataset.theme = this.themeSource.dataset.theme;
+    copyTheme(this.region, this.themeSource);
     this.region.style.setProperty('--le-toast-offset', `${this.coveredBottom()}px`);
   }
 

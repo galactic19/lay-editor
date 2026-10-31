@@ -9,6 +9,7 @@ import type { EditorUI } from './EditorUI';
 import { SEPARATOR } from './presets';
 import { RovingFocus } from './roving';
 import type { ToolbarEntry } from './Toolbar';
+import { copyTheme } from './theme';
 import { UIComponent } from './UIComponent';
 
 const { scrollGap } = DEFAULTS.mobileBar;
@@ -55,7 +56,7 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
       this.setVisible(false);
       return;
     }
-    this.el.dataset.theme = this.editor.root.dataset.theme;
+    copyTheme(this.el, this.editor.root);
     // Shown before rebuilding: a hidden bar has no layout, so it would ignore the scroll reset.
     this.setVisible(true);
     const context = this.ui.getContext();

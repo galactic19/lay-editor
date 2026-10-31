@@ -6,6 +6,7 @@ import { h } from './dom';
 import { rangeReference } from './floating';
 import type { EditorUI } from './EditorUI';
 import { renderIcon } from './icons';
+import { copyTheme } from './theme';
 import { UIComponent } from './UIComponent';
 
 let menuCount = 0;
@@ -30,7 +31,7 @@ export class SlashMenu extends UIComponent<HTMLDivElement> {
     const signature = `${state.query}|${index}|${items.map((i) => i.id).join(',')}`;
     if (signature !== this.rendered) this.render(items, index);
     this.rendered = signature;
-    this.el.dataset.theme = this.editor.root.dataset.theme;
+    copyTheme(this.el, this.editor.root);
     this.float.show(rangeReference(this.editor.view, state.from));
   }
 

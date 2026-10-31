@@ -1,6 +1,7 @@
 import { c, PORTAL_CLASS } from './classes';
 import { h } from './dom';
 import { placeFloating } from './floating';
+import { copyTheme } from './theme';
 
 /**
  * The label + shortcut hint of icon-only controls. It lives in a body portal so the main
@@ -47,7 +48,7 @@ export class Tooltip {
     if (!text) return;
     this.target = control;
     this.el.textContent = text;
-    this.el.dataset.theme = this.themeSource.dataset.theme;
+    copyTheme(this.el, this.themeSource);
     this.el.hidden = false;
     void placeFloating(control, this.el, 'bottom', 'tooltip');
   }

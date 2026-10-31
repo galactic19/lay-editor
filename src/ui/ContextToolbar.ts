@@ -6,6 +6,7 @@ import { createControl, syncControl } from './controls';
 import { h } from './dom';
 import type { EditorUI } from './EditorUI';
 import { RovingFocus } from './roving';
+import { copyTheme } from './theme';
 import { UIComponent } from './UIComponent';
 
 /** Desktop floating toolbar for images, tables, links and code blocks. */
@@ -38,7 +39,7 @@ export class ContextToolbar extends UIComponent<HTMLDivElement> {
     if (!anchor) return this.float.hide();
     if (context !== this.context || items.length !== this.controls.length) this.keepingFocus(() => this.rebuild(context, items));
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
-    this.el.dataset.theme = this.editor.root.dataset.theme;
+    copyTheme(this.el, this.editor.root);
     this.float.show(anchor);
   }
 

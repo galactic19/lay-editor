@@ -6,6 +6,11 @@ const DARK_QUERY = '(prefers-color-scheme: dark)';
 /** The theme actually shown: 'auto' resolved against the OS setting. */
 export type ResolvedTheme = Exclude<ThemeMode, 'auto'>;
 
+/** Copies the editor root's theme onto chrome rendered outside it (body portals), which its data-theme cannot reach. */
+export function copyTheme(portal: HTMLElement, root: HTMLElement): void {
+  portal.dataset.theme = root.dataset.theme;
+}
+
 /** Applies data-theme to its targets; 'auto' follows the OS. onChange lets portals follow along. */
 export class ThemeController {
   private readonly media = window.matchMedia(DARK_QUERY);

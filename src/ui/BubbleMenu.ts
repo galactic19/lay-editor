@@ -8,6 +8,7 @@ import { selectionReference } from './floating';
 import type { EditorUI } from './EditorUI';
 import { BUBBLE_ITEMS } from './presets';
 import { RovingFocus } from './roving';
+import { copyTheme } from './theme';
 import { UIComponent } from './UIComponent';
 
 const BUBBLE_CONTEXTS = new Set(['text', 'link']);
@@ -59,7 +60,7 @@ export class BubbleMenu extends UIComponent<HTMLDivElement> {
   override update(): void {
     if (this.pointerDown || !this.hasFocusWithin() || !BubbleMenu.wanted(this.editor, this.ui)) return this.float.hide();
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
-    this.el.dataset.theme = this.editor.root.dataset.theme;
+    copyTheme(this.el, this.editor.root);
     this.float.show(selectionReference(this.editor.view));
   }
 }

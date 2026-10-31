@@ -3,6 +3,7 @@ import { h } from './dom';
 import type { Anchor } from './floating';
 import { focusFirst, trapFocus } from './focus';
 import type { PanelContainer } from './PanelHost';
+import { copyTheme } from './theme';
 
 export interface PortalParts {
   /** The focus-trapped dialog element. */
@@ -47,7 +48,7 @@ export abstract class PortalPanel implements PanelContainer {
 
   /** Copies the editor's current theme onto the portal elements. */
   syncTheme(): void {
-    this.elements.forEach((el) => (el.dataset.theme = this.root.dataset.theme));
+    this.elements.forEach((el) => copyTheme(el, this.root));
   }
 
   close(): void {
