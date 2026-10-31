@@ -1,5 +1,6 @@
 import type { Editor } from '../core/Editor';
 import { UI_CONTEXTS, type UIItem } from '../core/types';
+import { itemLabel } from '../i18n';
 import { c } from './classes';
 import { createControl, createSeparator, syncControl, syncMenuControl } from './controls';
 import { h } from './dom';
@@ -35,7 +36,9 @@ export class Toolbar extends UIComponent<HTMLDivElement> {
       this.controls.push({ item: entry, el });
       this.el.appendChild(el);
     }
-    this.more = createControl(MORE_ITEM, editor, ui, { onActivate: () => ui.panels.openPanel(listPanel(() => this.overflow), this.more) });
+    this.more = createControl(MORE_ITEM, editor, ui, {
+      onActivate: () => ui.panels.openPanel(listPanel(() => this.overflow), this.more, itemLabel(editor.t, MORE_ITEM)),
+    });
     this.more.hidden = true;
     this.el.appendChild(this.more);
     this.roving = new RovingFocus(this.el, `.${c('control')}`);

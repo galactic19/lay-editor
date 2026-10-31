@@ -3,9 +3,10 @@ import { lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import { InputRule, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
 import type { Command, Transaction } from 'prosemirror-state';
 import { StepMap } from 'prosemirror-transform';
+import type { Editor } from '../core/Editor';
 import { EditorError } from '../core/errors';
 import { deepMerge } from '../core/merge';
-import { isNodeActive } from '../core/state-utils';
+import { isNodeActive, markApplies } from '../core/state-utils';
 import type { Extension, ExtensionContext, UIItem } from '../core/types';
 
 export const capitalize = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
@@ -106,11 +107,18 @@ export const removeMark =
 export const applyMark =
   (type: MarkType, attrs?: Attrs): Command =>
   (state, dispatch) => {
+    if (!markApplies(state, type)) return false;
     const { from, to, empty } = state.selection;
     const mark = type.create(attrs);
     if (dispatch) dispatch(empty ? state.tr.addStoredMark(mark) : state.tr.addMark(from, to, mark));
     return true;
   };
+
+/** `isEnabled` for UI items that apply mark `name`: off where the selection cannot take it. */
+export const canApplyMark =
+  (name: string) =>
+  (editor: Editor): boolean =>
+    markApplies(editor.state, editor.schema.marks[name]!);
 
 export interface MarkExtensionConfig {
   name: string;

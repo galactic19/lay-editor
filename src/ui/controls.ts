@@ -1,5 +1,6 @@
 import type { Editor } from '../core/Editor';
 import type { UIItem } from '../core/types';
+import { itemLabel } from '../i18n';
 import { c } from './classes';
 import { h } from './dom';
 import type { EditorUI } from './EditorUI';
@@ -13,7 +14,7 @@ export interface ControlOptions {
   onActivate?(item: UIItem, anchor: HTMLButtonElement): void;
 }
 
-const isDisabled = (el: Element): boolean => el.getAttribute('aria-disabled') === 'true';
+export const isDisabled = (el: Element): boolean => el.getAttribute('aria-disabled') === 'true';
 
 /** Default action: run the command, or open the item's panel / option list. */
 export function activateItem(item: UIItem, editor: Editor, ui: EditorUI, anchor: HTMLElement | null): void {
@@ -26,7 +27,7 @@ export function activateItem(item: UIItem, editor: Editor, ui: EditorUI, anchor:
 
 /** One button for a UI item. Shared by the toolbar, menus, bubble and mobile bars. */
 export function createControl(item: UIItem, editor: Editor, ui: EditorUI, options: ControlOptions = {}): HTMLButtonElement {
-  const label = editor.t(item.label, item.labelParams);
+  const label = itemLabel(editor.t, item);
   const shortcut = item.shortcut ? formatShortcut(item.shortcut) : null;
   const button: HTMLButtonElement = h(
     'button',
@@ -37,6 +38,7 @@ export function createControl(item: UIItem, editor: Editor, ui: EditorUI, option
         'data-item': item.id,
         'aria-label': label,
         'aria-haspopup': item.kind === 'button' ? null : 'dialog',
+        'aria-expanded': item.kind === 'button' ? null : 'false',
         'data-tooltip': options.showLabel ? null : shortcut ? `${label} (${shortcut})` : label,
       },
       on: {
@@ -52,7 +54,10 @@ export function createControl(item: UIItem, editor: Editor, ui: EditorUI, option
     options.showLabel ? h('span', { class: c('control-label') }, label) : null,
     options.showLabel && shortcut ? h('span', { class: c('control-hint') }, shortcut) : null,
   );
-  if (item.kind === 'dropdown' && !options.showLabel) button.appendChild(renderIcon('chevron-down')).classList.add(c('caret'));
+  if (!options.showLabel) {
+    if (item.kind === 'dropdown') button.appendChild(renderIcon('chevron-down')).classList.add(c('caret'));
+    ui.tooltip.attach(button);
+  }
   syncControl(button, item, editor, ui);
   return button;
 }

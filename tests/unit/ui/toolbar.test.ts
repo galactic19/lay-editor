@@ -1,6 +1,5 @@
 import { PRESETS, SEPARATOR } from '../../../src/ui/presets';
-import { makeEditor, press, selectText } from '../../helpers/editor';
-import { triggerResize } from '../../setup';
+import { makeEditor, press, selectText, squeezeToolbar } from '../../helpers/editor';
 
 const toolbarIds = (root: HTMLElement): string[] =>
   Array.from(root.querySelectorAll<HTMLElement>('.le-toolbar > [data-item]:not([data-item="more"]), .le-toolbar > .le-separator')).map((el) => el.dataset.item ?? SEPARATOR);
@@ -58,14 +57,9 @@ describe('Toolbar', () => {
 
   it('moves overflowing items into the more menu', () => {
     const ed = makeEditor({ toolbar: ['bold', 'italic', 'underline', 'strike', 'code', 'link'] });
-    const bar = ed.root.querySelector<HTMLElement>('.le-toolbar')!;
-    // Each visible control is 40px wide; the bar is 200px.
-    Object.defineProperty(bar, 'clientWidth', { configurable: true, get: () => 200 });
-    Object.defineProperty(bar, 'scrollWidth', { configurable: true, get: () => Array.from(bar.children).filter((el) => !(el as HTMLElement).hidden).length * 40 });
-    triggerResize();
+    const more = squeezeToolbar(ed, 4);
     const visible = toolbarIds(ed.root).filter((id) => !control(ed.root, id)?.hidden);
     expect(visible).toEqual(['bold', 'italic', 'underline', 'strike']);
-    const more = bar.querySelector<HTMLButtonElement>('[data-item="more"]')!;
     expect(more.hidden).toBe(false);
     more.click();
     expect(Array.from(dialog()!.querySelectorAll<HTMLElement>('[data-item]')).map((el) => el.dataset.item)).toEqual(['code', 'link']);

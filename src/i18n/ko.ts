@@ -82,6 +82,7 @@ export const ko = {
   status: { count: '글자 {chars} · 공백 제외 {charsNoSpace} · 단어 {words}', matchCount: '{current}/{total}', noMatch: '결과 없음' },
   autosave: { found: '작성하던 내용이 있습니다. 불러올까요?', restore: '불러오기', discard: '버리기' },
   a11y: {
+    editor: '편집 영역',
     bubbleMenu: '글자 서식',
     sourceEditor: 'HTML 소스 편집',
     slashMenu: '블록 삽입 메뉴',

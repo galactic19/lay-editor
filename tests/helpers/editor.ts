@@ -2,7 +2,7 @@ import { NodeSelection, TextSelection } from 'prosemirror-state';
 import { createEditor } from '../../src/core/createEditor';
 import type { Editor } from '../../src/core/Editor';
 import type { EditorOptions } from '../../src/core/types';
-import { onCleanup } from '../setup';
+import { onCleanup, triggerResize } from '../setup';
 
 export function makeEditor(opts: Partial<EditorOptions> = {}): Editor {
   const element = document.createElement('div');
@@ -67,4 +67,13 @@ export function press(editor: Editor, spec: string): boolean {
 
 export async function flushPromises(): Promise<void> {
   for (let i = 0; i < 20; i++) await Promise.resolve();
+}
+
+/** Squeezes the top toolbar so only `visible` controls fit (each 40px wide); returns the "more" button. */
+export function squeezeToolbar(editor: Editor, visible: number): HTMLButtonElement {
+  const bar = editor.root.querySelector<HTMLElement>('.le-toolbar')!;
+  Object.defineProperty(bar, 'clientWidth', { configurable: true, get: () => (visible + 1) * 40 });
+  Object.defineProperty(bar, 'scrollWidth', { configurable: true, get: () => Array.from(bar.children).filter((el) => !(el as HTMLElement).hidden).length * 40 });
+  triggerResize();
+  return bar.querySelector<HTMLButtonElement>('[data-item="more"]')!;
 }

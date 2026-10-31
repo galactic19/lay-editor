@@ -76,7 +76,14 @@ export class Editor {
       state: EditorState.create({ doc: parseHTML(this.schema, config.content), plugins: this.manager.createPlugins(this, this.commands) }),
       nodeViews: this.manager.createNodeViews(this),
       editable: () => this.editable,
-      attributes: { class: c('prose') },
+      // A named multi-line textbox, so assistive technology announces it and the slash menu can point into it.
+      attributes: () => ({
+        class: c('prose'),
+        role: 'textbox',
+        'aria-multiline': 'true',
+        'aria-label': this.t('a11y.editor'),
+        'aria-readonly': String(!this.editable),
+      }),
       dispatchTransaction: (tr) => this.dispatch(tr),
       handleDOMEvents: {
         focus: () => (this.events.emit('focus'), false),

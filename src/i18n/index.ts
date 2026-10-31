@@ -1,6 +1,7 @@
 import { DEFAULTS } from '../core/defaults';
 import { warn } from '../core/errors';
 import { deepMerge } from '../core/merge';
+import type { UIItem } from '../core/types';
 import { en } from './en';
 import { ko } from './ko';
 
@@ -43,6 +44,9 @@ function packFor(code: string): LocalePack {
   warn(`unknown locale "${code}"; using "${DEFAULTS.locale}". Registered: ${[...registry.keys()].join(', ')}. Call registerLocale() before createEditor().`);
   return registry.get(DEFAULTS.locale)!;
 }
+
+/** The translated label of a UI item, for its control, the dialog it opens and the slash menu. */
+export const itemLabel = (t: Translate, item: Pick<UIItem, 'label' | 'labelParams'>): string => t(item.label, item.labelParams);
 
 export function flattenKeys(pack: LocalePack, prefix = ''): string[] {
   return Object.entries(pack).flatMap(([key, value]) =>

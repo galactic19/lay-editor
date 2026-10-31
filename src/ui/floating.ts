@@ -63,11 +63,13 @@ export class FloatingFollower {
     private readonly placement: Placement,
     private readonly gap: FloatingGap,
     private readonly coveredTop?: CoveredTop,
+    /** Shows or hides `el`; a UI component passes its own so hiding can hand focus back to the editor. */
+    private readonly setVisible: (visible: boolean) => void = (visible) => (el.hidden = !visible),
   ) {}
 
   show(anchor: Anchor): void {
     this.anchor = anchor;
-    this.el.hidden = false;
+    this.setVisible(true);
     const contextElement = contextOf(anchor);
     // Scroll containers change too, e.g. the content area once the editor goes fullscreen.
     const ancestors = contextElement ? getOverflowAncestors(contextElement) : [];
@@ -83,7 +85,7 @@ export class FloatingFollower {
 
   hide(): void {
     this.unfollow();
-    this.el.hidden = true;
+    this.setVisible(false);
   }
 
   private place(reference: Anchor): Promise<void> {

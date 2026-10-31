@@ -194,7 +194,7 @@ createEditor({
 | 도구 | `findReplace`, `sourceView`, `fullscreen` |
 
 - 없는 ID를 넣으면 콘솔에 경고와 함께 사용 가능한 ID 목록이 출력됩니다.
-- 표·이미지·링크·코드블록 전용 도구는 해당 요소를 선택했을 때 자동으로 나타납니다(데스크톱은 떠 있는 툴바, 모바일은 키보드 위 툴바). 이미지는 클릭하면 선택됩니다.
+- 표·이미지·링크·코드블록 전용 도구는 해당 요소를 선택했을 때 자동으로 나타납니다(데스크톱은 떠 있는 툴바, 모바일은 키보드 위 툴바). 이미지는 클릭하면 선택됩니다. 키보드로는 Alt+F10으로 들어가고 Esc로 본문에 돌아옵니다.
 - 표 셀을 병합하려면 먼저 여러 칸을 선택합니다. 데스크톱은 칸 사이를 끌거나 Shift를 누른 채 누르고, 모바일은 글자 선택 핸들을 옆 칸까지 끌면 칸 단위 선택으로 바뀌고, 더 끌면 선택한 칸이 늘어납니다.
 
 ## 8. 테마
@@ -216,12 +216,13 @@ CSS 변수로 바꿉니다. `.le-editor, .le-portal`(드롭다운·바텀시트 
 | `--le-color-border`, `--le-color-surface`, `--le-color-hover`, `--le-color-active` | 테두리, 툴바 배경, 상태 배경 |
 | `--le-color-danger`, `--le-color-danger-ring`, `--le-focus-ring-width` | 오류 알림과 필수 입력 누락 표시, 포커스 테두리 두께 |
 | `--le-color-highlight-fg` | 형광펜을 칠한 글자색. 형광펜 색이 밝은 색이라 다크 테마에서도 어두운 색을 씀. 글자색이나 링크가 있으면 그 색을 따름 |
+| `--le-color-active-fg`, `--le-color-control-border` | 선택된 항목의 글자(`--le-color-active` 위 4.5:1 이상), 입력란·버튼·색상 칸 테두리(배경 대비 3:1 이상) |
 | `--le-font`, `--le-font-mono`, `--le-font-size`, `--le-line-height` | 글꼴 |
 | `--le-radius`, `--le-control-size`, `--le-touch-target` | 모서리, 버튼 크기, 모바일 터치 영역(44px) |
 | `--le-min-height`, `--le-content-padding` | 편집 영역 크기 |
 | `--le-z-sticky`, `--le-z-fullscreen`, `--le-z-overlay`, `--le-z-toast` | 쌓임 순서. 바꿀 때도 상단 툴바 < 전체화면 에디터 < 패널·바텀시트·메뉴·키보드 위 툴바 < 토스트 순서를 지키세요 |
 
-다크 테마 값은 `[data-theme='dark']` 선택자에서 다시 정의합니다.
+다크 테마 값은 `[data-theme='dark']` 선택자에서 다시 정의합니다. 기본 값은 두 테마 모두 WCAG AA 대비를 지키므로, 색을 바꿀 때도 위 대비를 유지하세요.
 
 ## 9. 언어팩
 
@@ -333,5 +334,7 @@ createEditor({ element: '#editor', extensions: [mention], toolbar: ['bold', 'men
 | 찾기와 바꾸기 | Ctrl+F | ⌘F |
 | 줄바꿈 (문단 나누지 않음) | Shift+Enter | ⇧↩ |
 | 코드 블록 나가기 | Ctrl+Enter, 블록 끝에서 ↓ / →, 끝의 빈 줄 두 개에서 Enter | ⌘↩, 블록 끝에서 ↓ / →, 끝의 빈 줄 두 개에서 ↩ |
+| 툴바로 이동 (상황별 도구 → 서식 버블 → 메인 툴바 순으로 보이는 것) | Alt+F10 | ⌥F10 |
+| 떠 있는 툴바에서 본문으로 돌아가기 | Esc | Esc |
 
 마크다운식 입력: `# `~`#### ` 제목, `- ` 글머리 목록, `1. ` 번호 목록, `[] `·`[x] ` 체크리스트, `> ` 인용, ```` ``` ```` + 언어 + 공백 코드블록, `---` 구분선, `**굵게**`, `*기울임*`, `~~취소선~~`, `` `코드` ``, URL 뒤 공백 자동 링크, `/` 블록 삽입 메뉴.

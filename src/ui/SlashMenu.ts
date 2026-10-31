@@ -1,4 +1,5 @@
 import type { Editor } from '../core/Editor';
+import { itemLabel } from '../i18n';
 import { currentSlashItems, runSlashItem, slashKey } from '../extensions/tools/slashMenu';
 import { c, PORTAL_CLASS } from './classes';
 import { h } from './dom';
@@ -51,7 +52,7 @@ export class SlashMenu extends UIComponent<HTMLDivElement> {
                 },
               },
               item.text ? h('span', { class: c('control-text') }, item.text) : renderIcon(item.icon),
-              h('span', {}, t(item.label, item.labelParams)),
+              h('span', {}, itemLabel(t, item)),
             ),
           )
         : [h('div', { class: c('slash-empty') }, t('slash.empty'))]),

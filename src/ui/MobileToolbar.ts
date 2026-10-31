@@ -52,14 +52,14 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
   override update(): void {
     // A read-only editor has nothing to edit, even when a link or task checkbox in the content takes focus.
     if (!this.editor.isEditable || !this.hasFocusWithin()) {
-      this.el.hidden = true;
+      this.setVisible(false);
       return;
     }
     this.el.dataset.theme = this.editor.root.dataset.theme;
     // Shown before rebuilding: a hidden bar has no layout, so it would ignore the scroll reset.
-    this.el.hidden = false;
+    this.setVisible(true);
     const context = this.ui.getContext();
-    if (context !== this.context) this.rebuild(context);
+    if (context !== this.context) this.keepingFocus(() => this.rebuild(context));
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
     this.place();
   }

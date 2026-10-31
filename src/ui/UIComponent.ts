@@ -25,9 +25,12 @@ export abstract class UIComponent<E extends HTMLElement = HTMLElement> {
     this.disposers.push(fn);
   }
 
-  /** Floats this component's element next to an anchor, clear of `coveredTop`; stops following on destroy. */
+  /**
+   * Floats this component's element next to an anchor, clear of `coveredTop`; stops following on destroy.
+   * It shows and hides through setVisible(), so hiding hands focus back like any other component.
+   */
   protected floating(placement: Placement, gap: FloatingGap, coveredTop?: CoveredTop): FloatingFollower {
-    const follower = new FloatingFollower(this.el, placement, gap, coveredTop);
+    const follower = new FloatingFollower(this.el, placement, gap, coveredTop, (visible) => this.setVisible(visible));
     this.addDisposer(() => follower.hide());
     return follower;
   }
@@ -39,20 +42,45 @@ export abstract class UIComponent<E extends HTMLElement = HTMLElement> {
   }
 
   /**
-   * Re-runs update() on focus changes of the editor, or of anything inside `scope` when given.
-   * Blur waits a tick so focus can land in this component first.
+   * For chrome shown while the editor (or anything inside `scope` when given) or the component has focus.
+   * Re-runs update() on focus changes (a blur waits a tick so focus can land in this component first, and
+   * focus leaving the component counts too); Escape inside hands focus back to the editor.
    */
   protected followEditorFocus(scope?: HTMLElement): void {
-    const onFocus = (): void => this.update();
-    const onBlur = (): void => queueMicrotask(() => this.update());
-    if (!scope) {
-      this.subscribe('focus', onFocus);
-      this.subscribe('blur', onBlur);
-      return;
+    const now = (): void => this.update();
+    const later = (): void => queueMicrotask(() => this.update());
+    if (scope) {
+      this.focusScope = scope;
+      this.listen(scope, 'focusin', now);
+      this.listen(scope, 'focusout', later);
+    } else {
+      this.subscribe('focus', now);
+      this.subscribe('blur', later);
     }
-    this.focusScope = scope;
-    this.listen(scope, 'focusin', onFocus);
-    this.listen(scope, 'focusout', onBlur);
+    this.listen(this.el, 'focusout', later);
+    this.listen(this.el, 'keydown', (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      this.editor.focus();
+    });
+  }
+
+  /** Shows or hides the component; hiding it while it holds focus hands focus back to the editor. */
+  protected setVisible(visible: boolean): void {
+    if (!visible && this.el.contains(document.activeElement)) this.editor.focus();
+    this.el.hidden = !visible;
+  }
+
+  /** Runs `rebuild`; if that removed the focused control, focus moves to the new tab stop instead of being lost. */
+  protected keepingFocus(rebuild: () => void): void {
+    const hadFocus = this.el.contains(document.activeElement);
+    rebuild();
+    if (hadFocus && !this.el.contains(document.activeElement)) this.tabStop()?.focus();
+  }
+
+  /** The keyboard entry point (the roving tab stop), or null while the component is hidden. */
+  tabStop(): HTMLElement | null {
+    return this.el.hidden ? null : this.el.querySelector<HTMLElement>('[tabindex="0"]:not([hidden])');
   }
 
   /** Re-reads editor state; called once per frame after editor updates. */

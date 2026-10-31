@@ -3,7 +3,7 @@ import { DEFAULTS } from '../../core/defaults';
 import type { Extension } from '../../core/types';
 import { safeColor } from '../../io/sanitize';
 import { colorPanel } from '../../ui/panels/colorPanel';
-import { applyMark, commandName, defineExtension, removeMark } from '../factories';
+import { applyMark, canApplyMark, commandName, defineExtension, removeMark } from '../factories';
 
 export type ColorOptions = { text: readonly string[]; highlight: readonly string[] };
 
@@ -59,6 +59,7 @@ export function colorMarkExtension(cfg: ColorMarkConfig): Extension<ColorOptions
         label: `toolbar.${name}`,
         contexts: ['text', 'table'],
         isActive: (editor) => editor.isActive(name),
+        isEnabled: canApplyMark(name),
         panel: colorPanel(options[cfg.paletteKey], commandName('set', name), commandName('unset', name), name),
       },
     ],

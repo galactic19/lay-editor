@@ -3,6 +3,7 @@ import { DEFAULTS } from '../core/defaults';
 import { EditorError } from '../core/errors';
 import { rafBatch } from '../core/timing';
 import type { DeviceMode, UIContext, UIItem, UISlot } from '../core/types';
+import { itemLabel } from '../i18n';
 import { c } from './classes';
 import { BubbleMenu } from './BubbleMenu';
 import { resolveContext } from './context';
@@ -17,6 +18,7 @@ import { PRESETS, SEPARATOR } from './presets';
 import { ThemeController } from './theme';
 import { Toaster } from './Toast';
 import { Toolbar, type ToolbarEntry } from './Toolbar';
+import { Tooltip } from './Tooltip';
 import type { UIComponent } from './UIComponent';
 
 /** Drops leading, trailing and repeated separators. */
@@ -34,6 +36,7 @@ export class EditorUI {
   readonly device: DeviceWatcher;
   readonly viewport = new ViewportTracker();
   readonly theme: ThemeController;
+  readonly tooltip: Tooltip;
   private readonly slots: Record<Exclude<UISlot, 'overlay'>, HTMLElement>;
   private readonly extensionComponents: UIComponent[] = [];
   private modeComponents: UIComponent[] = [];
@@ -56,6 +59,7 @@ export class EditorUI {
     this.theme = new ThemeController(() => [editor.root], editor.config.theme);
     this.panels = new PanelHost(editor, () => this.device.mode);
     this.toaster = new Toaster(editor.root, () => this.mobileBar?.coveredHeight ?? this.viewport.bottomInset);
+    this.tooltip = new Tooltip(editor.root);
 
     for (const spec of editor.manager.createComponents(editor)) {
       const component = spec.create(editor, this);
@@ -81,8 +85,9 @@ export class EditorUI {
     const item = this.registry.get(itemId);
     if (!item) return;
     const at = anchor ?? this.toolbar?.anchorFor(itemId) ?? selectionReference(this.editor.view);
-    if (item.panel) this.panels.openPanel(item.panel, at);
-    else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at);
+    const label = itemLabel(this.editor.t, item);
+    if (item.panel) this.panels.openPanel(item.panel, at, label);
+    else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at, label);
   }
 
   /** Viewport height the sticky top bar covers; the bubble and the context toolbar flip below their target rather than cover it. */
@@ -92,6 +97,22 @@ export class EditorUI {
 
   getContext(): UIContext {
     return resolveContext(this.editor.state);
+  }
+
+  /**
+   * Alt+F10: moves focus to the floating toolbar next to the selection (context toolbar or
+   * bubble), else the main toolbar. False when no toolbar is showing; `dryRun` only checks.
+   * A real run first applies a selection change the editor or the UI has not caught up with,
+   * so a key pressed in the same frame as the caret move reaches the toolbar for the new selection.
+   */
+  focusToolbar(dryRun = false): boolean {
+    if (!dryRun) {
+      this.editor.syncSelection();
+      this.batch.flush();
+    }
+    const stop = this.modeComponents.map((component) => component.tabStop()).find(Boolean);
+    if (stop && !dryRun) stop.focus();
+    return Boolean(stop);
   }
 
   /** Whether an item is temporarily unavailable regardless of state (e.g. while editing source). */
@@ -117,6 +138,7 @@ export class EditorUI {
     this.modeComponents = [];
     this.panels.destroy();
     this.toaster.destroy();
+    this.tooltip.destroy();
     this.device.destroy();
     this.viewport.destroy();
     this.theme.destroy();
@@ -135,12 +157,14 @@ export class EditorUI {
     this.mobileBar = null;
     this.toolbar = new Toolbar(this.editor, this, this.entries);
     this.slots.top.prepend(this.toolbar.el);
-    this.modeComponents = [this.toolbar, new ContextToolbar(this.editor, this), new BubbleMenu(this.editor, this)];
+    // In focusToolbar() order: the floating toolbars next to the selection come first.
+    this.modeComponents = [new ContextToolbar(this.editor, this), new BubbleMenu(this.editor, this), this.toolbar];
     this.toolbar.layout();
   }
 
   private switchMode(mode: DeviceMode): void {
     this.panels.close();
+    this.tooltip.hide();
     this.modeComponents.splice(0).forEach((component) => component.destroy());
     this.mountMode(mode);
     this.editor.emit('modeChange', mode);

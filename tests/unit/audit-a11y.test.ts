@@ -1,0 +1,291 @@
+import { AllSelection, TextSelection } from 'prosemirror-state';
+import type { Editor } from '../../src/core/Editor';
+import { findKey } from '../../src/extensions/tools/findReplace';
+import { h } from '../../src/ui/dom';
+import { focusables } from '../../src/ui/focus';
+import { findText, flushPromises, makeEditor, press, selectText, squeezeToolbar, typeText } from '../helpers/editor';
+import { setMedia } from '../setup';
+
+const toolbarControl = (ed: Editor, id: string): HTMLButtonElement => ed.root.querySelector<HTMLButtonElement>(`.le-toolbar [data-item="${id}"]`)!;
+const dialog = (): HTMLElement => document.querySelector<HTMLElement>('.le-dropdown, .le-sheet')!;
+
+describe('audit a11y #67: setLocale closes the find panel like Escape', () => {
+  it('clears the find highlights and the panel listener when the UI is rebuilt', () => {
+    const ed = makeEditor({ content: '<p>abc abc abc</p>' });
+    ed.ui!.openPanelFor('findReplace');
+    const find = dialog().querySelector<HTMLInputElement>('input[data-field="find"]')!;
+    find.value = 'abc';
+    find.dispatchEvent(new Event('input'));
+    expect(ed.view.dom.querySelectorAll('.le-find-match')).toHaveLength(3);
+    ed.setLocale('en');
+    expect(document.querySelector('.le-dropdown')).toBeNull();
+    expect(findKey.getState(ed.state)!.query).toBe('');
+    expect(ed.view.dom.querySelectorAll('.le-find-match')).toHaveLength(0);
+  });
+});
+
+describe('audit a11y #36: the overflow button follows the editor state', () => {
+  const TOOLBAR = ['bold', 'italic', 'underline', 'strike', 'code', 'sourceView'];
+
+  it('is enabled again after setLocale ran while read-only', () => {
+    const ed = makeEditor({ toolbar: TOOLBAR });
+    ed.setEditable(false);
+    ed.setLocale('en');
+    ed.setEditable(true);
+    const more = squeezeToolbar(ed, 4);
+    expect(more.hidden).toBe(false);
+    expect(more.getAttribute('aria-disabled')).toBe('false');
+    more.click();
+    expect(dialog()).not.toBeNull();
+  });
+
+  it('is disabled while read-only and stays usable when the source view toggle sits inside it', () => {
+    const ed = makeEditor({ toolbar: TOOLBAR });
+    const more = squeezeToolbar(ed, 4);
+    ed.setEditable(false);
+    expect(more.getAttribute('aria-disabled')).toBe('true');
+    ed.setEditable(true);
+    ed.exec('toggleSourceView');
+    expect(more.getAttribute('aria-disabled')).toBe('false');
+    more.click();
+    dialog().querySelector<HTMLButtonElement>('[data-item="sourceView"]')!.click();
+    expect(ed.root.dataset.lockedExcept).toBeUndefined();
+  });
+});
+
+describe('audit a11y #34: the image panel file picker works from the keyboard', () => {
+  it('is a focusable button in the panel tab cycle that opens the file dialog', () => {
+    const ed = makeEditor({ upload: async () => ({ url: 'https://cdn.x/a.png' }) });
+    ed.ui!.openPanelFor('image');
+    const picker = dialog().querySelector<HTMLButtonElement>('button.le-file-button')!;
+    expect(picker).not.toBeNull();
+    expect(picker.type).toBe('button');
+    expect(focusables(dialog())[0]).toBe(picker);
+    expect(document.activeElement).toBe(picker);
+    const input = dialog().querySelector<HTMLInputElement>('input[type="file"]')!;
+    const open = vi.spyOn(input, 'click');
+    picker.click();
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('audit a11y #66: mark panels are disabled where the mark cannot apply', () => {
+  const MARK_ITEMS = ['textColor', 'highlight', 'link'];
+  const LINK = { href: 'https://a.com' };
+
+  it('disables text color, highlight and link inside a code block, and Mod-k opens nothing', () => {
+    const ed = makeEditor({ content: '<pre><code>some code</code></pre>' });
+    selectText(ed, 'some code');
+    ed.ui!.flush();
+    for (const id of MARK_ITEMS) expect(toolbarControl(ed, id).getAttribute('aria-disabled')).toBe('true');
+    expect(ed.can('setTextColor', '#e03131')).toBe(false);
+    expect(ed.can('setHighlight', '#ffec99')).toBe(false);
+    expect(ed.can('setLink', LINK)).toBe(false);
+    expect(press(ed, 'Mod-k')).toBe(true);
+    expect(dialog()).toBeNull();
+  });
+
+  it('stays enabled for text, an empty cursor and a selection that also covers a paragraph', () => {
+    const ed = makeEditor({ content: '<p>text</p><pre><code>code</code></pre>' });
+    selectText(ed, 'text');
+    ed.ui!.flush();
+    for (const id of MARK_ITEMS) expect(toolbarControl(ed, id).getAttribute('aria-disabled')).toBe('false');
+    expect(ed.can('setLink', LINK)).toBe(true);
+    ed.view.dispatch(ed.state.tr.setSelection(new AllSelection(ed.state.doc)));
+    expect(ed.can('setTextColor', '#e03131')).toBe(true);
+    ed.exec('setTextColor', '#e03131');
+    expect(ed.getHTML()).toBe('<p><span style="color: rgb(224, 49, 49);">text</span></p><pre><code>code</code></pre>');
+  });
+});
+
+/** The ARIA rules axe-core flagged: unnamed dialogs, menus without menu items, aria-activedescendant on a role-less element. */
+function ariaProblems(): string[] {
+  const problems: string[] = [];
+  for (const el of document.querySelectorAll('[role="dialog"]')) {
+    if (!el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby')) problems.push(`unnamed dialog ${el.className}`);
+  }
+  for (const menu of document.querySelectorAll('[role="menu"]')) {
+    for (const child of menu.children) if (!/^menuitem/.test(child.getAttribute('role') ?? '')) problems.push(`menu child ${child.tagName}`);
+  }
+  for (const el of document.querySelectorAll('[aria-activedescendant]')) {
+    if (!el.getAttribute('role')) problems.push(`aria-activedescendant on role-less ${el.className}`);
+  }
+  return problems;
+}
+
+describe('audit a11y #64: ARIA roles and names', () => {
+  it('names panel dialogs after the item that opened them and keeps list panels valid', () => {
+    const ed = makeEditor({ content: '<p>a</p>' });
+    ed.ui!.openPanelFor('heading');
+    expect(dialog().getAttribute('aria-label')).toBe(ed.t('toolbar.heading'));
+    expect(ariaProblems()).toEqual([]);
+    ed.ui!.openPanelFor('link');
+    expect(dialog().getAttribute('aria-label')).toBe(ed.t('toolbar.link'));
+    expect(ariaProblems()).toEqual([]);
+  });
+
+  it('names the overflow menu', () => {
+    const ed = makeEditor({ toolbar: ['bold', 'italic', 'underline', 'strike', 'code', 'sourceView'] });
+    squeezeToolbar(ed, 4).click();
+    expect(dialog().getAttribute('aria-label')).toBe(ed.t('toolbar.more'));
+    expect(ariaProblems()).toEqual([]);
+  });
+
+  it('names the mobile bottom sheet', () => {
+    setMedia('(pointer: coarse)', true);
+    const ed = makeEditor({ content: '<p>a</p>' });
+    ed.ui!.openPanelFor('heading');
+    expect(document.querySelector('.le-sheet')!.getAttribute('aria-label')).toBe(ed.t('toolbar.heading'));
+    expect(ariaProblems()).toEqual([]);
+  });
+
+  it('gives the editing surface a textbox role and a translated name, so the slash menu can point into it', () => {
+    const ed = makeEditor();
+    const dom = ed.view.dom;
+    expect([dom.getAttribute('role'), dom.getAttribute('aria-multiline'), dom.getAttribute('aria-label')]).toEqual(['textbox', 'true', ed.t('a11y.editor')]);
+    typeText(ed, '/');
+    ed.ui!.flush();
+    expect(dom.getAttribute('aria-activedescendant')).toBeTruthy();
+    expect(ariaProblems()).toEqual([]);
+    ed.setLocale('en');
+    expect(ed.view.dom.getAttribute('aria-label')).toBe('Editing area');
+    ed.setEditable(false);
+    expect(ed.view.dom.getAttribute('aria-readonly')).toBe('true');
+  });
+
+  it('reports whether a popup trigger is expanded', () => {
+    const ed = makeEditor({ content: '<p>a</p>' });
+    const heading = toolbarControl(ed, 'heading');
+    expect(heading.getAttribute('aria-expanded')).toBe('false');
+    heading.click();
+    expect(heading.getAttribute('aria-expanded')).toBe('true');
+    dialog().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(heading.getAttribute('aria-expanded')).toBe('false');
+    expect(toolbarControl(ed, 'bold').hasAttribute('aria-expanded')).toBe(false);
+  });
+});
+
+describe('audit a11y #32/#61: toolbar tooltips are drawn outside the clipping toolbar', () => {
+  const tooltip = (): HTMLElement | null => document.querySelector<HTMLElement>('.le-tooltip');
+  const pointer = (el: HTMLElement, type: string, pointerType: string): boolean => el.dispatchEvent(new PointerEvent(type, { pointerType }));
+
+  it('shows the label and shortcut on mouse hover and keyboard focus, not on touch', () => {
+    const ed = makeEditor();
+    const bold = toolbarControl(ed, 'bold');
+    pointer(bold, 'pointerenter', 'mouse');
+    expect(tooltip()!.parentElement).toBe(document.body);
+    expect(tooltip()!.hidden).toBe(false);
+    expect(tooltip()!.textContent).toBe(bold.dataset.tooltip);
+    pointer(bold, 'pointerleave', 'mouse');
+    expect(tooltip()!.hidden).toBe(true);
+    pointer(bold, 'pointerenter', 'touch');
+    expect(tooltip()!.hidden).toBe(true);
+    bold.focus();
+    expect(tooltip()!.hidden).toBe(false);
+    bold.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(tooltip()!.hidden).toBe(true);
+  });
+
+  it('follows the editor theme and leaves with the UI', () => {
+    const ed = makeEditor({ theme: 'dark' });
+    toolbarControl(ed, 'italic').focus();
+    expect(tooltip()!.dataset.theme).toBe('dark');
+    ed.setLocale('en');
+    expect(document.querySelectorAll('.le-tooltip')).toHaveLength(1);
+    ed.destroy();
+    expect(tooltip()).toBeNull();
+  });
+});
+
+describe('audit a11y #33/#60: the context toolbar works from the keyboard', () => {
+  const TABLE = '<table><tbody><tr><td><p>a</p></td><td><p>b</p></td></tr></tbody></table><p>after</p>';
+  const contextBar = (): HTMLElement => document.querySelector<HTMLElement>('.le-context-toolbar')!;
+  const items = (): HTMLButtonElement[] => Array.from(contextBar().querySelectorAll<HTMLButtonElement>('.le-control'));
+  const key = (key: string): boolean => document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+
+  function inTable(): Editor {
+    const ed = makeEditor({ content: TABLE });
+    ed.focus();
+    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, findText(ed, 'b'))));
+    ed.ui!.flush();
+    expect(contextBar().hidden).toBe(false);
+    return ed;
+  }
+
+  it('has a single tab stop', () => {
+    inTable();
+    expect(items().map((el) => el.tabIndex).filter((index) => index === 0)).toHaveLength(1);
+  });
+
+  it('Alt+F10 moves focus into it, arrows move inside, Escape returns to the editor', async () => {
+    const ed = inTable();
+    expect(press(ed, 'Alt-F10')).toBe(true);
+    expect(document.activeElement).toBe(items()[0]);
+    key('ArrowRight');
+    expect(document.activeElement).toBe(items()[1]);
+    await flushPromises();
+    expect(contextBar().hidden).toBe(false);
+    key('Escape');
+    expect(ed.view.hasFocus()).toBe(true);
+    ed.ui!.flush();
+    expect(contextBar().hidden).toBe(false);
+  });
+
+  it('hides when focus leaves it, and hands focus back to the editor when its context goes away', async () => {
+    const ed = inTable();
+    press(ed, 'Alt-F10');
+    await flushPromises();
+    expect(contextBar().contains(document.activeElement)).toBe(true);
+    document.body.appendChild(h('button')).focus();
+    await flushPromises();
+    expect(contextBar().hidden).toBe(true);
+    ed.focus();
+    ed.ui!.flush();
+    press(ed, 'Alt-F10');
+    const remove = contextBar().querySelector<HTMLButtonElement>('[data-item="tableDelete"]')!;
+    remove.focus();
+    remove.click();
+    ed.ui!.flush();
+    expect(contextBar().hidden).toBe(true);
+    expect(ed.view.hasFocus()).toBe(true);
+  });
+
+  it.each([
+    ['a selection the UI has not drawn yet', (ed: Editor) => ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, findText(ed, 'b'))))],
+    ['a DOM selection the editor has not read yet', (ed: Editor) => document.getSelection()!.collapse(ed.view.dom.querySelectorAll('td p')[1]!.firstChild, 0)],
+  ])('Alt+F10 pressed in the same frame as the move into the table reaches the table tools (%s)', (_, moveIntoTable) => {
+    const ed = makeEditor({ content: TABLE });
+    ed.focus();
+    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, findText(ed, 'after'))));
+    ed.ui!.flush();
+    expect(contextBar().hidden).toBe(true);
+    moveIntoTable(ed);
+    expect(press(ed, 'Alt-F10')).toBe(true);
+    expect(document.activeElement).toBe(items()[0]);
+  });
+
+  it('Alt+F10 in plain text moves to the main toolbar', () => {
+    const ed = makeEditor({ content: '<p>a</p>' });
+    ed.focus();
+    ed.ui!.flush();
+    expect(press(ed, 'Alt-F10')).toBe(true);
+    expect(document.activeElement).toBe(toolbarControl(ed, 'undo'));
+  });
+});
+
+describe('audit a11y #33/#60: keyboard focus survives a mobile bar rebuild', () => {
+  it('moves focus to the new tab stop when the focused control is rebuilt away', () => {
+    setMedia('(pointer: coarse)', true);
+    const ed = makeEditor({ content: '<table><tbody><tr><td><p>a</p></td></tr></tbody></table>' });
+    ed.focus();
+    ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, findText(ed, 'a'))));
+    ed.ui!.flush();
+    expect(press(ed, 'Alt-F10')).toBe(true);
+    const bar = document.querySelector<HTMLElement>('.le-mobile-bar')!;
+    bar.querySelector<HTMLButtonElement>('[data-item="tableDelete"]')!.click();
+    ed.ui!.flush();
+    expect(bar.hidden).toBe(false);
+    expect(bar.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement!.getAttribute('tabindex')).toBe('0');
+  });
+});
