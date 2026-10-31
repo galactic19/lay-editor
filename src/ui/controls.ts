@@ -63,6 +63,7 @@ export function createSeparator(): HTMLSpanElement {
 }
 
 function isItemEnabled(item: UIItem, editor: Editor, ui: EditorUI): boolean {
+  if (ui.holdsLock(item)) return true;
   if (!editor.isEditable || ui.isLocked(item)) return false;
   if (item.isEnabled) return item.isEnabled(editor);
   // The current state (e.g. "Normal text" while in a paragraph) never looks disabled.

@@ -18,7 +18,7 @@ export function isDocEmpty(doc: PMNode): boolean {
   return empty;
 }
 
-const isTransient = (node: PMNode): boolean => Boolean((node.type.spec as ExtNodeSpec).transient?.(node));
+export const isTransient = (node: PMNode): boolean => Boolean((node.type.spec as ExtNodeSpec).transient?.(node));
 
 function stripTransient(node: PMNode): PMNode {
   if (node.isLeaf) return node;

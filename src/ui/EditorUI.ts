@@ -41,6 +41,10 @@ export class EditorUI {
   private readonly batch = rafBatch(() => this.updateAll());
   private readonly disposers: Array<() => void> = [];
 
+  private get lockOwner(): string | undefined {
+    return this.editor.root.dataset.lockedExcept;
+  }
+
   constructor(private readonly editor: Editor) {
     this.registry = editor.manager.createUIRegistry(editor);
     this.entries = this.resolveEntries();
@@ -80,8 +84,12 @@ export class EditorUI {
 
   /** Whether an item is temporarily unavailable regardless of state (e.g. while editing source). */
   isLocked(item: UIItem): boolean {
-    const except = this.editor.root.dataset.lockedExcept;
-    return except !== undefined && item.id !== except;
+    return this.lockOwner !== undefined && !this.holdsLock(item);
+  }
+
+  /** Whether an item set the lock; it is the way out, so it stays usable even in read-only mode. */
+  holdsLock(item: UIItem): boolean {
+    return item.id === this.lockOwner;
   }
 
   /** Runs pending UI updates now. */
