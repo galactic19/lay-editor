@@ -1,9 +1,9 @@
-import { act, createElement, createRef } from 'react';
+import { act, createElement, createRef, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createApp, defineComponent, h, nextTick, ref } from 'vue';
 import { LayEditor as ReactLayEditor, type LayEditorProps } from '../../src/adapters/react';
 import { LayEditor as VueLayEditor } from '../../src/adapters/vue';
-import type { Editor } from '../../src/core/Editor';
+import { Editor } from '../../src/core/Editor';
 import type { LocaleInput, ThemeMode } from '../../src/core/types';
 import { makeEditor } from '../helpers/editor';
 import { setMedia } from '../setup';
@@ -70,6 +70,49 @@ describe('setLocale keeps the runtime theme (#3, #63)', () => {
     props.value = { theme: 'dark', locale: 'en' };
     await nextTick();
     expect(editor().root.dataset.theme).toBe('dark');
+    unmount();
+  });
+});
+
+describe('an inline locale object does not rebuild the UI on every render (#71)', () => {
+  const openPanels = () => document.querySelectorAll('.le-dropdown').length;
+
+  it('React: an equal locale object is ignored, a different one is applied', () => {
+    const { editor, rerender, unmount } = mountReact({ locale: { placeholder: '댓글' } });
+    const setLocale = vi.spyOn(editor(), 'setLocale');
+    editor().ui!.openPanelFor('findReplace');
+    expect(openPanels()).toBe(1);
+    rerender({ locale: { placeholder: '댓글' } });
+    expect(setLocale).not.toHaveBeenCalled();
+    expect(openPanels()).toBe(1);
+    rerender({ locale: { placeholder: '답글' } });
+    expect(setLocale).toHaveBeenCalledTimes(1);
+    expect(editor().view.dom.querySelector('.le-placeholder')!.getAttribute('data-placeholder')).toBe('답글');
+    unmount();
+  });
+
+  it('React StrictMode: mounting does not call setLocale', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const ref = createRef<Editor | null>();
+    const root = createRoot(host);
+    const setLocale = vi.spyOn(Editor.prototype, 'setLocale');
+    act(() => root.render(createElement(StrictMode, null, createElement(ReactLayEditor, { ref, locale: { placeholder: '댓글' } }))));
+    expect(setLocale).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+
+  it('Vue: an equal locale object is ignored, a different one is applied', async () => {
+    const { props, editor, unmount } = mountVue({ locale: { placeholder: '댓글' } });
+    const setLocale = vi.spyOn(editor(), 'setLocale');
+    editor().ui!.openPanelFor('findReplace');
+    props.value = { locale: { placeholder: '댓글' } };
+    await nextTick();
+    expect(setLocale).not.toHaveBeenCalled();
+    expect(openPanels()).toBe(1);
+    props.value = { locale: { placeholder: '답글' } };
+    await nextTick();
+    expect(setLocale).toHaveBeenCalledTimes(1);
     unmount();
   });
 });

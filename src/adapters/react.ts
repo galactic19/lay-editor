@@ -1,7 +1,7 @@
 import { createElement, forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
 import type { Editor } from '../core/Editor';
 import type { CoreEditorOptions } from '../core/types';
-import { createSyncedEditor, type SyncedEditor } from './shared';
+import { createSyncedEditor, localeKey, type SyncedEditor } from './shared';
 
 export interface LayEditorProps extends Omit<CoreEditorOptions, 'element' | 'content' | 'onChange'> {
   /** Extension options keyed by extension name, e.g. { image: { maxSize: 5_000_000 } }. */
@@ -14,13 +14,17 @@ export interface LayEditorProps extends Omit<CoreEditorOptions, 'element' | 'con
   className?: string;
 }
 
-/** Runs `effect` when `value` changes after mount (the editor already got the initial value). */
-function useUpdate<T>(value: T, effect: (value: T) => void): void {
-  const first = useRef(true);
+/**
+ * Runs `effect` when `key` differs from the last applied one; the editor got the mount value,
+ * and StrictMode's effect replay must not count as a change.
+ */
+function useUpdate<T>(key: T, effect: () => void): void {
+  const applied = useRef(key);
   useEffect(() => {
-    if (first.current) first.current = false;
-    else effect(value);
-  }, [value]);
+    if (Object.is(applied.current, key)) return;
+    applied.current = key;
+    effect();
+  }, [key]);
 }
 
 /** Options are read once on mount; `value`, `theme` and `locale` follow later prop changes. */
@@ -46,8 +50,8 @@ export const LayEditor = forwardRef<Editor | null, LayEditorProps>(function LayE
   useEffect(() => {
     if (controlled.current) synced.current?.applyValue(props.value);
   }, [props.value]);
-  useUpdate(props.theme, (theme) => theme && synced.current?.editor.setTheme(theme));
-  useUpdate(props.locale, (locale) => locale && synced.current?.editor.setLocale(locale));
+  useUpdate(props.theme, () => props.theme && synced.current?.editor.setTheme(props.theme));
+  useUpdate(localeKey(props.locale), () => props.locale && synced.current?.editor.setLocale(props.locale));
 
   return createElement('div', { ref: host, className: props.className });
 });

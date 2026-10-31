@@ -1,7 +1,7 @@
 import { defineComponent, h, onBeforeUnmount, onMounted, ref, shallowRef, watch, type PropType } from 'vue';
 import type { Editor } from '../core/Editor';
 import type { LocaleInput, ThemeMode } from '../core/types';
-import { createSyncedEditor, type AdapterOptions, type SyncedEditor } from './shared';
+import { createSyncedEditor, localeKey, type AdapterOptions, type SyncedEditor } from './shared';
 
 /** `v-model` HTML editor. Options are read on mount; `theme` and `locale` follow later changes. */
 export const LayEditor = defineComponent({
@@ -36,8 +36,8 @@ export const LayEditor = defineComponent({
       (theme) => theme && synced.value?.editor.setTheme(theme),
     );
     watch(
-      () => props.locale,
-      (locale) => locale && synced.value?.editor.setLocale(locale),
+      () => localeKey(props.locale),
+      () => props.locale && synced.value?.editor.setLocale(props.locale),
     );
     onBeforeUnmount(() => {
       synced.value?.destroy();
