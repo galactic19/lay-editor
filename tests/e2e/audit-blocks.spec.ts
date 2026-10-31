@@ -63,3 +63,30 @@ test('--- in an empty list item keeps typing after the divider (#19)', async ({ 
   await page.keyboard.type('next');
   expect(await html(page)).toBe('<ul><li><p>first</p></li><li><p></p><hr><p>next</p></li></ul>');
 });
+
+test.describe('checklist toggle (#20)', () => {
+  test('the toolbar button turns the whole list into a checklist', async ({ page }) => {
+    await openEmpty(page);
+    await page.keyboard.type('- a');
+    for (const text of ['b', 'c']) {
+      await page.keyboard.press('Enter');
+      await page.keyboard.type(text);
+    }
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowUp');
+    await control(page, 'taskList').click();
+    expect(await html(page)).toBe(
+      '<ul data-type="taskList"><li data-checked="false"><p>a</p></li><li data-checked="false"><p>b</p></li><li data-checked="false"><p>c</p></li></ul>',
+    );
+  });
+
+  test('the shortcut works in a nested list', async ({ page }) => {
+    await openEmpty(page);
+    await page.keyboard.type('- parent');
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    await page.keyboard.type('x');
+    await page.keyboard.press(`${MOD}+Shift+9`);
+    expect(await html(page)).toBe('<ul><li><p>parent</p><ul data-type="taskList"><li data-checked="false"><p>x</p></li></ul></li></ul>');
+  });
+});

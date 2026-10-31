@@ -106,3 +106,34 @@ describe('divider in an empty list item (#19)', () => {
     expect(ed.getHTML()).toBe('<ul data-type="taskList"><li data-checked="false"><p>first</p></li><li data-checked="false"><p></p><hr><p>next</p></li></ul>');
   });
 });
+
+describe('checklist toggle converts the whole list (#20)', () => {
+  const BULLET = '<ul><li><p>a</p></li><li><p>b</p></li><li><p>c</p></li></ul>';
+  const TASK = '<ul data-type="taskList"><li data-checked="false"><p>a</p></li><li data-checked="false"><p>b</p></li><li data-checked="false"><p>c</p></li></ul>';
+
+  it.each(['a', 'b'])('caret in "%s" turns every item into a task and keeps the caret', (text) => {
+    const ed = makeEditor({ content: BULLET });
+    caretAfter(ed, text);
+    expect(ed.exec('toggleTaskList')).toBe(true);
+    expect(ed.getHTML()).toBe(TASK);
+    typeText(ed, '!');
+    expect(ed.getHTML()).toBe(TASK.replace(`<p>${text}</p>`, `<p>${text}!</p>`));
+  });
+
+  it('a task list turns back into one ordered list', () => {
+    const ed = makeEditor({ content: TASK.replace('data-checked="false"', 'data-checked="true"') });
+    caretAfter(ed, 'a');
+    ed.exec('toggleOrderedList');
+    expect(ed.getHTML()).toBe('<ol><li><p>a</p></li><li><p>b</p></li><li><p>c</p></li></ol>');
+  });
+
+  it('works inside a nested list, both ways', () => {
+    const ed = makeEditor({ content: '<ul><li><p>parent</p><ul><li><p>x</p></li><li><p>y</p></li></ul></li></ul>' });
+    caretAfter(ed, 'y');
+    expect(ed.can('toggleTaskList')).toBe(true);
+    ed.exec('toggleTaskList');
+    expect(ed.getHTML()).toBe('<ul><li><p>parent</p><ul data-type="taskList"><li data-checked="false"><p>x</p></li><li data-checked="false"><p>y</p></li></ul></li></ul>');
+    ed.exec('toggleBulletList');
+    expect(ed.getHTML()).toBe('<ul><li><p>parent</p><ul><li><p>x</p></li><li><p>y</p></li></ul></li></ul>');
+  });
+});
