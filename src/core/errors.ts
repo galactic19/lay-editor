@@ -28,7 +28,10 @@ const HINTS: Record<EditorErrorCode, string> = {
   STORAGE_UNAVAILABLE: 'localStorage is not available; autosave is disabled.',
 };
 
-/** Developer mistakes the editor can recover from: logged once, never thrown. */
+/**
+ * Developer mistakes the editor can recover from: logged with the [laymaker] prefix each time they happen, never thrown.
+ * A caller that runs often keeps its own once-only set (icons warn once per name).
+ */
 export function warn(message: string): void {
   console.warn(`[laymaker] ${message}`);
 }

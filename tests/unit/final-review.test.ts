@@ -441,3 +441,11 @@ describe('final review: a tooltip that is showing follows the theme', () => {
     expect(tooltip.dataset.theme).toBe('light');
   });
 });
+
+describe('final review: developer warnings', () => {
+  it('an unknown toolbar id is reported through the shared warning helper', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    makeEditor({ toolbar: ['bold', 'nope'] });
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^\[laymaker\] \[UNKNOWN_UI_ITEM\] "nope"/));
+  });
+});

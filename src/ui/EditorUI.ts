@@ -1,6 +1,6 @@
 import type { Editor } from '../core/Editor';
 import { DEFAULTS } from '../core/defaults';
-import { EditorError } from '../core/errors';
+import { EditorError, warn } from '../core/errors';
 import { rafBatch } from '../core/timing';
 import type { DeviceMode, UIContext, UIItem, UISlot } from '../core/types';
 import { itemLabel } from '../i18n';
@@ -195,7 +195,7 @@ export class EditorUI {
     for (const id of toolbar ?? PRESETS[preset]) {
       const item = id === SEPARATOR ? SEPARATOR : this.registry.get(id);
       if (item) entries.push(item);
-      else if (strict) console.warn(new EditorError('UNKNOWN_UI_ITEM', `"${id}"; available: ${[...this.registry.keys()].join(', ')}`).message);
+      else if (strict) warn(new EditorError('UNKNOWN_UI_ITEM', `"${id}"; available: ${[...this.registry.keys()].join(', ')}`).message);
     }
     return tidySeparators(entries);
   }
