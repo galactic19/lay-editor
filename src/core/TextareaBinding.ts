@@ -7,8 +7,27 @@ import type { Editor } from './Editor';
 type Validated = Element & Pick<HTMLTextAreaElement, 'willValidate' | 'validity'>;
 
 const INVALID_CLASS = c('invalid');
-/** Focus on one of these means the user is submitting, so the editor may take focus to report itself. */
-const SUBMITTERS = 'button, input[type="submit"], input[type="image"]';
+/** Events that show the user acting on the page; a click or Enter may also be a submit attempt. */
+const USER_ACTIONS = ['click', 'keydown'] as const;
+/** Button types whose activation submits their form. */
+const SUBMIT_TYPES = ['submit', 'image'];
+
+/** The form an element belongs to: a form control's owner (it may sit outside the form), else the enclosing form. */
+const formOf = (element: Element): HTMLFormElement | null =>
+  'form' in element ? (element.form as HTMLFormElement | null) : element.closest('form');
+
+/**
+ * A user's attempt to submit `form`: a click on one of its submit buttons, or Enter in any of its
+ * fields but a textarea (implicit submission in an input, an app's Ctrl+Enter shortcut in the editor).
+ */
+function isSubmitAttempt(event: Event, form: HTMLFormElement): boolean {
+  if (!(event.target instanceof Element)) return false;
+  if (event instanceof KeyboardEvent) {
+    return event.key === 'Enter' && !event.isComposing && !(event.target instanceof HTMLTextAreaElement) && formOf(event.target) === form;
+  }
+  const button = event.target.closest('button, input');
+  return (button instanceof HTMLButtonElement || button instanceof HTMLInputElement) && SUBMIT_TYPES.includes(button.type) && formOf(button) === form;
+}
 
 /** Browsers may hand a textarea's line breaks to form data as CRLF. */
 const sameText = (a: string, b: string): boolean => a.replace(/\r\n/g, '\n') === b.replace(/\r\n/g, '\n');
@@ -35,6 +54,10 @@ function replaceEntry(data: FormData, name: string, from: string, to: string): v
 export class TextareaBinding {
   private readonly form: HTMLFormElement | null;
   private readonly disposers: Array<() => void> = [];
+  /** Until the user acts on the page a failed check is an app's (checkValidity() at load) and shows nothing. */
+  private interacted = false;
+  /** Set for the rest of the task by a submit attempt; only then does a failed check take focus and show a message. */
+  private submitting = false;
 
   constructor(
     private readonly editor: Editor,
@@ -54,6 +77,8 @@ export class TextareaBinding {
       this.editor.on('change', (html) => (textarea.value = html)),
       this.editor.on('update', this.onUpdate),
       listen(textarea, 'invalid', this.onInvalid),
+      // The window's capture phase runs before any app shortcut registered on the document.
+      ...USER_ACTIONS.map((type) => listen(window, type, this.onUserAction, true)),
     );
     if (!form) return;
     // Submit listeners may read the textarea directly; 'formdata' covers form.submit() and new FormData(form).
@@ -96,28 +121,36 @@ export class TextareaBinding {
     if ((this.textarea.value === '') !== this.editor.isEmpty()) this.sync();
   };
 
-  /**
-   * The browser cannot point its message at the hidden textarea (it only logs "not focusable"), so the
-   * editor reports itself: an invalid style, aria-invalid and, when the browser would report this field,
-   * focus and the browser's own message. Content changes clear the mark.
-   */
-  private readonly onInvalid = (event: Event): void => {
-    event.preventDefault();
-    this.markInvalid(true);
-    if (!this.reportsFirst()) return;
-    this.editor.focus();
-    if (this.textarea.validationMessage) this.editor.ui?.toaster.show(this.textarea.validationMessage, 'error');
+  private readonly onUserAction = (event: Event): void => {
+    this.interacted = true;
+    if (!this.form || !isSubmitAttempt(event, this.form)) return;
+    this.submitting = true;
+    setTimeout(() => (this.submitting = false));
   };
 
   /**
-   * Like the browser, report only the first invalid field, and never pull focus out of a field the user
-   * is in (an app may call checkValidity() on every keystroke).
+   * The browser cannot point its message at the hidden textarea (it only logs "not focusable"), so the
+   * editor reports itself: an invalid style and aria-invalid once the user has acted on the page, and on
+   * a submit attempt also focus and a message. Content changes clear the mark.
    */
-  private reportsFirst(): boolean {
+  private readonly onInvalid = (event: Event): void => {
+    event.preventDefault();
+    if (!this.interacted) return;
+    this.markInvalid(true);
+    if (this.submitting && this.isFirstInvalid()) this.report();
+  };
+
+  /** Like the browser, report only the first invalid field of the form. */
+  private isFirstInvalid(): boolean {
     const controls: Element[] = this.form ? [...this.form.elements] : [this.textarea];
-    if (controls.find((el) => (el as Validated).willValidate && !(el as Validated).validity.valid) !== this.textarea) return false;
-    const active = document.activeElement;
-    return !active || active === document.body || this.editor.root.contains(active) || active.matches(SUBMITTERS);
+    return controls.find((el) => (el as Validated).willValidate && !(el as Validated).validity.valid) === this.textarea;
+  }
+
+  /** Focus (unless the user is already in the editor) and a message in the editor's language, or the app's own one. */
+  private report(): void {
+    if (!this.editor.root.contains(document.activeElement)) this.editor.focus();
+    const { validity, validationMessage } = this.textarea;
+    this.editor.ui?.toaster.show(validity.customError ? validationMessage : this.editor.t('toast.required'), 'error');
   }
 
   private markInvalid(invalid: boolean): void {

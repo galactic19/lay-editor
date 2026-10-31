@@ -4,6 +4,7 @@ import { createHighlightPlugin } from '../../src/extensions/blocks/codeHighlight
 import { findKey } from '../../src/extensions/tools/findReplace';
 import { defineExtension } from '../../src/extensions/factories';
 import { createTranslator, registerLocale } from '../../src/i18n';
+import { en } from '../../src/i18n/en';
 import { onCleanup } from '../setup';
 import { flushPromises, makeEditor, typeText } from '../helpers/editor';
 
@@ -177,7 +178,7 @@ describe('audit core: locale codes are matched as language tags', () => {
 
 /** A form with one textarea-mode editor; extra markup goes before the textarea. */
 function formEditor(textarea: string, options: Record<string, unknown> = {}, before = '') {
-  document.body.innerHTML = `<form>${before}${textarea}<button>save</button></form>`;
+  document.body.innerHTML = `<form>${before}${textarea}<button id="save">save</button></form>`;
   const form = document.querySelector('form')!;
   const ta = form.querySelector('textarea')!;
   const ed = createEditor({ element: ta, ...options });
@@ -267,6 +268,12 @@ describe('audit core: form.reset() resets the editor', () => {
 
 describe('audit core: a required textarea reports an empty editor visibly', () => {
   const invalidMark = (ed: Editor) => [ed.root.classList.contains('le-invalid'), ed.view.dom.getAttribute('aria-invalid')];
+  /** Toasts may live outside the editor root (a body portal), so look in the whole document. */
+  const errorToasts = () => [...document.querySelectorAll('.le-toast-error')].map((toast) => toast.textContent);
+  /** The form's own submit button; the editor's toolbar buttons sit in the form too. */
+  const save = (form: HTMLFormElement) => form.querySelector<HTMLButtonElement>('#save')!.click();
+  const pressEnter = (field: Element, init: KeyboardEventInit = {}) =>
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, ...init }));
 
   it('blocks the submit, focuses the editor and marks it invalid until the content changes', () => {
     const { form, ed } = formEditor('<textarea name="body" required></textarea>');
@@ -274,16 +281,33 @@ describe('audit core: a required textarea reports an empty editor visibly', () =
     form.addEventListener('submit', onSubmit);
     let reported = true;
     form.querySelector('textarea')!.addEventListener('invalid', (event) => (reported = !event.defaultPrevented));
-    form.requestSubmit();
+    save(form);
     expect(onSubmit).not.toHaveBeenCalled();
     expect(reported).toBe(false);
     expect(invalidMark(ed)).toEqual([true, 'true']);
     expect(ed.root.contains(document.activeElement)).toBe(true);
-    expect(ed.root.querySelector('.le-toast-error')?.textContent).toBe(form.querySelector('textarea')!.validationMessage);
+    expect(errorToasts()).toEqual([ed.t('toast.required')]);
     typeText(ed, 'a');
     expect(invalidMark(ed)).toEqual([false, null]);
-    form.requestSubmit();
+    save(form);
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('says it in the editor language, or with the message the app set', () => {
+    const { form, ta } = formEditor('<textarea name="body" required></textarea>', { locale: 'en' });
+    save(form);
+    expect(errorToasts()).toEqual([en.toast.required]);
+    ta.setCustomValidity('Write the post body first');
+    save(form);
+    expect(errorToasts().at(-1)).toBe('Write the post body first');
+  });
+
+  it('shows one message however often the user clicks save', () => {
+    const { form } = formEditor('<textarea name="body" required></textarea>');
+    save(form);
+    save(form);
+    save(form);
+    expect(errorToasts()).toHaveLength(1);
   });
 
   it('judges an editor emptied a moment ago, inside the change debounce', () => {
@@ -292,25 +316,76 @@ describe('audit core: a required textarea reports an empty editor visibly', () =
     const onSubmit = vi.fn((event: Event) => event.preventDefault());
     form.addEventListener('submit', onSubmit);
     ed.view.dispatch(ed.state.tr.delete(0, ed.state.doc.content.size));
-    form.requestSubmit();
+    save(form);
     expect(onSubmit).not.toHaveBeenCalled();
     expect(invalidMark(ed)).toEqual([true, 'true']);
   });
 
+  it('takes focus from another field on Enter there, like the browser does for the first invalid field', () => {
+    const { form, ed } = formEditor('<textarea name="body" required></textarea>', {}, '<input name="title" value="t">');
+    const title = form.querySelector('input')!;
+    title.focus();
+    pressEnter(title);
+    form.requestSubmit(); // jsdom does not submit on Enter; a browser does right after the keydown
+    expect(ed.root.contains(document.activeElement)).toBe(true);
+    expect(errorToasts()).toEqual([ed.t('toast.required')]);
+  });
+
+  it('reports on an app submit shortcut (Ctrl+Enter) in the editor', () => {
+    const { form, ed } = formEditor('<textarea name="body" required></textarea>');
+    // Registered on the document like an app's global shortcuts; it runs before the editor sees the key.
+    const shortcut = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.key !== 'Enter') return;
+      event.preventDefault();
+      event.stopPropagation();
+      form.requestSubmit();
+    };
+    document.addEventListener('keydown', shortcut, true);
+    onCleanup(() => document.removeEventListener('keydown', shortcut, true));
+    ed.focus();
+    pressEnter(ed.view.dom, { ctrlKey: true });
+    expect(ed.getHTML()).toBe('');
+    expect(invalidMark(ed)).toEqual([true, 'true']);
+    expect(errorToasts()).toEqual([ed.t('toast.required')]);
+  });
+
   it('does not take focus from an earlier invalid field the browser reports first', () => {
     const { form, ed } = formEditor('<textarea name="body" required></textarea>', {}, '<input name="title" required>');
-    form.requestSubmit();
+    save(form);
     expect(invalidMark(ed)).toEqual([true, 'true']);
     expect(ed.root.contains(document.activeElement)).toBe(false);
+    expect(errorToasts()).toEqual([]);
+  });
+
+  it('shows nothing when the app calls checkValidity() before the user did anything', () => {
+    const { form, ed } = formEditor('<textarea name="body" required></textarea>');
+    expect(form.checkValidity()).toBe(false);
+    expect(invalidMark(ed)).toEqual([false, null]);
+    expect(document.activeElement).toBe(document.body);
+    expect(errorToasts()).toEqual([]);
+  });
+
+  it('marks an emptied editor when the app checks on every input, without moving focus or showing a message', () => {
+    const { form, ed } = formEditor('<textarea name="body" required><p>a</p></textarea>');
+    form.addEventListener('input', () => form.checkValidity());
+    const focus = vi.spyOn(ed, 'focus');
+    ed.view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    ed.view.dispatch(ed.state.tr.delete(0, ed.state.doc.content.size));
+    ed.view.dom.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(invalidMark(ed)).toEqual([true, 'true']);
+    expect(focus).not.toHaveBeenCalled();
+    expect(errorToasts()).toEqual([]);
   });
 
   it('does not take focus from a field the user is typing in when the app calls checkValidity()', () => {
     const { form, ed } = formEditor('<textarea name="body" required></textarea>', {}, '<input name="title" value="t">');
     const title = form.querySelector('input')!;
     title.focus();
+    title.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }));
     expect(form.checkValidity()).toBe(false);
     expect(document.activeElement).toBe(title);
-    expect(ed.root.querySelector('.le-toast-error')).toBeNull();
+    expect(ed.root.contains(document.activeElement)).toBe(false);
+    expect(errorToasts()).toEqual([]);
   });
 });
 

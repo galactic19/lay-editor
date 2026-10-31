@@ -76,6 +76,7 @@ export const en = {
     uploadTooLarge: 'The file is too large (max {max})',
     uploadBadType: 'This image type is not supported',
     uploadNotConfigured: 'Image upload is not set up',
+    required: 'Please enter some content',
   },
   slash: { empty: 'No matching blocks' },
   status: { count: '{chars} characters · {charsNoSpace} without spaces · {words} words', matchCount: '{current}/{total}', noMatch: 'No results' },

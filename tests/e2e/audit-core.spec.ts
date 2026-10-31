@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { ko } from '../../src/i18n/ko';
 import { html, MOD, openEmpty } from './helpers';
 
 test('Ctrl+Z after setHTML never brings back the previous document', async ({ page }) => {
@@ -28,8 +29,9 @@ test.describe('textarea mode in a real form', () => {
   /**
    * Puts a form posting to SUBMIT_PATH on the demo page and turns its textarea into an editor.
    * Ctrl+Enter calls form.submit() and Ctrl+S reads new FormData(form), like app shortcuts do.
+   * `app` is module code that runs right after createEditor, with `form` in scope.
    */
-  async function mountForm(page: Page, textarea: string, options: Record<string, unknown> = {}): Promise<FormPage> {
+  async function mountForm(page: Page, textarea: string, options: Record<string, unknown> = {}, app = ''): Promise<FormPage> {
     const posted: string[] = [];
     await page.route(`**${SUBMIT_PATH}`, async (route) => {
       posted.push(new URLSearchParams(route.request().postData() ?? '').get('body') ?? '');
@@ -66,7 +68,9 @@ test.describe('textarea mode in a real form', () => {
     await page.addScriptTag({
       type: 'module',
       content: `import { createEditor } from '/src/index.ts';
-        window.__formEditor = createEditor({ element: '#f textarea', ...${JSON.stringify(options)} });`,
+        window.__formEditor = createEditor({ element: '#f textarea', ...${JSON.stringify(options)} });
+        const form = document.querySelector('#f');
+        ${app}`,
     });
     await page.waitForSelector(content);
     return { posted, shown: () => page.evaluate(() => (window as unknown as { __formEditor: { getHTML(): string } }).__formEditor.getHTML()) };
@@ -119,7 +123,9 @@ test.describe('textarea mode in a real form', () => {
     await expect(root).toHaveClass(/le-invalid/);
     await expect(page.locator(content)).toBeFocused();
     await expect(page.locator(content)).toHaveAttribute('aria-invalid', 'true');
-    await expect(root.locator('.le-toast-error')).toBeVisible();
+    // In the editor's language (ko by default), not the browser's; a second click does not stack it.
+    await page.click('#save');
+    await expect(page.locator('.le-toast-error')).toHaveText([ko.toast.required]);
     const border = await root.evaluate((el) => getComputedStyle(el).borderColor);
     const danger = await root.evaluate((el) => {
       const probe = document.createElement('i');
@@ -137,5 +143,34 @@ test.describe('textarea mode in a real form', () => {
     await expect(root).not.toHaveClass(/le-invalid/);
     await page.click('#save');
     await expect.poll(() => form.posted).toEqual(['<p>본문</p>']);
+  });
+
+  test('an app checking validity at load and on every input never moves focus or shows a message', async ({ page }) => {
+    const toasts = 'window.__toasts';
+    const form = await mountForm(
+      page,
+      '<textarea name="body" required></textarea>',
+      {},
+      `${toasts} = 0;
+        new MutationObserver((records) => records.forEach((record) =>
+          record.addedNodes.forEach((node) => node.classList?.contains('le-toast') && ${toasts}++))
+        ).observe(document.body, { childList: true, subtree: true });
+        form.querySelector('#save').disabled = !form.checkValidity();
+        form.addEventListener('input', () => form.checkValidity());`,
+    );
+    const root = page.locator('#f .le-editor');
+    await expect(page.locator('#save')).toBeDisabled();
+    await expect(page.locator(content)).not.toBeFocused();
+    await expect(root).not.toHaveClass(/le-invalid/);
+
+    await page.click(content);
+    await page.keyboard.type('bc');
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Backspace');
+    await page.keyboard.type('xy');
+    for (let i = 0; i < 2; i++) await page.keyboard.press('Backspace');
+    await page.keyboard.type('z');
+    await expect.poll(form.shown).toBe('<p>z</p>');
+    await expect(page.locator(content)).toBeFocused();
+    expect(await page.evaluate(toasts)).toBe(0);
   });
 });

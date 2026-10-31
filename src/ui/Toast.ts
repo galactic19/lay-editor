@@ -16,12 +16,18 @@ export class Toaster {
 
   show(message: string, kind: ToastKind = 'info'): void {
     const toast = h('div', { class: c('toast', `toast-${kind}`) }, message);
+    this.removeTwins(toast);
     this.region.appendChild(toast);
     const timer = setTimeout(() => {
       toast.remove();
       this.timers.delete(timer);
     }, DEFAULTS.toast.duration);
     this.timers.add(timer);
+  }
+
+  /** A repeated notice replaces its twin still on screen: it is announced again but never stacks up. */
+  private removeTwins(toast: HTMLElement): void {
+    [...this.region.children].filter((shown) => shown.isEqualNode(toast)).forEach((twin) => twin.remove());
   }
 
   destroy(): void {
