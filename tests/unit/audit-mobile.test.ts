@@ -37,6 +37,20 @@ describe('audit: mobile keyboard bar', () => {
     expect(bar().hidden).toBe(false);
   });
 
+  it('stays hidden in a read-only editor when a link or task checkbox in the content takes focus', () => {
+    const ed = mobileEditor('<p><a href="https://a.com" target="_blank">a</a></p><ul data-type="taskList"><li data-checked="false"><p>t</p></li></ul>');
+    ed.setEditable(false);
+    expect(bar().hidden).toBe(true);
+    for (const el of [ed.view.dom.querySelector('a')!, ed.view.dom.querySelector('input')!]) {
+      el.focus();
+      expect(document.activeElement).toBe(el);
+      expect(bar().hidden).toBe(true);
+    }
+    ed.setEditable(true);
+    ed.focus();
+    expect(bar().hidden).toBe(false);
+  });
+
   it('shows the bar when the device turns mobile while source view is open', () => {
     const ed = makeEditor();
     ed.focus();

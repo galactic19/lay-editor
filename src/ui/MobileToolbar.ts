@@ -33,7 +33,7 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
       editor.root.style.removeProperty('--le-mobile-bar-height');
       editor.view.setProps({ scrollMargin: undefined, scrollThreshold: undefined });
     });
-    // The bar is the only chrome on mobile, so focus anywhere in the editor keeps it, the HTML source textarea included.
+    // The bar is the only chrome on mobile, so while editing, focus anywhere in the editor keeps it, the HTML source textarea included.
     this.followEditorFocus(editor.root);
   }
 
@@ -45,7 +45,8 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
   }
 
   override update(): void {
-    if (!this.hasFocusWithin()) {
+    // A read-only editor has nothing to edit, even when a link or task checkbox in the content takes focus.
+    if (!this.editor.isEditable || !this.hasFocusWithin()) {
       this.el.hidden = true;
       return;
     }
