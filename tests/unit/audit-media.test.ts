@@ -1,5 +1,6 @@
 import { TextSelection } from 'prosemirror-state';
 import type { Editor } from '../../src/core/Editor';
+import { DEFAULTS } from '../../src/core/defaults';
 import { findText, flushPromises, makeEditor } from '../helpers/editor';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
@@ -162,5 +163,17 @@ describe('audit #9: read-only mode with the source view open', () => {
     expect(source(ed)!.readOnly).toBe(true);
     ed.setEditable(true);
     expect(source(ed)!.readOnly).toBe(false);
+  });
+});
+
+describe('audit #10: clearDraft() settles the restore bar', () => {
+  it('hides the bar when the app clears the draft it was offering', () => {
+    localStorage.setItem(DEFAULTS.autosave.prefix + 'k1', JSON.stringify({ html: '<p>old draft</p>', savedAt: Date.now() }));
+    const ed = makeEditor({ content: '<p>server</p>', autosave: { key: 'k1' } });
+    const bar = ed.root.querySelector<HTMLElement>('.le-restore-bar')!;
+    expect(bar.hidden).toBe(false);
+    ed.clearDraft();
+    expect(bar.hidden).toBe(true);
+    expect(ed.getHTML()).toBe('<p>server</p>');
   });
 });

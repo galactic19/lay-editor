@@ -29,18 +29,23 @@ export class RestoreBar extends UIComponent<HTMLDivElement> {
       if (restore) editor.setHTML(session.pending.html);
       else session.store.clear();
       session.pending = null;
-      this.el.hidden = true;
+      this.update();
     };
     super(
       editor,
       h(
         'div',
-        { class: c('restore-bar'), attrs: { role: 'status', hidden: !session?.pending } },
+        { class: c('restore-bar'), attrs: { role: 'status' } },
         h('span', {}, t('autosave.found')),
         h('button', { class: c('button', 'button-primary'), attrs: { type: 'button', 'data-action': 'restore' }, on: { click: resolve(true) } }, t('autosave.restore')),
         h('button', { class: c('button'), attrs: { type: 'button', 'data-action': 'discard' }, on: { click: resolve(false) } }, t('autosave.discard')),
       ),
     );
+  }
+
+  /** Shown while a previous draft waits for a decision; clearDraft() can also settle it. */
+  override update(): void {
+    this.el.hidden = !sessions.get(this.editor)?.pending;
   }
 }
 
@@ -55,6 +60,7 @@ export const autosave = defineExtension<AutosaveOptions>({
         session.save.cancel();
         session.store.clear();
         session.pending = null;
+        editor.ui?.flush();
       }
       return true;
     },
