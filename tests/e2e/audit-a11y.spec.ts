@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { control, html, MOD, openEmpty, panel } from './helpers';
 
 const PNG = Buffer.from(
@@ -65,3 +65,35 @@ for (const theme of ['light', 'dark']) {
     expect(contrast(code.title, code.bg)).toBeGreaterThanOrEqual(AA_TEXT);
   });
 }
+
+test.describe('audit #32/#61: main toolbar tooltips', () => {
+  test.beforeEach(({}, info) => test.skip(info.project.name.startsWith('mobile'), 'tooltips belong to the desktop toolbar'));
+
+  /** A strip just under the toolbar, beneath control `id`: where its tooltip belongs (above the caret line). */
+  async function underControl(page: Page, id: string): Promise<Buffer> {
+    const box = (await page.locator(`#editor .le-toolbar [data-item="${id}"]`).boundingBox())!;
+    const bar = (await page.locator('#editor .le-toolbar').boundingBox())!;
+    const x = Math.max(0, box.x - box.width);
+    return page.screenshot({ clip: { x, y: bar.y + bar.height + 1, width: box.width * 3, height: 12 } });
+  }
+
+  test('a hovered control shows its label and shortcut, readable and unclipped', async ({ page }) => {
+    await page.goto('./?empty');
+    const bold = page.locator('#editor .le-toolbar [data-item="bold"]');
+    const before = await underControl(page, 'bold');
+    await bold.hover();
+    await expect.poll(async () => (await underControl(page, 'bold')).equals(before)).toBe(false);
+    const tip = page.getByText((await bold.getAttribute('data-tooltip'))!, { exact: true });
+    await expect(tip).toBeVisible();
+    const colors = await tip.evaluate((el) => ({ fg: getComputedStyle(el).color, bg: getComputedStyle(el).backgroundColor }));
+    expect(contrast(colors.fg, colors.bg)).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
+  test('a keyboard-focused control shows it too', async ({ page }) => {
+    await openEmpty(page);
+    const before = await underControl(page, 'undo');
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.locator('#editor .le-toolbar [data-item="undo"]')).toBeFocused();
+    await expect.poll(async () => (await underControl(page, 'undo')).equals(before)).toBe(false);
+  });
+});

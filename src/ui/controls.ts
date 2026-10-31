@@ -53,7 +53,10 @@ export function createControl(item: UIItem, editor: Editor, ui: EditorUI, option
     options.showLabel ? h('span', { class: c('control-label') }, label) : null,
     options.showLabel && shortcut ? h('span', { class: c('control-hint') }, shortcut) : null,
   );
-  if (item.kind === 'dropdown' && !options.showLabel) button.appendChild(renderIcon('chevron-down')).classList.add(c('caret'));
+  if (!options.showLabel) {
+    if (item.kind === 'dropdown') button.appendChild(renderIcon('chevron-down')).classList.add(c('caret'));
+    ui.tooltip.attach(button);
+  }
   syncControl(button, item, editor, ui);
   return button;
 }

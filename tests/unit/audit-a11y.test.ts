@@ -172,3 +172,35 @@ describe('audit a11y #64: ARIA roles and names', () => {
     expect(toolbarControl(ed, 'bold').hasAttribute('aria-expanded')).toBe(false);
   });
 });
+
+describe('audit a11y #32/#61: toolbar tooltips are drawn outside the clipping toolbar', () => {
+  const tooltip = (): HTMLElement | null => document.querySelector<HTMLElement>('.le-tooltip');
+  const pointer = (el: HTMLElement, type: string, pointerType: string): boolean => el.dispatchEvent(new PointerEvent(type, { pointerType }));
+
+  it('shows the label and shortcut on mouse hover and keyboard focus, not on touch', () => {
+    const ed = makeEditor();
+    const bold = toolbarControl(ed, 'bold');
+    pointer(bold, 'pointerenter', 'mouse');
+    expect(tooltip()!.parentElement).toBe(document.body);
+    expect(tooltip()!.hidden).toBe(false);
+    expect(tooltip()!.textContent).toBe(bold.dataset.tooltip);
+    pointer(bold, 'pointerleave', 'mouse');
+    expect(tooltip()!.hidden).toBe(true);
+    pointer(bold, 'pointerenter', 'touch');
+    expect(tooltip()!.hidden).toBe(true);
+    bold.focus();
+    expect(tooltip()!.hidden).toBe(false);
+    bold.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(tooltip()!.hidden).toBe(true);
+  });
+
+  it('follows the editor theme and leaves with the UI', () => {
+    const ed = makeEditor({ theme: 'dark' });
+    toolbarControl(ed, 'italic').focus();
+    expect(tooltip()!.dataset.theme).toBe('dark');
+    ed.setLocale('en');
+    expect(document.querySelectorAll('.le-tooltip')).toHaveLength(1);
+    ed.destroy();
+    expect(tooltip()).toBeNull();
+  });
+});

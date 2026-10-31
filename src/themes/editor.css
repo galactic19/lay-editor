@@ -59,26 +59,13 @@
 .le-icon { width: var(--le-icon-size); height: var(--le-icon-size); flex: none; }
 .le-control .le-caret { width: var(--le-caret-size); height: var(--le-caret-size); opacity: 0.6; }
 
-@media (hover: hover) {
-  .le-control[data-tooltip]:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    top: calc(100% + var(--le-tooltip-gap));
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: var(--le-z-overlay);
-    padding: var(--le-space-hair) var(--le-space-2);
-    border-radius: var(--le-radius-sm);
-    background: var(--le-color-fg);
-    color: var(--le-color-bg);
-    font-size: var(--le-font-size-small);
-    white-space: nowrap;
-    pointer-events: none;
-  }
-}
+/* Portals: chrome rendered in document.body (panels, floating toolbars, tooltips) */
+.le-portal { font-family: var(--le-font); font-size: var(--le-font-size-ui); color: var(--le-color-fg); }
+
+/* Control tooltips: placed by Tooltip.ts outside the toolbar, so its overflow clipping cannot hide them. */
+.le-tooltip { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); padding: var(--le-space-hair) var(--le-space-2); border-radius: var(--le-radius-sm); background: var(--le-color-fg); color: var(--le-color-bg); font-size: var(--le-font-size-small); white-space: nowrap; pointer-events: none; }
 
 /* Dropdown panels */
-.le-portal { font-family: var(--le-font); font-size: var(--le-font-size-ui); color: var(--le-color-fg); }
 .le-dropdown { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); min-width: var(--le-dropdown-min-width); max-width: min(var(--le-dropdown-max-width), calc(100vw - 2 * var(--le-space-2))); padding: var(--le-space-2); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
 .le-panel { display: flex; flex-direction: column; gap: var(--le-space-2); }
 .le-panel-row { display: flex; gap: var(--le-space-2); align-items: center; flex-wrap: wrap; }

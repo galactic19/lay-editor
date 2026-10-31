@@ -17,6 +17,7 @@ import { PRESETS, SEPARATOR } from './presets';
 import { ThemeController } from './theme';
 import { Toaster } from './Toast';
 import { Toolbar, type ToolbarEntry } from './Toolbar';
+import { Tooltip } from './Tooltip';
 import type { UIComponent } from './UIComponent';
 
 /** Drops leading, trailing and repeated separators. */
@@ -34,6 +35,7 @@ export class EditorUI {
   readonly device: DeviceWatcher;
   readonly viewport = new ViewportTracker();
   readonly theme: ThemeController;
+  readonly tooltip: Tooltip;
   private readonly slots: Record<Exclude<UISlot, 'overlay'>, HTMLElement>;
   private readonly extensionComponents: UIComponent[] = [];
   private modeComponents: UIComponent[] = [];
@@ -51,6 +53,7 @@ export class EditorUI {
     this.theme = new ThemeController(() => [editor.root], editor.config.theme);
     this.panels = new PanelHost(editor, () => this.device.mode);
     this.toaster = new Toaster(editor.root);
+    this.tooltip = new Tooltip(editor.root);
 
     for (const spec of editor.manager.createComponents(editor)) {
       const component = spec.create(editor, this);
@@ -98,6 +101,7 @@ export class EditorUI {
     this.modeComponents = [];
     this.panels.destroy();
     this.toaster.destroy();
+    this.tooltip.destroy();
     this.device.destroy();
     this.viewport.destroy();
     this.theme.destroy();
@@ -120,6 +124,7 @@ export class EditorUI {
 
   private switchMode(mode: DeviceMode): void {
     this.panels.close();
+    this.tooltip.hide();
     this.modeComponents.splice(0).forEach((component) => component.destroy());
     this.mountMode(mode);
     this.editor.emit('modeChange', mode);

@@ -11,7 +11,7 @@ export const DEFAULTS = {
   changeDebounce: 300,
   mobileBreakpoint: 768,
   /** Floating UI: distance from the anchor (px) and the minimum gap to the viewport edge. */
-  floating: { viewportPadding: 8, gaps: { dropdown: 4, menu: 6, toolbar: 8 } },
+  floating: { viewportPadding: 8, gaps: { dropdown: 4, menu: 6, toolbar: 8, tooltip: 6 } },
   toast: { duration: 4000 },
   sheet: { dismissDistance: 80 },
   mobileBar: { scrollGap: 8 },
