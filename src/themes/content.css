@@ -36,6 +36,8 @@
 .le-prose ul[data-type='taskList'] li[data-checked='true'] > * { color: var(--le-color-muted); text-decoration: line-through; }
 .le-prose hr { border: none; border-top: 1px solid var(--le-color-border); margin: 1.5em 0; }
 .le-prose mark { color: var(--le-color-highlight-fg); border-radius: 2px; padding: 0 0.1em; }
+/* A text colour or link around the highlight (the schema nests <mark> innermost) keeps its own colour. */
+.le-prose :is(a, span[style^='color']) mark { color: inherit; }
 .le-prose figure { margin: 1em auto; max-width: 100%; }
 .le-prose figure[data-align='left'] { margin-left: 0; }
 .le-prose figure[data-align='right'] { margin-right: 0; }

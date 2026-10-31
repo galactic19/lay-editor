@@ -204,3 +204,27 @@ test.describe('audit #51: highlighted text in dark mode', () => {
     }
   });
 });
+
+/** Highlights inside a text colour and inside a link (with bold in between); the schema nests <mark> innermost. */
+const COLOURED_HIGHLIGHTS =
+  '<p><span style="color: #e03131"><mark style="background-color: #ffec99">coloured</mark></span> ' +
+  '<a href="https://example.com"><strong><mark style="background-color: #ffec99">linked</mark></strong></a></p>';
+
+for (const colorScheme of ['light', 'dark'] as const) {
+  test.describe(`audit #51: highlighted text keeps an explicit colour (${colorScheme})`, () => {
+    test.use({ colorScheme });
+
+    test('a text colour or link around the highlight still sets the text colour', async ({ page }) => {
+      await openEmpty(page);
+      await setContent(page, COLOURED_HIGHLIGHTS);
+      await renderViewPage(page, await html(page), colorScheme === 'dark' ? colorScheme : undefined);
+      for (const root of ROOTS) {
+        const colors = await page
+          .locator(`${root} mark`)
+          .evaluateAll((marks) => marks.map((mark) => [getComputedStyle(mark).color, getComputedStyle(mark.closest('a, span')!).color]));
+        expect(colors, root).toHaveLength(2);
+        for (const [mark, outer] of colors) expect(mark, root).toBe(outer);
+      }
+    });
+  });
+}
