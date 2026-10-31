@@ -61,8 +61,9 @@ test.describe('audit #30: clicking an image', () => {
     await openEmpty(page);
     await seedImage(page, 'my caption');
     await page.locator('#editor .le-image figcaption').click();
+    // A click in text reaches ProseMirror through the asynchronous selectionchange event.
+    await expect.poll(() => page.evaluate(() => window.__editor.state.selection.$from.parent.type.name)).toBe('image');
     expect(await selectionType(page)).toBe('text');
-    expect(await page.evaluate(() => window.__editor.state.selection.$from.parent.type.name)).toBe('image');
   });
 });
 
