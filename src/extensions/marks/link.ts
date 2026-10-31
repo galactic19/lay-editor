@@ -3,7 +3,7 @@ import { InputRule } from 'prosemirror-inputrules';
 import type { Command } from 'prosemirror-state';
 import { getMarkRange, isMarkActive, markApplies } from '../../core/state-utils';
 import { safeUrl } from '../../io/sanitize';
-import { completeScheme } from '../../io/url';
+import { completeScheme, hasScheme } from '../../io/url';
 import { linkPanel } from '../../ui/panels/linkPanel';
 import { canApplyMark, defineExtension } from '../factories';
 
@@ -15,10 +15,10 @@ export interface LinkInput {
 const AUTOLINK = /(?:^|\s)((?:https?:\/\/|www\.)[^\s]+)\s$/;
 const EMAIL = /^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/;
 
-/** Adds the scheme people leave out: https:// for hosts, mailto: for e-mail addresses. */
+/** Adds the scheme people leave out: https:// for hosts, mailto: for e-mail addresses. A value with a scheme stays as it is. */
 export function normalizeHref(input: string): string {
   const value = String(input ?? '').trim();
-  return EMAIL.test(value) ? `mailto:${value}` : completeScheme(value);
+  return EMAIL.test(value) && !hasScheme(value) ? `mailto:${value}` : completeScheme(value);
 }
 
 /** The range a link command acts on: the selection, or the whole link around a bare cursor. */

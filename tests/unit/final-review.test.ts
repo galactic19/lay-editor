@@ -2,9 +2,10 @@ import { DOMParser as PMDOMParser } from 'prosemirror-model';
 import { createEditor } from '../../src/core/createEditor';
 import type { Editor } from '../../src/core/Editor';
 import type { EditorOptions } from '../../src/core/types';
+import { normalizeHref } from '../../src/extensions/marks/link';
 import { fillContainerStarts } from '../../src/io/html';
 import { onCleanup, setMedia } from '../setup';
-import { makeEditor, toolbarControl } from '../helpers/editor';
+import { caretAfter, makeEditor, toolbarControl } from '../helpers/editor';
 
 /** An editor in a form: textarea mode, or (`textarea: false`) an element inside the form. */
 function formEditor(content: string, { textarea = true, ...options }: Partial<EditorOptions> & { textarea?: boolean } = {}) {
@@ -155,5 +156,22 @@ describe('final review: list items starting with a wrapper are checked without p
     expect(editor.getHTML()).toBe(
       '<ul><li><p></p><h3>Title</h3><p>text</p></li><li><p></p><figure data-align="center"><img src="https://a.com/x.png" alt=""><figcaption></figcaption></figure></li></ul>',
     );
+  });
+});
+
+describe('final review: links that already carry a scheme', () => {
+  it.each(['mailto:a@b.co', 'mailto:a@b.co?subject=x', 'MAILTO:a@b.co'])('%s is kept as it is', (href) => {
+    expect(normalizeHref(href)).toBe(href);
+  });
+
+  it('a bare address still gets mailto:', () => {
+    expect(normalizeHref('a@b.co')).toBe('mailto:a@b.co');
+  });
+
+  it('applying an e-mail link again (the edit panel) keeps one scheme', () => {
+    const editor = makeEditor({ content: '<p>write to <a href="mailto:a@b.co">me</a> now</p>' });
+    caretAfter(editor, 'm');
+    editor.exec('setLink', { href: 'mailto:a@b.co', newTab: true });
+    expect(editor.getHTML()).toBe('<p>write to <a href="mailto:a@b.co" target="_blank" rel="noopener noreferrer">me</a> now</p>');
   });
 });
