@@ -42,7 +42,7 @@ export class Editor {
 
   private readonly events: EventEmitter<EditorEvents>;
   private readonly changeDebounced: Debounced<[]>;
-  private readonly textarea: TextareaBinding | null;
+  private readonly textareaBinding: TextareaBinding | null;
   private editable = true;
   /** Set when destroy() starts, so a 'destroy' listener that calls destroy() again is ignored. */
   private destroying = false;
@@ -66,8 +66,8 @@ export class Editor {
     this.content = document.createElement('div');
     this.content.className = c('content');
     this.root.appendChild(this.content);
-    this.textarea = config.textarea ? new TextareaBinding(this, config.textarea) : null;
-    if (this.textarea) this.textarea.mount(this.root);
+    this.textareaBinding = config.textarea ? new TextareaBinding(this, config.textarea) : null;
+    if (this.textareaBinding) this.textareaBinding.mount(this.root);
     else config.element.appendChild(this.root);
 
     this.commands = this.manager.createCommands(this);
@@ -89,7 +89,7 @@ export class Editor {
     this.manager.runCreate(this);
     this.ui = new EditorUI(this);
     // The form posts the textarea, so it must hold what the editor shows (the content option, sanitized) from the start.
-    this.textarea?.sync();
+    this.textareaBinding?.sync();
     this.safeCall('onReady', () => config.onReady?.(this));
   }
 
@@ -214,12 +214,12 @@ export class Editor {
     this.destroying = true;
     this.events.emit('destroy');
     this.changeDebounced.cancel();
-    this.textarea?.sync();
+    this.textareaBinding?.sync();
     this.destroyed = true;
     this.ui?.destroy();
     this.manager.runDestroy();
     this.view.destroy();
-    this.textarea?.destroy();
+    this.textareaBinding?.destroy();
     this.root.remove();
     this.events.clear();
   }
