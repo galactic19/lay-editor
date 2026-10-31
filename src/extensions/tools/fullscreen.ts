@@ -15,6 +15,13 @@ function setFullscreen(editor: Editor, on: boolean): void {
   editor.ui?.flush();
 }
 
+/** Leaves fullscreen; false when it was off, so Escape stays free for other handlers. */
+function exitFullscreen(editor: Editor): boolean {
+  if (!isFullscreen(editor)) return false;
+  setFullscreen(editor, false);
+  return true;
+}
+
 export const fullscreen = defineExtension({
   name: 'fullscreen',
   commands: ({ editor }) => ({
@@ -34,10 +41,13 @@ export const fullscreen = defineExtension({
       isActive: isFullscreen,
     },
   ],
+  // ProseMirror claims every Escape pressed in the editor, so it is handled here, after higher-priority
+  // handlers such as the slash menu.
+  keymap: ({ editor }) => ({ Escape: () => exitFullscreen(editor) }),
   onCreate: ({ editor }) => {
-    // Listen on the root so Escape works from the toolbar too; skip keys another handler used.
+    // Escape from the toolbar reaches the root unhandled; skip keys another handler used.
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape' && !event.defaultPrevented && isFullscreen(editor)) setFullscreen(editor, false);
+      if (event.key === 'Escape' && !event.defaultPrevented) exitFullscreen(editor);
     };
     editor.root.addEventListener('keydown', onKeyDown);
     return () => {

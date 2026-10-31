@@ -26,6 +26,8 @@ test.describe('fullscreen stacking (#28, #38)', () => {
     await expect(panel(page)).toBeVisible();
     expect(await onTop(panel(page))).toBe(true);
     await page.keyboard.press('Escape');
+    await expect(panel(page)).toHaveCount(0);
+    expect(await isFullscreen(page)).toBe(true);
 
     await page.keyboard.press('Shift+Home');
     const bubble = page.locator('.le-bubble:not([hidden])');
@@ -57,4 +59,14 @@ test.describe('fullscreen stacking (#28, #38)', () => {
     await control(page, 'fullscreen').tap({ timeout: 5000 });
     expect(await isFullscreen(page)).toBe(false);
   });
+});
+
+test('Escape leaves fullscreen while the caret is in the editor (#52)', async ({ page }) => {
+  await openEmpty(page);
+  await page.keyboard.type('hello');
+  await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+  expect(await page.evaluate(() => document.activeElement?.classList.contains('ProseMirror'))).toBe(true);
+  await page.keyboard.press('Escape');
+  expect(await isFullscreen(page)).toBe(false);
+  expect(await page.evaluate(() => document.documentElement.classList.contains('le-scroll-locked'))).toBe(false);
 });
