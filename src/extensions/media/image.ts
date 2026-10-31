@@ -66,13 +66,21 @@ const updateImage =
     return true;
   };
 
+/** Where a new image goes: near `pos`, after the image whose caption holds the cursor, or null for the selection. */
+function insertPos(state: EditorState, type: NodeType, pos?: number): number | null {
+  if (pos !== undefined) return insertPoint(state.doc, pos, type);
+  // A caption only holds text; replacing the selection there would split its image in two.
+  const captioned = findParent(state, (node) => node.type === type);
+  return captioned ? captioned.pos + captioned.node.nodeSize : null;
+}
+
 function insertImage(type: NodeType, input: ImageInput, pos?: number): Command {
   return (state, dispatch) => {
     const src = input.uploadId ? input.src : safeUrl(input.src, { allowDataImage: true });
     if (!src) return false;
     const node = type.create({ src, alt: input.alt ?? '', uploadId: input.uploadId ?? null });
     if (!dispatch) return true;
-    const at = pos === undefined ? null : insertPoint(state.doc, pos, type);
+    const at = insertPos(state, type, pos);
     dispatch((at === null ? state.tr.replaceSelectionWith(node) : state.tr.insert(at, node)).scrollIntoView());
     return true;
   };

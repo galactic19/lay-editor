@@ -51,13 +51,21 @@ export class UploadManager {
     return () => this.listeners.delete(fn);
   }
 
-  /** Inserts a placeholder per file at `pos` (or the selection) and uploads them. */
+  /** Inserts a placeholder per file at `pos` (or the selection), each after the previous one, and uploads them. */
   uploadFiles(files: File[], pos?: number): Promise<void> {
     if (!this.enabled) {
       this.notifyDisabled();
       return Promise.resolve();
     }
-    return Promise.all(files.map((file) => this.uploadNew(file, pos))).then(() => undefined);
+    let at = pos;
+    const uploads = files.map((file) => {
+      const id = this.insertPlaceholder(file, at);
+      if (id === null) return Promise.resolve();
+      const placed = this.find(id);
+      if (placed) at = placed.pos + placed.node.nodeSize;
+      return this.run(id, file);
+    });
+    return Promise.all(uploads).then(() => undefined);
   }
 
   /** Starts an upload for an image node that already carries `uploadId` (e.g. a pasted data: image). */
@@ -96,13 +104,14 @@ export class UploadManager {
     this.toast('toast.uploadNotConfigured');
   }
 
-  private uploadNew(file: File, pos?: number): Promise<void> {
-    if (this.reject(file)) return Promise.resolve();
+  /** Inserts a preview for an accepted file; returns its upload id, or null when the file was refused. */
+  private insertPlaceholder(file: File, pos?: number): string | null {
+    if (this.reject(file)) return null;
     const id = this.nextId();
     const url = URL.createObjectURL(file);
     this.objectUrls.set(id, url);
     this.editor.exec('insertImage', { src: url, uploadId: id }, pos);
-    return this.run(id, file);
+    return id;
   }
 
   private async run(id: string, file: File): Promise<void> {
@@ -136,10 +145,14 @@ export class UploadManager {
     return file.size > this.options.maxSize ? 'size' : null;
   }
 
+  private find(id: string): ReturnType<typeof findNodeByAttr> {
+    return findNodeByAttr(this.editor.state.doc, 'uploadId', id);
+  }
+
   /** Updates (or with null removes) the placeholder; false if the user already removed it. */
   private replace(id: string, attrs: Record<string, unknown> | null): boolean {
     const { state, view } = this.editor;
-    const found = findNodeByAttr(state.doc, 'uploadId', id);
+    const found = this.find(id);
     if (!found) return false;
     const tr = attrs
       ? state.tr.setNodeMarkup(found.pos, undefined, { ...found.node.attrs, ...attrs })

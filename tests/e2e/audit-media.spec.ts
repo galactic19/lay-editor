@@ -10,6 +10,28 @@ async function seedImage(page: Page, caption = ''): Promise<void> {
   );
 }
 
+/** Answers uploads with a URL naming the file size, so each image can be traced back to its file. */
+async function uploadBySize(page: Page): Promise<void> {
+  await page.route('**/__upload', (route) => route.fulfill({ json: { url: `/__uploads/size-${route.request().postDataBuffer()!.length}` } }));
+}
+
+/** Fires a paste or drop carrying PNG files of the given sizes at `selector` (drops land at its start). */
+async function sendFiles(page: Page, kind: 'paste' | 'drop', selector: string, sizes: number[]): Promise<void> {
+  await page.evaluate(
+    ([eventKind, target, byteSizes]) => {
+      const data = new DataTransfer();
+      byteSizes.forEach((size, i) => data.items.add(new File([new Uint8Array(size)], `${i + 1}.png`, { type: 'image/png' })));
+      const el = document.querySelector(target)!;
+      const rect = el.getBoundingClientRect();
+      const init = { bubbles: true, cancelable: true, clientX: rect.left + 1, clientY: rect.top + rect.height / 2 };
+      el.dispatchEvent(eventKind === 'paste' ? new ClipboardEvent('paste', { ...init, clipboardData: data }) : new DragEvent('drop', { ...init, dataTransfer: data }));
+    },
+    [kind, selector, sizes] as const,
+  );
+}
+
+const imageSrcs = (page: Page) => page.locator('#editor .le-image img').evaluateAll((imgs) => imgs.map((img) => img.getAttribute('src')));
+
 const selectionType = (page: Page) => page.evaluate(() => window.__editor.state.selection.toJSON().type as string);
 const captionPlaceholder = (page: Page) =>
   page.locator('#editor .le-image figcaption').evaluate((el) => ({ display: getComputedStyle(el).display, text: getComputedStyle(el, '::before').content }));
@@ -42,4 +64,30 @@ test.describe('audit #30: clicking an image', () => {
     expect(await selectionType(page)).toBe('text');
     expect(await page.evaluate(() => window.__editor.state.selection.$from.parent.type.name)).toBe('image');
   });
+});
+
+test('audit #68: pasting a screenshot from inside a caption inserts it after that image', async ({ page }) => {
+  await openEmpty(page);
+  await uploadBySize(page);
+  await page.evaluate(() =>
+    window.__editor.setHTML('<figure data-align="center"><img src="/demo/missing.png" alt="original"><figcaption>My caption</figcaption></figure><p>after</p>'),
+  );
+  await page.locator('#editor .le-image figcaption').click();
+  await page.keyboard.press('End');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  await page.evaluate(() => window.__editor.syncSelection());
+  await sendFiles(page, 'paste', '#editor .ProseMirror', [70]);
+  await expect.poll(() => imageSrcs(page)).toEqual(['/demo/missing.png', '/__uploads/size-70']);
+  await expect(page.locator('#editor .le-image figcaption')).toHaveText(['My caption', '']);
+});
+
+test('audit #69: dropped files keep their order', async ({ page }) => {
+  await openEmpty(page);
+  await uploadBySize(page);
+  await page.evaluate(() => window.__editor.setHTML('<p>first paragraph</p><p>second paragraph</p>'));
+  await sendFiles(page, 'drop', '#editor .ProseMirror p:nth-child(2)', [11, 22, 33]);
+  await expect.poll(() => imageSrcs(page)).toEqual(['/__uploads/size-11', '/__uploads/size-22', '/__uploads/size-33']);
+  await expect(page.locator('#editor .ProseMirror > *')).toHaveCount(5);
+  await expect(page.locator('#editor .ProseMirror > p').last()).toHaveText('second paragraph');
 });

@@ -177,3 +177,52 @@ describe('audit #10: clearDraft() settles the restore bar', () => {
     expect(ed.getHTML()).toBe('<p>server</p>');
   });
 });
+
+const cdnUpload = () => vi.fn(async (f: File) => ({ url: `https://cdn.x/${f.name}` }));
+const imageSrcs = (ed: Editor): string[] => Array.from(ed.view.dom.querySelectorAll('.le-image img'), (img) => img.getAttribute('src')!);
+const captions = (ed: Editor): string[] => Array.from(ed.view.dom.querySelectorAll('.le-image figcaption'), (el) => el.textContent!);
+const CAPTIONED = `${FIGURE('https://x.com/original.png', 'My caption')}<p>after</p>`;
+
+describe('audit #68: inserting an image from inside a caption', () => {
+  it('insertImage puts the new image after the captioned one instead of splitting it', () => {
+    const ed = makeEditor({ content: CAPTIONED });
+    caretAfter(ed, 'My capti');
+    expect(ed.exec('insertImage', { src: 'https://x.com/new.png' })).toBe(true);
+    expect(imageSrcs(ed)).toEqual(['https://x.com/original.png', 'https://x.com/new.png']);
+    expect(captions(ed)).toEqual(['My caption', '']);
+    expect(ed.getHTML()).toMatch(/<\/figure><p>after<\/p>$/);
+  });
+
+  it('uploaded files go after the captioned image', async () => {
+    const ed = makeEditor({ upload: cdnUpload(), content: CAPTIONED });
+    caretAfter(ed, 'My capti');
+    ed.exec('uploadImages', [file('shot.png')]);
+    await flushPromises();
+    expect(imageSrcs(ed)).toEqual(['https://x.com/original.png', 'https://cdn.x/shot.png']);
+    expect(captions(ed)).toEqual(['My caption', '']);
+  });
+});
+
+describe('audit #69: several files keep their order', () => {
+  const FILES = ['1.png', '2.png', '3.png'];
+
+  it('at a drop position', async () => {
+    const ed = makeEditor({ upload: cdnUpload(), content: '<p>x</p><p>y</p>' });
+    ed.exec('uploadImages', FILES.map(file), findText(ed, 'y') - 1);
+    await flushPromises();
+    expect(imageSrcs(ed)).toEqual(FILES.map((name) => `https://cdn.x/${name}`));
+    expect(ed.getHTML()).toMatch(/^<p>x<\/p><figure.*<p>y<\/p>$/);
+  });
+
+  it('at the selection and from inside a caption', async () => {
+    const ed = makeEditor({ upload: cdnUpload(), content: CAPTIONED });
+    caretAfter(ed, 'My caption');
+    ed.exec('uploadImages', FILES.map(file));
+    await flushPromises();
+    expect(imageSrcs(ed)).toEqual(['https://x.com/original.png', ...FILES.map((name) => `https://cdn.x/${name}`)]);
+    caretAfter(ed, 'after');
+    ed.exec('uploadImages', [file('4.png'), file('5.png')]);
+    await flushPromises();
+    expect(imageSrcs(ed).slice(-2)).toEqual(['https://cdn.x/4.png', 'https://cdn.x/5.png']);
+  });
+});
