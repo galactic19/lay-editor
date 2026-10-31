@@ -40,11 +40,22 @@ export function safeColor(value: string | null | undefined): string | null {
   return rgba ? `rgba(${rgba.slice(1, 5).join(',')})` : null;
 }
 
+const clamp = (n: number, min: number, max: number): number => Math.min(max, Math.max(min, n));
+
 /** Percentage width clamped to the image limits; anything else is null. */
 export function clampWidth(value: string | number | null | undefined): number | null {
   const n = typeof value === 'number' ? value : Number(PERCENT.exec(value ?? '')?.[1] ?? NaN);
   if (!Number.isFinite(n)) return null;
-  return Math.round(Math.min(DEFAULTS.image.maxWidth, Math.max(DEFAULTS.image.minWidth, n)));
+  return Math.round(clamp(n, DEFAULTS.image.minWidth, DEFAULTS.image.maxWidth));
+}
+
+/**
+ * Whole number clamped to [min, max]. Strings are read like HTML integer attributes, by their leading digits
+ * ("5px" is 5, "1e9" is 1); anything without them becomes `min`.
+ */
+export function clampInteger(value: unknown, min: number, max: number): number {
+  const n = typeof value === 'number' ? Math.trunc(value) : parseInt(String(value), 10);
+  return Number.isFinite(n) ? clamp(n, min, max) : min;
 }
 
 export function safeLanguage(value: string | null | undefined): string | null {

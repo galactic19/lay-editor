@@ -32,6 +32,12 @@ export const DEFAULTS = {
   },
   video: { providers: ['youtube', 'vimeo'] },
   table: { maxGrid: 10, mobileMaxGrid: 6, defaultRows: 3, defaultCols: 3 },
+  /**
+   * Limits for tables. Spans clamp like browsers do (HTML spec); column widths are px. maxFillerCells caps the grid
+   * slots no written cell starts in (rows x widest row - cells) that one paste or one change may bring in:
+   * prosemirror-tables fills them with new cells, so past the cap the largest tables become their cells' blocks.
+   */
+  tableLimits: { maxColspan: 1000, maxRowspan: 65534, maxColumnWidth: 10000, maxFillerCells: 10000 },
   heading: { levels: [1, 2, 3, 4] },
   codeBlock: {
     indent: '  ',
@@ -42,7 +48,7 @@ export const DEFAULTS = {
   },
   paste: {
     keepStyles: ['color', 'background-color', 'text-align'],
-    keepDataAttrs: ['data-type', 'data-checked', 'data-indent', 'data-align', 'data-video', 'data-provider', 'data-id'],
+    keepDataAttrs: ['data-type', 'data-checked', 'data-indent', 'data-align', 'data-video', 'data-provider', 'data-id', 'data-colwidth'],
     /** Colors that equal the page default; dropping them keeps pasted text readable in dark mode. */
     defaultColors: {
       color: ['#000', '#000000', 'rgb(0,0,0)'],

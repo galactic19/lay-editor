@@ -15,6 +15,8 @@
   --le-color-selection: rgba(31, 111, 235, 0.18);
   --le-color-code-bg: #eff2f5;
   --le-color-quote: #d1d9e0;
+  /* Highlighter colours are light in both themes, so the text on them stays dark (not redefined for dark). */
+  --le-color-highlight-fg: #1f2328;
   --le-color-mark-match: rgba(255, 196, 0, 0.45);
   --le-color-mark-current: rgba(255, 140, 0, 0.75);
   --le-shadow: 0 8px 24px rgba(31, 35, 40, 0.14), 0 2px 6px rgba(31, 35, 40, 0.08);
@@ -45,6 +47,9 @@
   --le-content-padding: 16px 20px;
   --le-min-height: 240px;
   --le-indent-step: 2em;
+  --le-list-paragraph-spacing: 0.15em;
+  --le-task-check-size: 1.05em;
+  --le-task-gap: 0.5em;
   --le-grid-cell: 18px;
   --le-sheet-max-height: 70vh;
   --le-font-size-small: 12px;

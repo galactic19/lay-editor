@@ -195,6 +195,7 @@ createEditor({
 
 - 없는 ID를 넣으면 콘솔에 경고와 함께 사용 가능한 ID 목록이 출력됩니다.
 - 표·이미지·링크·코드블록 전용 도구는 해당 요소를 선택했을 때 자동으로 나타납니다(데스크톱은 떠 있는 툴바, 모바일은 키보드 위 툴바). 이미지는 클릭하면 선택됩니다.
+- 표 셀을 병합하려면 먼저 여러 칸을 선택합니다. 데스크톱은 칸 사이를 끌거나 Shift를 누른 채 누르고, 모바일은 글자 선택 핸들을 옆 칸까지 끌면 칸 단위 선택으로 바뀌고, 더 끌면 선택한 칸이 늘어납니다.
 
 ## 8. 테마
 
@@ -214,6 +215,7 @@ CSS 변수로 바꿉니다. `.le-editor, .le-portal`(드롭다운·바텀시트 
 | `--le-color-primary`, `--le-color-primary-fg` | 강조색과 그 위 글자 |
 | `--le-color-border`, `--le-color-surface`, `--le-color-hover`, `--le-color-active` | 테두리, 툴바 배경, 상태 배경 |
 | `--le-color-danger`, `--le-color-danger-ring`, `--le-focus-ring-width` | 오류 알림과 필수 입력 누락 표시, 포커스 테두리 두께 |
+| `--le-color-highlight-fg` | 형광펜을 칠한 글자색. 형광펜 색이 밝은 색이라 다크 테마에서도 어두운 색을 씀. 글자색이나 링크가 있으면 그 색을 따름 |
 | `--le-font`, `--le-font-mono`, `--le-font-size`, `--le-line-height` | 글꼴 |
 | `--le-radius`, `--le-control-size`, `--le-touch-target` | 모서리, 버튼 크기, 모바일 터치 영역(44px) |
 | `--le-min-height`, `--le-content-padding` | 편집 영역 크기 |
