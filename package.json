@@ -55,7 +55,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vite build --config vite.umd.config.ts && node scripts/build-css.mjs && tsc -p tsconfig.build.json && node scripts/verify-exports.mjs && node scripts/check-size.mjs",
+    "build": "vite build && vite build --config vite.umd.config.ts && node scripts/build-css.mjs && tsc -p tsconfig.build.json && node scripts/complete-dts-imports.mjs && node scripts/verify-exports.mjs && node scripts/verify-types.mjs && node scripts/check-size.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
