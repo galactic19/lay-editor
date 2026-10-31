@@ -1,6 +1,8 @@
 import { AllSelection, TextSelection } from 'prosemirror-state';
 import { findText, makeEditor, press, typeText } from '../helpers/editor';
 import type { Editor } from '../../src/core/Editor';
+import { filterSlashItems, slashKey } from '../../src/extensions/tools/slashMenu';
+import type { UIItem } from '../../src/core/types';
 
 const caretAt = (ed: Editor, pos: number): void => {
   ed.view.dispatch(ed.state.tr.setSelection(TextSelection.create(ed.state.doc, pos)));
@@ -135,5 +137,35 @@ describe('checklist toggle converts the whole list (#20)', () => {
     expect(ed.getHTML()).toBe('<ul><li><p>parent</p><ul data-type="taskList"><li data-checked="false"><p>x</p></li><li data-checked="false"><p>y</p></li></ul></li></ul>');
     ed.exec('toggleBulletList');
     expect(ed.getHTML()).toBe('<ul><li><p>parent</p><ul><li><p>x</p></li><li><p>y</p></li></ul></li></ul>');
+  });
+});
+
+describe('slash menu leaves prose alone (#31)', () => {
+  it.each(['A / B', '1 / 2', 'and / or', 'x / y'])('"%s" then Enter starts a new paragraph', (text) => {
+    const ed = makeEditor();
+    typeText(ed, text);
+    expect(slashKey.getState(ed.state)!.active).toBe(false);
+    press(ed, 'Enter');
+    typeText(ed, 'next');
+    expect(ed.getHTML()).toBe(`<p>${text}</p><p>next</p>`);
+  });
+
+  it('a query with a space closes the menu even when it would match', () => {
+    const ed = makeEditor({ locale: 'en' });
+    typeText(ed, '/heading');
+    expect(slashKey.getState(ed.state)!.active).toBe(true);
+    typeText(ed, ' ');
+    expect(slashKey.getState(ed.state)!.active).toBe(false);
+  });
+
+  it('matches the start of a label word or keyword, not text inside a word', () => {
+    const t = (key: string) => key;
+    const table: UIItem = { id: 'table', kind: 'button', icon: 'x', label: 'Insert table', contexts: ['text'], slash: { keywords: ['grid'] } };
+    const ids = (query: string) => filterSlashItems([table], query, t).map((item) => item.id);
+    expect(ids('ta')).toEqual(['table']);
+    expect(ids('INS')).toEqual(['table']);
+    expect(ids('gr')).toEqual(['table']);
+    expect(ids('able')).toEqual([]);
+    expect(ids('b')).toEqual([]);
   });
 });

@@ -90,3 +90,16 @@ test.describe('checklist toggle (#20)', () => {
     expect(await html(page)).toBe('<ul><li><p>parent</p><ul data-type="taskList"><li data-checked="false"><p>x</p></li></ul></li></ul>');
   });
 });
+
+test.describe('slash in prose (#31)', () => {
+  for (const text of ['A / B', '1 / 2', 'and / or']) {
+    test(`"${text}" then Enter keeps the text and starts a new paragraph`, async ({ page }) => {
+      await openEmpty(page);
+      await page.keyboard.type(text, { delay: 30 });
+      await expect(page.locator('.le-slash-menu:not([hidden])')).toHaveCount(0);
+      await page.keyboard.press('Enter');
+      await page.keyboard.type('next');
+      expect(await html(page)).toBe(`<p>${text}</p><p>next</p>`);
+    });
+  }
+});
