@@ -44,6 +44,11 @@ export class MobileToolbar extends UIComponent<HTMLDivElement> {
     return [...contextOnlyItems(this.ui.registry, context), SEPARATOR, ...shared];
   }
 
+  /** Screen height it and the on-screen keyboard cover at the bottom. */
+  get coveredHeight(): number {
+    return this.ui.viewport.bottomInset + (this.el.hidden ? 0 : this.el.offsetHeight);
+  }
+
   override update(): void {
     // A read-only editor has nothing to edit, even when a link or task checkbox in the content takes focus.
     if (!this.editor.isEditable || !this.hasFocusWithin()) {

@@ -2,7 +2,7 @@ import type { Editor } from '../core/Editor';
 import { currentSlashItems, runSlashItem, slashKey } from '../extensions/tools/slashMenu';
 import { c, PORTAL_CLASS } from './classes';
 import { h } from './dom';
-import { placeFloating, rangeReference } from './floating';
+import { rangeReference } from './floating';
 import type { EditorUI } from './EditorUI';
 import { renderIcon } from './icons';
 import { UIComponent } from './UIComponent';
@@ -12,6 +12,7 @@ let menuCount = 0;
 /** The "/" block menu, positioned under the trigger character. */
 export class SlashMenu extends UIComponent<HTMLDivElement> {
   private readonly id = `le-slash-${++menuCount}`;
+  private readonly float = this.floating('bottom-start', 'menu');
   private rendered = '';
 
   constructor(editor: Editor, _ui: EditorUI) {
@@ -29,8 +30,7 @@ export class SlashMenu extends UIComponent<HTMLDivElement> {
     if (signature !== this.rendered) this.render(items, index);
     this.rendered = signature;
     this.el.dataset.theme = this.editor.root.dataset.theme;
-    this.el.hidden = false;
-    void placeFloating(rangeReference(this.editor.view, state.from), this.el, 'bottom-start', 'menu');
+    this.float.show(rangeReference(this.editor.view, state.from));
   }
 
   private render(items: ReturnType<typeof currentSlashItems>, index: number): void {
@@ -61,7 +61,7 @@ export class SlashMenu extends UIComponent<HTMLDivElement> {
   }
 
   private hide(): void {
-    this.el.hidden = true;
+    this.float.hide();
     this.rendered = '';
     this.setActiveDescendant(null);
   }

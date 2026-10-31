@@ -8,7 +8,7 @@ import { BubbleMenu } from './BubbleMenu';
 import { resolveContext } from './context';
 import { ContextToolbar } from './ContextToolbar';
 import { DeviceWatcher, ViewportTracker } from './device';
-import { rangeReference, type Anchor } from './floating';
+import { selectionReference, type Anchor } from './floating';
 import { h } from './dom';
 import { MobileToolbar } from './MobileToolbar';
 import { listPanel } from './panels/listPanel';
@@ -38,6 +38,7 @@ export class EditorUI {
   private readonly extensionComponents: UIComponent[] = [];
   private modeComponents: UIComponent[] = [];
   private toolbar: Toolbar | null = null;
+  private mobileBar: MobileToolbar | null = null;
   private readonly batch = rafBatch(() => this.updateAll());
   private readonly disposers: Array<() => void> = [];
 
@@ -54,7 +55,7 @@ export class EditorUI {
     this.device = new DeviceWatcher(editor.root, DEFAULTS.mobileBreakpoint);
     this.theme = new ThemeController(() => [editor.root], editor.config.theme);
     this.panels = new PanelHost(editor, () => this.device.mode);
-    this.toaster = new Toaster(editor.root);
+    this.toaster = new Toaster(editor.root, () => this.mobileBar?.coveredHeight ?? this.viewport.bottomInset);
 
     for (const spec of editor.manager.createComponents(editor)) {
       const component = spec.create(editor, this);
@@ -70,17 +71,23 @@ export class EditorUI {
         this.panels.syncTheme();
         this.flush();
       }),
+      this.viewport.onChange(() => this.toaster.place()),
     );
     this.updateAll();
   }
 
-  /** Opens an item's panel next to `anchor`, its toolbar control, or else the caret. */
+  /** Opens an item's panel next to `anchor`, its toolbar control, or else the selection. */
   openPanelFor(itemId: string, anchor?: Anchor | null): void {
     const item = this.registry.get(itemId);
     if (!item) return;
-    const at = anchor ?? this.toolbar?.anchorFor(itemId) ?? rangeReference(this.editor.view, this.editor.state.selection.from);
+    const at = anchor ?? this.toolbar?.anchorFor(itemId) ?? selectionReference(this.editor.view);
     if (item.panel) this.panels.openPanel(item.panel, at);
     else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at);
+  }
+
+  /** Viewport height the sticky top bar covers; the bubble and the context toolbar flip below their target rather than cover it. */
+  get coveredTop(): number {
+    return Math.max(0, this.slots.top.getBoundingClientRect().bottom);
   }
 
   getContext(): UIContext {
@@ -121,9 +128,11 @@ export class EditorUI {
     this.editor.root.dataset.mode = mode;
     if (mode === 'mobile') {
       this.toolbar = null;
-      this.modeComponents = [new MobileToolbar(this.editor, this)];
+      this.mobileBar = new MobileToolbar(this.editor, this);
+      this.modeComponents = [this.mobileBar];
       return;
     }
+    this.mobileBar = null;
     this.toolbar = new Toolbar(this.editor, this, this.entries);
     this.slots.top.prepend(this.toolbar.el);
     this.modeComponents = [this.toolbar, new ContextToolbar(this.editor, this), new BubbleMenu(this.editor, this)];

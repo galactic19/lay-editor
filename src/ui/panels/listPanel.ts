@@ -13,9 +13,10 @@ export function listPanel(getItems: () => UIItem[]): PanelFactory {
       menu.appendChild(
         createControl(item, editor, ui, {
           showLabel: true,
-          onActivate: (picked, anchor) => {
+          // The menu closes either way, so a panel opened from it anchors where the toolbar shows the item.
+          onActivate: (picked) => {
             if (picked.kind === 'button') close();
-            activateItem(picked, editor, ui, picked.kind === 'button' ? null : anchor);
+            activateItem(picked, editor, ui, null);
           },
         }),
       );

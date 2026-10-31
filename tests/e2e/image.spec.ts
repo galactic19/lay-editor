@@ -21,7 +21,7 @@ test('uploads a picked file and inserts the returned URL', async ({ page }) => {
 test('shows a toast and removes the placeholder when the upload fails', async ({ page }) => {
   await openEmpty(page, 'fail');
   await pickFile(page);
-  await expect(page.locator('#editor .le-toast-error')).toBeVisible();
+  await expect(page.locator('.le-toast-error')).toBeVisible();
   await expect(page.locator('#editor .le-image')).toHaveCount(0);
   expect(await html(page)).toBe('');
 });

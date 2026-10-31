@@ -1,5 +1,7 @@
+import type { Placement } from '@floating-ui/dom';
 import type { Editor, EditorEvents } from '../core/Editor';
 import { listen } from './dom';
+import { FloatingFollower, type CoveredTop, type FloatingGap } from './floating';
 
 /** Base for every UI piece: tracks listeners and editor subscriptions and releases them on destroy. */
 export abstract class UIComponent<E extends HTMLElement = HTMLElement> {
@@ -21,6 +23,13 @@ export abstract class UIComponent<E extends HTMLElement = HTMLElement> {
 
   protected addDisposer(fn: () => void): void {
     this.disposers.push(fn);
+  }
+
+  /** Floats this component's element next to an anchor, clear of `coveredTop`; stops following on destroy. */
+  protected floating(placement: Placement, gap: FloatingGap, coveredTop?: CoveredTop): FloatingFollower {
+    const follower = new FloatingFollower(this.el, placement, gap, coveredTop);
+    this.addDisposer(() => follower.hide());
+    return follower;
   }
 
   /** True while the editor, anything in the followed focus scope, or this component holds focus. */

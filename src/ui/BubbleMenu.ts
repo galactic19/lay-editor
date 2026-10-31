@@ -4,7 +4,7 @@ import type { UIItem } from '../core/types';
 import { c, PORTAL_CLASS } from './classes';
 import { createControl, syncControl } from './controls';
 import { h } from './dom';
-import { placeFloating, rangeReference } from './floating';
+import { selectionReference } from './floating';
 import type { EditorUI } from './EditorUI';
 import { BUBBLE_ITEMS } from './presets';
 import { RovingFocus } from './roving';
@@ -15,6 +15,7 @@ const BUBBLE_CONTEXTS = new Set(['text', 'link']);
 /** Desktop formatting bubble above a text selection. */
 export class BubbleMenu extends UIComponent<HTMLDivElement> {
   private readonly controls: Array<{ item: UIItem; el: HTMLButtonElement }>;
+  private readonly float = this.floating('top', 'toolbar', () => this.ui.coveredTop);
   private pointerDown = false;
 
   constructor(
@@ -56,14 +57,9 @@ export class BubbleMenu extends UIComponent<HTMLDivElement> {
   }
 
   override update(): void {
-    if (this.pointerDown || !this.hasFocusWithin() || !BubbleMenu.wanted(this.editor, this.ui)) {
-      this.el.hidden = true;
-      return;
-    }
+    if (this.pointerDown || !this.hasFocusWithin() || !BubbleMenu.wanted(this.editor, this.ui)) return this.float.hide();
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
     this.el.dataset.theme = this.editor.root.dataset.theme;
-    this.el.hidden = false;
-    const { from, to } = this.editor.state.selection;
-    void placeFloating(rangeReference(this.editor.view, from, to), this.el, 'top', 'toolbar');
+    this.float.show(selectionReference(this.editor.view));
   }
 }

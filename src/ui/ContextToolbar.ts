@@ -4,7 +4,6 @@ import { c, PORTAL_CLASS } from './classes';
 import { contextAnchor, contextOnlyItems } from './context';
 import { createControl, syncControl } from './controls';
 import { h } from './dom';
-import { placeFloating } from './floating';
 import type { EditorUI } from './EditorUI';
 import { RovingFocus } from './roving';
 import { UIComponent } from './UIComponent';
@@ -14,6 +13,7 @@ export class ContextToolbar extends UIComponent<HTMLDivElement> {
   private context: UIContext = 'text';
   private controls: Array<{ item: UIItem; el: HTMLButtonElement }> = [];
   private readonly roving: RovingFocus;
+  private readonly float = this.floating('top', 'toolbar', () => this.ui.coveredTop);
 
   constructor(
     editor: Editor,
@@ -35,15 +35,11 @@ export class ContextToolbar extends UIComponent<HTMLDivElement> {
     const yields = context === 'link' && !this.editor.state.selection.empty;
     const items = context === 'text' || yields ? [] : contextOnlyItems(this.ui.registry, context);
     const anchor = items.length && this.hasFocusWithin() && this.ui.device.mode === 'desktop' ? contextAnchor(this.editor.view, context) : null;
-    if (!anchor) {
-      this.el.hidden = true;
-      return;
-    }
+    if (!anchor) return this.float.hide();
     if (context !== this.context || items.length !== this.controls.length) this.rebuild(context, items);
     this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
     this.el.dataset.theme = this.editor.root.dataset.theme;
-    this.el.hidden = false;
-    void placeFloating(anchor, this.el, 'top', 'toolbar');
+    this.float.show(anchor);
   }
 
   private rebuild(context: UIContext, items: UIItem[]): void {

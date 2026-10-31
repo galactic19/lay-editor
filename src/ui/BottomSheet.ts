@@ -12,7 +12,10 @@ export class BottomSheet extends PortalPanel {
     const handle = h('div', { class: c('sheet-handle'), attrs: { 'aria-hidden': 'true' } });
     const dialog = this.portal('sheet', { role: 'dialog', 'aria-modal': 'true' }, handle, h('div', { class: c('sheet-body') }, content));
     const backdrop = this.portal('sheet-backdrop');
-    backdrop.addEventListener('pointerdown', () => this.close());
+    // Close on the click, not the press: the backdrop must still be there to take the click, or it lands on
+    // the page underneath. Cancelling the press keeps focus in the sheet until close() hands it to the editor.
+    backdrop.addEventListener('pointerdown', (event) => event.preventDefault());
+    backdrop.addEventListener('click', () => this.close());
     handle.addEventListener('pointerdown', (event) => this.drag(event, dialog));
     return { dialog, extras: [backdrop], cleanups: [this.publishHeight(dialog)] };
   }

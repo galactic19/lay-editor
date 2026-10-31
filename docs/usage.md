@@ -219,6 +219,7 @@ CSS 변수로 바꿉니다. `.le-editor, .le-portal`(드롭다운·바텀시트 
 | `--le-font`, `--le-font-mono`, `--le-font-size`, `--le-line-height` | 글꼴 |
 | `--le-radius`, `--le-control-size`, `--le-touch-target` | 모서리, 버튼 크기, 모바일 터치 영역(44px) |
 | `--le-min-height`, `--le-content-padding` | 편집 영역 크기 |
+| `--le-z-sticky`, `--le-z-fullscreen`, `--le-z-overlay`, `--le-z-toast` | 쌓임 순서. 바꿀 때도 상단 툴바 < 전체화면 에디터 < 패널·바텀시트·메뉴·키보드 위 툴바 < 토스트 순서를 지키세요 |
 
 다크 테마 값은 `[data-theme='dark']` 선택자에서 다시 정의합니다.
 

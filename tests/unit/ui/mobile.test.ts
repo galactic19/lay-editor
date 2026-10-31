@@ -60,7 +60,7 @@ describe('mobile mode', () => {
     expect(sheet.getAttribute('role')).toBe('dialog');
     expect(sheet.getAttribute('aria-modal')).toBe('true');
     expect(sheet.querySelector('.le-swatch')).not.toBeNull();
-    document.querySelector('.le-sheet-backdrop')!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    document.querySelector<HTMLElement>('.le-sheet-backdrop')!.click();
     expect(document.querySelector('.le-sheet')).toBeNull();
   });
 
