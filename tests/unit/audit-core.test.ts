@@ -425,6 +425,16 @@ describe('audit core: invalid options fail at creation', () => {
     expect(withElement({ image: { maxSize: 5 * 1024 * 1024, accept: ['image/png'] }, autosave: { key: 'k' }, video: { allowedHosts: ['x'] }, content: null })).not.toThrow();
   });
 
+  it('takes null as "not set" for the callbacks, like content', () => {
+    expect(withElement({ upload: null, onChange: null, onReady: null, content: null })).not.toThrow();
+  });
+
+  it('checks each list item against the default items of its kind', () => {
+    const sizes = { name: 'sizes', defaults: { values: [10, 'auto'] } };
+    expect(withElement({ extensions: [sizes], sizes: { values: ['auto', 5] } })).not.toThrow();
+    expect(withElement({ extensions: [sizes], sizes: { values: [5, true] } })).toThrowError(/sizes\.values\[1\]/);
+  });
+
   it('checks a user extension against its defaults, leaving null defaults open', () => {
     const mention = { name: 'mention', defaults: { limit: 5, onPick: null } };
     expect(withElement({ extensions: [mention], mention: { onPick: () => {} } })).not.toThrow();

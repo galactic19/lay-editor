@@ -45,13 +45,16 @@ const kindOf = (value: unknown): string => (Number.isNaN(value) ? 'NaN' : Array.
 
 /**
  * Checks extension options against the shape of the extension's defaults: a number stays a number,
- * a list a list of the same kind, a group an object. Keys without a default (or a null one) are left
- * to the extension.
+ * a list holds items of the kinds its default items have, a group is an object. Keys without a
+ * default (or a null one) are left to the extension.
  */
 export function checkOptionShape(name: string, defaults: unknown, value: unknown): void {
   if (value === undefined || defaults == null) return;
   check(kindOf(value) === kindOf(defaults), name, value);
-  if (Array.isArray(defaults) && defaults.length) (value as unknown[]).forEach((item, i) => checkOptionShape(`${name}[${i}]`, defaults[0], item));
+  if (Array.isArray(defaults) && defaults.length) {
+    const modelFor = (item: unknown): unknown => defaults.find((model) => kindOf(model) === kindOf(item)) ?? defaults[0];
+    (value as unknown[]).forEach((item, i) => checkOptionShape(`${name}[${i}]`, modelFor(item), item));
+  }
   if (isPlainObject(defaults)) Object.entries(value as object).forEach(([key, item]) => checkOptionShape(`${name}.${key}`, defaults[key], item));
 }
 
@@ -75,7 +78,8 @@ export function resolveConfig(options: EditorOptions): EditorConfig {
   check(PRESET_NAMES.includes(preset as PresetName), 'preset', preset);
   check(THEME_MODES.includes(theme), 'theme', theme);
   check(typeof changeDebounce === 'number' && Number.isFinite(changeDebounce) && changeDebounce >= 0, 'changeDebounce', changeDebounce);
-  for (const name of FUNCTION_OPTIONS) check(options[name] === undefined || typeof options[name] === 'function', name, options[name]);
+  // Like content, an optional callback set to null is not set.
+  for (const name of FUNCTION_OPTIONS) check(options[name] == null || typeof options[name] === 'function', name, options[name]);
   check(options.content == null || typeof options.content === 'string', 'content', options.content);
   check(toolbar === undefined || isStringArray(toolbar), 'toolbar', toolbar);
   check(Array.isArray(extensions) && extensions.every(isExtension), 'extensions', extensions);

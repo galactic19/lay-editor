@@ -94,7 +94,7 @@ createEditor({
 | `table` | `maxGrid`, `mobileMaxGrid`, `defaultRows`, `defaultCols`, `cellColors` | 10, 6, 3, 3, 배경색 팔레트 |
 | `autosave` | `key`, `debounce` | 없음(꺼짐), 1000ms |
 
-- 옵션 타입이 틀리면(예: `image: { maxSize: '5MB' }`, `onChange: 'save'`) 에디터를 만들 때 `INVALID_OPTION` 오류가 납니다. 확장 옵션은 기본값과 같은 형태(숫자, 목록, 객체)여야 합니다.
+- 옵션 타입이 틀리면(예: `image: { maxSize: '5MB' }`, `onChange: 'save'`) 에디터를 만들 때 `INVALID_OPTION` 오류가 납니다. 확장 옵션은 기본값과 같은 형태(숫자, 목록, 객체)여야 하고, 목록의 각 항목은 기본값 목록에 있는 종류 중 하나여야 합니다. `content`, `upload`, `onChange`, `onReady`에 `null`을 주면 지정하지 않은 것으로 봅니다.
 - `element`는 같은 페이지의 요소여야 합니다. iframe 안의 요소에 붙이려면 iframe 페이지에서 에디터를 불러오세요.
 
 ## 4. 이미지 업로드
