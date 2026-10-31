@@ -15,7 +15,7 @@ const BUBBLE_CONTEXTS = new Set(['text', 'link']);
 /** Desktop formatting bubble above a text selection. */
 export class BubbleMenu extends UIComponent<HTMLDivElement> {
   private readonly controls: Array<{ item: UIItem; el: HTMLButtonElement }>;
-  private readonly float = this.floating('top', 'toolbar');
+  private readonly float = this.floating('top', 'toolbar', () => this.ui.coveredTop);
   private pointerDown = false;
 
   constructor(

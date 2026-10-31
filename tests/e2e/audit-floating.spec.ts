@@ -190,6 +190,41 @@ test.describe('floating toolbars follow page scroll (#35)', () => {
   });
 });
 
+test.describe('floating bars keep clear of the top toolbar', () => {
+  test.beforeEach(({}, info) => test.skip(isMobile(info.project.name), 'desktop floating toolbars'));
+
+  /** `bar` shows entirely below the sticky top bar, leaving every toolbar button uncovered. */
+  async function expectBelowTopBar(page: Page, bar: Locator): Promise<void> {
+    await expect(bar).toBeVisible();
+    const top = (await page.locator('#editor .le-top').boundingBox())!;
+    const box = (await bar.boundingBox())!;
+    expect(box.y, `bar ${JSON.stringify(box)} vs top bar ${JSON.stringify(top)}`).toBeGreaterThanOrEqual(top.y + top.height);
+  }
+
+  for (const fullscreen of [false, true]) {
+    const where = fullscreen ? ' in fullscreen' : '';
+    const setUp = async (page: Page, html: string): Promise<void> => {
+      await openEmpty(page);
+      await page.evaluate((content) => window.__editor.setHTML(content), html);
+      if (fullscreen) await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+    };
+
+    test(`the selection bubble on the first line${where}`, async ({ page }) => {
+      await setUp(page, '<p>hello world</p>');
+      await page.getByText('hello world').click();
+      await page.keyboard.press('End');
+      await page.keyboard.press('Shift+Home');
+      await expectBelowTopBar(page, page.locator('.le-bubble:not([hidden])'));
+    });
+
+    test(`the context toolbar of a first-block table${where}`, async ({ page }) => {
+      await setUp(page, '<table><tbody><tr><td><p>cell</p></td></tr></tbody></table><p>after</p>');
+      await page.click('#editor td');
+      await expectBelowTopBar(page, page.locator('.le-context-toolbar:not([hidden])'));
+    });
+  }
+});
+
 test('a dropdown taller than the viewport fits it and scrolls inside (#37)', async ({ page }, info) => {
   test.skip(isMobile(info.project.name), 'desktop dropdowns');
   await page.setViewportSize({ width: 560, height: 520 });

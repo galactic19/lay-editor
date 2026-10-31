@@ -20,15 +20,21 @@ export type FloatingGap = keyof typeof DEFAULTS.floating.gaps;
 /** Set on every placed element: the height left on its side of the anchor. Tall panels cap themselves to it in CSS. */
 const AVAILABLE_HEIGHT = '--le-available-height';
 
-/** Places a fixed-position element next to `reference`, flipping and shifting to stay on screen. */
-export async function placeFloating(reference: Anchor, el: HTMLElement, placement: Placement, gap: FloatingGap): Promise<void> {
+/** Height of the viewport's top edge hidden under a sticky bar (0 when nothing covers it). */
+export type CoveredTop = () => number;
+
+/**
+ * Places a fixed-position element next to `reference`, flipping and shifting to stay on screen. It also flips
+ * rather than cover the top `coveredTop` pixels.
+ */
+export async function placeFloating(reference: Anchor, el: HTMLElement, placement: Placement, gap: FloatingGap, coveredTop = 0): Promise<void> {
   const padding = DEFAULTS.floating.viewportPadding;
   const { x, y } = await computePosition(reference, el, {
     placement,
     strategy: 'fixed',
     middleware: [
       offset(DEFAULTS.floating.gaps[gap]),
-      flip(),
+      flip({ padding: { top: coveredTop } }),
       shift({ padding }),
       size({ padding, apply: ({ availableHeight }) => el.style.setProperty(AVAILABLE_HEIGHT, `${availableHeight}px`) }),
     ],
@@ -56,6 +62,7 @@ export class FloatingFollower {
     private readonly el: HTMLElement,
     private readonly placement: Placement,
     private readonly gap: FloatingGap,
+    private readonly coveredTop?: CoveredTop,
   ) {}
 
   show(anchor: Anchor): void {
@@ -80,7 +87,7 @@ export class FloatingFollower {
   }
 
   private place(reference: Anchor): Promise<void> {
-    return placeFloating(reference, this.el, this.placement, this.gap);
+    return placeFloating(reference, this.el, this.placement, this.gap, this.coveredTop?.());
   }
 
   private unfollow(): void {

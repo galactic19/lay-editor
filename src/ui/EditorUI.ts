@@ -76,6 +76,11 @@ export class EditorUI {
     else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at);
   }
 
+  /** Viewport height the sticky top bar covers; the bubble and the context toolbar flip below their target rather than cover it. */
+  get coveredTop(): number {
+    return Math.max(0, this.slots.top.getBoundingClientRect().bottom);
+  }
+
   getContext(): UIContext {
     return resolveContext(this.editor.state);
   }
