@@ -3,6 +3,7 @@ import { setMedia } from '../setup';
 import { findText, flushPromises, makeEditor } from '../helpers/editor';
 
 const COARSE = '(pointer: coarse)';
+const DARK = '(prefers-color-scheme: dark)';
 const bar = () => document.querySelector<HTMLElement>('.le-mobile-bar')!;
 const barItem = (id: string) => bar().querySelector<HTMLButtonElement>(`[data-item="${id}"]`)!;
 const source = () => document.querySelector<HTMLTextAreaElement>('.le-source')!;
@@ -62,5 +63,23 @@ describe('audit: mobile keyboard bar', () => {
     ed.ui!.flush();
     expect(bar().querySelector('[data-item]')!.getAttribute('data-item')).toBe('tableAddRowAfter');
     expect(bar().scrollLeft).toBe(0);
+  });
+
+  it('follows a theme change right away, also in an open bottom sheet', () => {
+    const ed = mobileEditor();
+    expect(bar().dataset.theme).toBe('light');
+    ed.setTheme('dark');
+    expect(bar().dataset.theme).toBe('dark');
+    setMedia(DARK, true);
+    ed.setTheme('auto');
+    expect(bar().dataset.theme).toBe('dark');
+    setMedia(DARK, false);
+    expect(bar().dataset.theme).toBe('light');
+
+    ed.ui!.openPanelFor('textColor');
+    const portals = () => [...document.querySelectorAll<HTMLElement>('.le-sheet, .le-sheet-backdrop')];
+    expect(portals()).toHaveLength(2);
+    ed.setTheme('dark');
+    expect(portals().map((el) => el.dataset.theme)).toEqual(['dark', 'dark']);
   });
 });

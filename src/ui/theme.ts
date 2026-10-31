@@ -1,10 +1,15 @@
 import type { ThemeMode } from '../core/types';
+import { Signal, type Listener } from './signal';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
-/** Applies data-theme to the editor root and its portals; 'auto' follows the OS. */
+/** The theme actually shown: 'auto' resolved against the OS setting. */
+export type ResolvedTheme = Exclude<ThemeMode, 'auto'>;
+
+/** Applies data-theme to its targets; 'auto' follows the OS. onChange lets portals follow along. */
 export class ThemeController {
   private readonly media = window.matchMedia(DARK_QUERY);
+  private readonly signal = new Signal<ResolvedTheme>();
   private readonly onMedia = (): void => this.apply();
 
   constructor(
@@ -15,7 +20,7 @@ export class ThemeController {
     this.apply();
   }
 
-  get resolved(): 'light' | 'dark' {
+  get resolved(): ResolvedTheme {
     if (this.mode !== 'auto') return this.mode;
     return this.media.matches ? 'dark' : 'light';
   }
@@ -28,9 +33,15 @@ export class ThemeController {
   apply(): void {
     const theme = this.resolved;
     this.getTargets().forEach((el) => (el.dataset.theme = theme));
+    this.signal.emit(theme);
+  }
+
+  onChange(fn: Listener<ResolvedTheme>): () => void {
+    return this.signal.on(fn);
   }
 
   destroy(): void {
     this.media.removeEventListener('change', this.onMedia);
+    this.signal.clear();
   }
 }

@@ -8,6 +8,8 @@ export interface PanelContainer {
   /** `onClose(hadFocus)` reports whether focus was inside the panel when it closed. */
   open(content: HTMLElement, anchor: Anchor | null, onClose: (hadFocus: boolean) => void): void;
   close(): void;
+  /** Copies the editor theme onto the open panel again. */
+  syncTheme(): void;
   readonly isOpen: boolean;
   destroy(): void;
 }
@@ -41,6 +43,10 @@ export class PanelHost {
 
   close(): void {
     this.container?.close();
+  }
+
+  syncTheme(): void {
+    this.container?.syncTheme();
   }
 
   destroy(): void {

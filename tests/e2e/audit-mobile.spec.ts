@@ -42,3 +42,13 @@ test('shows the table tools after inserting a table from the end of the bar', as
   await panel(page).locator('[data-rows="2"][data-cols="2"]').tap();
   await expect(control(page, 'tableAddRowAfter')).toBeInViewport({ ratio: 1 });
 });
+
+test('repaints the keyboard bar when the OS switches to dark while editing', async ({ page }, info) => {
+  mobileOnly(info);
+  await page.emulateMedia({ colorScheme: 'light' });
+  await openEmpty(page);
+  await expect(visibleBar(page)).toHaveAttribute('data-theme', 'light');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(page.locator('#editor .le-editor')).toHaveAttribute('data-theme', 'dark');
+  await expect(visibleBar(page)).toHaveAttribute('data-theme', 'dark');
+});

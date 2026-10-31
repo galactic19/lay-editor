@@ -61,6 +61,11 @@ export class EditorUI {
     this.disposers.push(
       editor.on('update', () => this.batch.schedule()),
       this.device.onChange((mode) => this.switchMode(mode)),
+      // Portals copy the root theme only when they update, so repaint them now rather than on the next transaction.
+      this.theme.onChange(() => {
+        this.panels.syncTheme();
+        this.flush();
+      }),
     );
     this.updateAll();
   }
