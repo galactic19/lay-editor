@@ -35,6 +35,8 @@ export const DEFAULTS = {
   heading: { levels: [1, 2, 3, 4] },
   codeBlock: {
     indent: '  ',
+    /** Enter on the last of this many empty trailing lines leaves the block (0 turns it off). */
+    exitBlankLines: 2,
     plainLanguage: 'plaintext',
     languages: ['plaintext', 'javascript', 'typescript', 'html', 'css', 'json', 'python', 'java', 'sql', 'bash'],
   },

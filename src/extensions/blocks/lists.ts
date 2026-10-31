@@ -2,14 +2,14 @@ import { chainCommands } from 'prosemirror-commands';
 import { InputRule, wrappingInputRule } from 'prosemirror-inputrules';
 import type { Node as PMNode, NodeType, Schema } from 'prosemirror-model';
 import { liftListItem, sinkListItem, splitListItem, wrapInList } from 'prosemirror-schema-list';
-import type { Command, Transaction } from 'prosemirror-state';
+import type { Command } from 'prosemirror-state';
 import { findWrapping } from 'prosemirror-transform';
 import type { EditorView, NodeView } from 'prosemirror-view';
 import type { Editor } from '../../core/Editor';
 import { findParent } from '../../core/state-utils';
 import type { UIItem } from '../../core/types';
 import { c } from '../../ui/classes';
-import { commandName, defineExtension } from '../factories';
+import { commandName, defineExtension, sequence } from '../factories';
 
 type ListName = 'bulletList' | 'orderedList' | 'taskList';
 const ITEM_OF: Record<ListName, 'listItem' | 'taskItem'> = { bulletList: 'listItem', orderedList: 'listItem', taskList: 'taskItem' };
@@ -17,18 +17,6 @@ const LIST_NAMES = Object.keys(ITEM_OF) as ListName[];
 
 const isList = (node: PMNode): boolean => node.type.name in ITEM_OF;
 export const listItemTypes = (schema: Schema): NodeType[] => [schema.nodes.listItem!, schema.nodes.taskItem!];
-
-/** Runs `first`, then `second` on the resulting state, as one transaction. */
-function sequence(first: Command, second: Command): Command {
-  return (state, dispatch) => {
-    let tr: Transaction | null = null;
-    if (!first(state, (t) => (tr = t))) return false;
-    const combined = tr as unknown as Transaction;
-    if (!second(state.apply(combined), (t) => t.steps.forEach((step) => combined.step(step)))) return false;
-    dispatch?.(combined.scrollIntoView());
-    return true;
-  };
-}
 
 /** Wraps in the list, unwraps it if already there, or converts a list of another kind. */
 export function toggleList(schema: Schema, listName: ListName): Command {

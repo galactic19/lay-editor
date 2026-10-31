@@ -1,17 +1,42 @@
-import { setBlockType } from 'prosemirror-commands';
+import { exitCode, setBlockType } from 'prosemirror-commands';
 import type { Attrs, Node as PMNode, NodeType } from 'prosemirror-model';
-import type { Command, Transaction } from 'prosemirror-state';
+import { Plugin, Selection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
 import { DEFAULTS } from '../../core/defaults';
 import { findParent, isNodeActive } from '../../core/state-utils';
 import type { UIItem } from '../../core/types';
 import { safeLanguage } from '../../io/sanitize';
-import { blockExtension } from '../factories';
+import { blockExtension, sequence } from '../factories';
 
-type CodeBlockOptions = { indent: string; plainLanguage: string; languages: readonly string[] };
+type CodeBlockOptions = { indent: string; exitBlankLines: number; plainLanguage: string; languages: readonly string[] };
 
 const LANGUAGE_CLASS = /^language-/;
 const NEWLINE = '\n';
-const inCode = (state: Parameters<Command>[0]) => findParent(state, (node) => node.type.name === 'codeBlock');
+const inCode = (state: EditorState) => findParent(state, (node) => node.type.name === 'codeBlock');
+
+/** The caret when it sits at the very end of a code block. */
+function caretAtCodeEnd(state: EditorState) {
+  const { $from, empty } = state.selection;
+  return empty && $from.parent.type.spec.code && $from.parentOffset === $from.parent.content.size ? $from : null;
+}
+
+/** Arrows at the end of a code block that nothing follows add a paragraph after it instead of trapping the caret. */
+const exitAtEnd: Command = (state, dispatch) => {
+  const $end = caretAtCodeEnd(state);
+  return Boolean($end && !Selection.findFrom(state.doc.resolve($end.after()), 1)) && exitCode(state, dispatch);
+};
+
+/** Removes `count` empty trailing lines when Enter is pressed on the last of them. */
+const trimBlankLines =
+  (count: number): Command =>
+  (state, dispatch) => {
+    const $end = caretAtCodeEnd(state);
+    if (!count || !$end?.parent.textContent.endsWith(NEWLINE.repeat(count))) return false;
+    dispatch?.(state.tr.delete($end.pos - count, $end.pos));
+    return true;
+  };
+
+/** Enter on the last of `count` empty trailing lines drops them and leaves the block. */
+const exitAfterBlankLines = (count: number): Command => sequence(trimBlankLines(count), exitCode);
 
 /** Joins neighbouring code blocks touched by [from, to] into one, a newline between each pair. */
 function joinLines(tr: Transaction, code: NodeType, from: number, to: number): void {
@@ -117,7 +142,15 @@ export const codeBlock = blockExtension({
         dispatch?.(state.tr.insertText(options.indent));
         return true;
       },
+      Enter: exitAfterBlankLines(options.exitBlankLines),
+      ArrowDown: exitAtEnd,
+      ArrowRight: exitAtEnd,
     }),
+    plugins: ({ options }: { options: CodeBlockOptions }) => {
+      const exit = exitAfterBlankLines(options.exitBlankLines);
+      // Chrome on Android sends no Enter key inside <pre>; the newline arrives as typed text instead.
+      return [new Plugin({ props: { handleTextInput: (view, _from, _to, text) => text === NEWLINE && exit(view.state, view.dispatch) } })];
+    },
     ui: ({ options }: { options: CodeBlockOptions }) => [
       {
         id: 'codeLanguage',

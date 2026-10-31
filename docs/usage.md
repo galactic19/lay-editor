@@ -85,7 +85,7 @@ createEditor({
 |---|---|---|
 | `image` | `maxSize`, `accept`, `widths`, `aligns` | 10MB, png/jpeg/gif/webp, `[25, 50, 75, 100]`, `['left','center','right']` |
 | `video` | `providers` | `['youtube', 'vimeo']` |
-| `codeBlock` | `languages`, `indent` | 10개 언어, 공백 2칸 |
+| `codeBlock` | `languages`, `indent`, `exitBlankLines` | 10개 언어, 공백 2칸, 빈 줄 2개(끝의 빈 줄이 이만큼일 때 Enter로 블록을 나감, `0`이면 끔) |
 | `colors` | `text`, `highlight` | 각 10색 |
 | `table` | `maxGrid`, `mobileMaxGrid`, `defaultRows`, `defaultCols`, `cellColors` | 10, 6, 3, 3, 배경색 팔레트 |
 | `autosave` | `key`, `debounce` | 없음(꺼짐), 1000ms |
@@ -312,5 +312,6 @@ createEditor({ element: '#editor', extensions: [mention], toolbar: ['bold', 'men
 | 정렬 왼쪽 / 가운데 / 오른쪽 / 양쪽 | Ctrl+Shift+L / E / R / J | ⌘⇧L / E / R / J |
 | 찾기와 바꾸기 | Ctrl+F | ⌘F |
 | 줄바꿈 (문단 나누지 않음) | Shift+Enter | ⇧↩ |
+| 코드 블록 나가기 | Ctrl+Enter, 블록 끝에서 ↓ / →, 끝의 빈 줄 두 개에서 Enter | ⌘↩, 블록 끝에서 ↓ / →, 끝의 빈 줄 두 개에서 ↩ |
 
 마크다운식 입력: `# `~`#### ` 제목, `- ` 글머리 목록, `1. ` 번호 목록, `[] `·`[x] ` 체크리스트, `> ` 인용, ```` ``` ```` + 언어 + 공백 코드블록, `---` 구분선, `**굵게**`, `*기울임*`, `~~취소선~~`, `` `코드` ``, URL 뒤 공백 자동 링크, `/` 블록 삽입 메뉴.

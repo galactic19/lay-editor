@@ -1,7 +1,8 @@
 import type { Attrs, MarkSpec, MarkType, NodeSpec, ParseRule, TagParseRule } from 'prosemirror-model';
 import { lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import { InputRule, textblockTypeInputRule, wrappingInputRule } from 'prosemirror-inputrules';
-import type { Command } from 'prosemirror-state';
+import type { Command, Transaction } from 'prosemirror-state';
+import { StepMap } from 'prosemirror-transform';
 import { EditorError } from '../core/errors';
 import { deepMerge } from '../core/merge';
 import { isNodeActive } from '../core/state-utils';
@@ -75,6 +76,22 @@ export function markInputRule(pattern: RegExp, type: MarkType, attrs?: Attrs): I
     tr.removeStoredMark(type);
     return tr;
   });
+}
+
+/** Runs `first`, then `second` on the resulting state, as one transaction (keeping a selection `second` sets). */
+export function sequence(first: Command, second: Command): Command {
+  return (state, dispatch) => {
+    let tr: Transaction | null = null;
+    if (!first(state, (t) => (tr = t))) return false;
+    const combined = tr as unknown as Transaction;
+    const ran = second(state.apply(combined), (t) => {
+      t.steps.forEach((step) => combined.step(step));
+      if (t.selectionSet) combined.setSelection(t.selection.map(combined.doc, StepMap.empty));
+    });
+    if (!ran) return false;
+    dispatch?.(combined.scrollIntoView());
+    return true;
+  };
 }
 
 export const removeMark =

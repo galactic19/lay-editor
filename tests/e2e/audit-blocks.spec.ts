@@ -30,3 +30,27 @@ test.describe('code block lines (#12)', () => {
     expect(await html(page)).toBe('<pre><code>function f() {\n  return 1;\n}</code></pre>');
   });
 });
+
+test.describe('leaving a code block at the end of the document (#16)', () => {
+  const CODE = '<pre><code class="language-js">x();</code></pre>';
+
+  for (const key of ['ArrowDown', 'ArrowRight']) {
+    test(`${key} at the end moves into a new paragraph`, async ({ page }) => {
+      await openEmpty(page);
+      await page.keyboard.type('```js ');
+      await page.keyboard.type('x();');
+      await page.keyboard.press(key);
+      await page.keyboard.type('A');
+      expect(await html(page)).toBe(`${CODE}<p>A</p>`);
+    });
+  }
+
+  test('a third Enter on trailing empty lines leaves the block', async ({ page }) => {
+    await openEmpty(page);
+    await page.keyboard.type('```js ');
+    await page.keyboard.type('x();');
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Enter');
+    await page.keyboard.type('B');
+    expect(await html(page)).toBe(`${CODE}<p>B</p>`);
+  });
+});
