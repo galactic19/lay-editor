@@ -25,9 +25,10 @@ export abstract class PortalPanel implements PanelContainer {
     return this.dialog !== null;
   }
 
-  open(content: HTMLElement, anchor: Anchor | null, onClose: (hadFocus: boolean) => void): void {
+  open(content: HTMLElement, anchor: Anchor | null, label: string | null, onClose: (hadFocus: boolean) => void): void {
     this.close();
     const parts = this.render(content, anchor);
+    if (label) parts.dialog.setAttribute('aria-label', label);
     this.dialog = parts.dialog;
     this.elements = [...(parts.extras ?? []), parts.dialog];
     this.onClose = onClose;

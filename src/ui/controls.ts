@@ -37,6 +37,7 @@ export function createControl(item: UIItem, editor: Editor, ui: EditorUI, option
         'data-item': item.id,
         'aria-label': label,
         'aria-haspopup': item.kind === 'button' ? null : 'dialog',
+        'aria-expanded': item.kind === 'button' ? null : 'false',
         'data-tooltip': options.showLabel ? null : shortcut ? `${label} (${shortcut})` : label,
       },
       on: {

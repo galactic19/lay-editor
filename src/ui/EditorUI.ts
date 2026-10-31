@@ -70,8 +70,9 @@ export class EditorUI {
     const item = this.registry.get(itemId);
     if (!item) return;
     const at = anchor ?? this.toolbar?.anchorFor(itemId) ?? rangeReference(this.editor.view, this.editor.state.selection.from);
-    if (item.panel) this.panels.openPanel(item.panel, at);
-    else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at);
+    const label = this.editor.t(item.label, item.labelParams);
+    if (item.panel) this.panels.openPanel(item.panel, at, label);
+    else if (item.options) this.panels.openPanel(listPanel(() => item.options!), at, label);
   }
 
   getContext(): UIContext {

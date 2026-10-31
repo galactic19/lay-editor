@@ -8,7 +8,8 @@ import { RovingFocus } from '../roving';
 export function listPanel(getItems: () => UIItem[]): PanelFactory {
   return ({ editor, close }) => {
     const ui = editor.ui!;
-    const menu = h('div', { class: c('menu'), attrs: { role: 'menu' } });
+    // A vertical toolbar, not role=menu: the items are toggle buttons (aria-pressed, aria-haspopup), not menu items.
+    const menu = h('div', { class: c('menu'), attrs: { role: 'toolbar', 'aria-orientation': 'vertical' } });
     for (const item of getItems()) {
       menu.appendChild(
         createControl(item, editor, ui, {

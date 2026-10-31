@@ -2,8 +2,8 @@ import { AllSelection } from 'prosemirror-state';
 import type { Editor } from '../../src/core/Editor';
 import { findKey } from '../../src/extensions/tools/findReplace';
 import { focusables } from '../../src/ui/focus';
-import { makeEditor, press, selectText } from '../helpers/editor';
-import { triggerResize } from '../setup';
+import { makeEditor, press, selectText, typeText } from '../helpers/editor';
+import { setMedia, triggerResize } from '../setup';
 
 const toolbarControl = (ed: Editor, id: string): HTMLButtonElement => ed.root.querySelector<HTMLButtonElement>(`.le-toolbar [data-item="${id}"]`)!;
 const dialog = (): HTMLElement => document.querySelector<HTMLElement>('.le-dropdown, .le-sheet')!;
@@ -103,5 +103,72 @@ describe('audit a11y #66: mark panels are disabled where the mark cannot apply',
     expect(ed.can('setTextColor', '#e03131')).toBe(true);
     ed.exec('setTextColor', '#e03131');
     expect(ed.getHTML()).toBe('<p><span style="color: rgb(224, 49, 49);">text</span></p><pre><code>code</code></pre>');
+  });
+});
+
+/** The ARIA rules axe-core flagged: unnamed dialogs, menus without menu items, aria-activedescendant on a role-less element. */
+function ariaProblems(): string[] {
+  const problems: string[] = [];
+  for (const el of document.querySelectorAll('[role="dialog"]')) {
+    if (!el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby')) problems.push(`unnamed dialog ${el.className}`);
+  }
+  for (const menu of document.querySelectorAll('[role="menu"]')) {
+    for (const child of menu.children) if (!/^menuitem/.test(child.getAttribute('role') ?? '')) problems.push(`menu child ${child.tagName}`);
+  }
+  for (const el of document.querySelectorAll('[aria-activedescendant]')) {
+    if (!el.getAttribute('role')) problems.push(`aria-activedescendant on role-less ${el.className}`);
+  }
+  return problems;
+}
+
+describe('audit a11y #64: ARIA roles and names', () => {
+  it('names panel dialogs after the item that opened them and keeps list panels valid', () => {
+    const ed = makeEditor({ content: '<p>a</p>' });
+    ed.ui!.openPanelFor('heading');
+    expect(dialog().getAttribute('aria-label')).toBe(ed.t('toolbar.heading'));
+    expect(ariaProblems()).toEqual([]);
+    ed.ui!.openPanelFor('link');
+    expect(dialog().getAttribute('aria-label')).toBe(ed.t('toolbar.link'));
+    expect(ariaProblems()).toEqual([]);
+  });
+
+  it('names the overflow menu', () => {
+    const ed = makeEditor({ toolbar: ['bold', 'italic', 'underline', 'strike', 'code', 'sourceView'] });
+    squeeze(ed, 4).click();
+    expect(dialog().getAttribute('aria-label')).toBe(ed.t('toolbar.more'));
+    expect(ariaProblems()).toEqual([]);
+  });
+
+  it('names the mobile bottom sheet', () => {
+    setMedia('(pointer: coarse)', true);
+    const ed = makeEditor({ content: '<p>a</p>' });
+    ed.ui!.openPanelFor('heading');
+    expect(document.querySelector('.le-sheet')!.getAttribute('aria-label')).toBe(ed.t('toolbar.heading'));
+    expect(ariaProblems()).toEqual([]);
+  });
+
+  it('gives the editing surface a textbox role and a translated name, so the slash menu can point into it', () => {
+    const ed = makeEditor();
+    const dom = ed.view.dom;
+    expect([dom.getAttribute('role'), dom.getAttribute('aria-multiline'), dom.getAttribute('aria-label')]).toEqual(['textbox', 'true', ed.t('a11y.editor')]);
+    typeText(ed, '/');
+    ed.ui!.flush();
+    expect(dom.getAttribute('aria-activedescendant')).toBeTruthy();
+    expect(ariaProblems()).toEqual([]);
+    ed.setLocale('en');
+    expect(ed.view.dom.getAttribute('aria-label')).toBe('Editing area');
+    ed.setEditable(false);
+    expect(ed.view.dom.getAttribute('aria-readonly')).toBe('true');
+  });
+
+  it('reports whether a popup trigger is expanded', () => {
+    const ed = makeEditor({ content: '<p>a</p>' });
+    const heading = toolbarControl(ed, 'heading');
+    expect(heading.getAttribute('aria-expanded')).toBe('false');
+    heading.click();
+    expect(heading.getAttribute('aria-expanded')).toBe('true');
+    dialog().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(heading.getAttribute('aria-expanded')).toBe('false');
+    expect(toolbarControl(ed, 'bold').hasAttribute('aria-expanded')).toBe(false);
   });
 });

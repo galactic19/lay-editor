@@ -5,8 +5,8 @@ import { Dropdown } from './Dropdown';
 import type { Anchor } from './floating';
 
 export interface PanelContainer {
-  /** `onClose(hadFocus)` reports whether focus was inside the panel when it closed. */
-  open(content: HTMLElement, anchor: Anchor | null, onClose: (hadFocus: boolean) => void): void;
+  /** `label` names the dialog; `onClose(hadFocus)` reports whether focus was inside the panel when it closed. */
+  open(content: HTMLElement, anchor: Anchor | null, label: string | null, onClose: (hadFocus: boolean) => void): void;
   close(): void;
   readonly isOpen: boolean;
   destroy(): void;
@@ -25,14 +25,20 @@ export class PanelHost {
     return Boolean(this.container?.isOpen);
   }
 
-  openPanel(factory: PanelFactory, anchor: Anchor | null = null): void {
+  /** `label` names the dialog for assistive technology, usually after the item that opened it. */
+  openPanel(factory: PanelFactory, anchor: Anchor | null = null, label: string | null = null): void {
     this.close();
     this.editor.syncSelection();
     const container = this.createContainer();
     const cleanups: Array<() => void> = [];
     const content = factory({ editor: this.editor, t: this.editor.t, close: () => this.close(), onClose: (fn) => cleanups.push(fn) });
     this.container = container;
-    container.open(content, anchor, (hadFocus) => {
+    // A popup trigger (a control with aria-expanded) reports the open panel.
+    if (anchor instanceof HTMLElement && anchor.hasAttribute('aria-expanded')) {
+      anchor.setAttribute('aria-expanded', 'true');
+      cleanups.push(() => anchor.setAttribute('aria-expanded', 'false'));
+    }
+    container.open(content, anchor, label, (hadFocus) => {
       if (this.container === container) this.container = null;
       cleanups.forEach((fn) => fn());
       if (hadFocus) this.editor.focus();
