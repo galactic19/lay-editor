@@ -1,3 +1,5 @@
+import { c } from './classes';
+
 export type Child = Node | string | null | false | undefined;
 type Listeners = { [K in keyof HTMLElementEventMap]?: (event: HTMLElementEventMap[K]) => void };
 
@@ -6,6 +8,18 @@ export interface ElementProps {
   attrs?: Record<string, string | boolean | null | undefined>;
   on?: Listeners;
   style?: Partial<CSSStyleDeclaration>;
+}
+
+/** The form id editor-owned controls point at: no form has it, so they have no form owner. */
+const NO_FORM = c('no-form');
+
+/**
+ * Takes an editor-owned control (the source textarea, a task checkbox) out of the page's form, which the editor
+ * may sit in: a form reset, validation and the posted data then leave it alone, and it keeps showing the editor's state.
+ */
+export function outsideForms<E extends HTMLTextAreaElement | HTMLInputElement>(control: E): E {
+  control.setAttribute('form', NO_FORM);
+  return control;
 }
 
 /** Adds an event listener and returns the function that removes it. */

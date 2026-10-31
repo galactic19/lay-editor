@@ -9,6 +9,7 @@ import type { Editor } from '../../core/Editor';
 import { findParent, type FoundNode } from '../../core/state-utils';
 import type { UIItem } from '../../core/types';
 import { c } from '../../ui/classes';
+import { h, outsideForms } from '../../ui/dom';
 import { commandName, defineExtension } from '../factories';
 
 type ListName = 'bulletList' | 'orderedList' | 'taskList';
@@ -70,8 +71,7 @@ class TaskItemView implements NodeView {
     const label = document.createElement('label');
     label.contentEditable = 'false';
     label.className = c('task-check');
-    this.checkbox = document.createElement('input');
-    this.checkbox.type = 'checkbox';
+    this.checkbox = outsideForms(h('input', { attrs: { type: 'checkbox' } }));
     this.checkbox.setAttribute('aria-label', editor.t('a11y.taskCheckbox'));
     this.checkbox.addEventListener('change', () => {
       const pos = getPos();

@@ -5,7 +5,7 @@ import type { Editor } from '../../core/Editor';
 import { UI_CONTEXTS } from '../../core/types';
 import { formatHTML, isTransient } from '../../io/html';
 import { c } from '../../ui/classes';
-import { h } from '../../ui/dom';
+import { h, outsideForms } from '../../ui/dom';
 import { defineExtension } from '../factories';
 
 const ITEM_ID = 'sourceView';
@@ -63,12 +63,14 @@ class SourceEditor {
   private applying = false;
 
   constructor(private readonly editor: Editor) {
-    this.textarea = h('textarea', {
-      class: c('source'),
-      attrs: { spellcheck: 'false', 'aria-label': editor.t('a11y.sourceEditor') },
-      // Apply as the user types so getHTML(), onChange and form submits always see the source edits.
-      on: { input: () => this.apply() },
-    });
+    this.textarea = outsideForms(
+      h('textarea', {
+        class: c('source'),
+        attrs: { spellcheck: 'false', 'aria-label': editor.t('a11y.sourceEditor') },
+        // Apply as the user types so getHTML(), onChange and form submits always see the source edits.
+        on: { input: () => this.apply() },
+      }),
+    );
     this.update(editor.view);
     editor.content.hidden = true;
     editor.content.after(this.textarea);
