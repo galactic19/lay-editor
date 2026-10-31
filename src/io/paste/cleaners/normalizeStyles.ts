@@ -20,6 +20,13 @@ const STYLE_TAGS: StyleTag[] = [
 ];
 /** Elements whose children are rows, cells or items: a wrapper cannot go inside them, so it goes into each child. */
 const STRUCTURE_TAGS = /^(UL|OL|TABLE|THEAD|TBODY|TFOOT|TR|COLGROUP)$/;
+const TEXT_COLOR = 'color';
+const FILL_COLOR = 'background-color';
+/** Elements whose background the schema keeps: a highlight or a table cell. */
+const FILL_TAGS = ['span', 'mark', 'td', 'th'];
+const FILL_ELEMENT = FILL_TAGS.join(',');
+/** An ancestor with a kept fill; ancestors are cleaned first, so their style attribute holds only kept colors. */
+const KEPT_FILL = FILL_TAGS.map((tag) => `${tag}[style*="${FILL_COLOR}"]`).join(',');
 const { keepStyles, colorStyles, namedColors, keepDataAttrs, pageColors } = DEFAULTS.paste;
 const includes = (list: readonly string[], value: string): boolean => list.includes(value);
 
@@ -30,14 +37,19 @@ function channels(color: string): number[] {
   return [0, 2, 4].map((start) => parseInt(hex.slice(start, start + 2), 16));
 }
 
-/** Greys the source page used for its text or background; intentional colors keep a hue or a mid-grey shade. */
-function isPageColor(prop: string, color: string): boolean {
+/** Chroma (channel spread) and lightness (0-255) of a color in safeColor's output format. */
+function tone(color: string): { chroma: number; lightness: number } {
   const rgb = channels(color);
   const max = Math.max(...rgb);
   const min = Math.min(...rgb);
-  if (max - min > pageColors.maxChroma) return false;
-  const lightness = (max + min) / 2;
-  return prop === 'color' || lightness <= pageColors.darkBackground || lightness >= pageColors.lightBackground;
+  return { chroma: max - min, lightness: (max + min) / 2 };
+}
+
+/** Greys the source page used for its text or background; intentional colors keep a hue or a mid-grey shade. */
+function isPageColor(prop: string, color: string): boolean {
+  const { chroma, lightness } = tone(color);
+  if (chroma > pageColors.maxChroma) return false;
+  return prop === TEXT_COLOR || lightness <= pageColors.darkBackground || lightness >= pageColors.lightBackground;
 }
 
 /** Wraps the content of `el` in `tag`; rows, tables and lists pass it down to their cells and items. */
@@ -59,15 +71,27 @@ function stylesToTags(el: HTMLElement): void {
   new Set(STYLE_TAGS.filter(implies).map((s) => s.tag)).forEach((tag) => wrapContent(el, tag));
 }
 
+/** The fill the paste keeps under `el`: its own, or the nearest ancestor's. */
+function keptFill(el: HTMLElement): string | null {
+  const own = el.matches(FILL_ELEMENT) ? cleanValue(el, FILL_COLOR) : null;
+  return own ?? el.parentElement?.closest<HTMLElement>(KEPT_FILL)?.style.getPropertyValue(FILL_COLOR) ?? null;
+}
+
+/** Grey text lighter than its kept fill was chosen to read on it (white on a dark header cell); darker text reads like on any highlight. */
+function readsOnFill(el: HTMLElement, color: string): boolean {
+  const fill = keptFill(el);
+  return fill !== null && tone(color).lightness > tone(fill).lightness;
+}
+
 /**
  * A kept style's value, read through the CSSOM so shorthands (`background:`), `!important` and every color syntax
- * arrive resolved; colors are validated and page colors dropped.
+ * arrive resolved; colors are validated and page colors dropped, except grey text that needs its fill.
  */
 function cleanValue(el: HTMLElement, prop: string): string | null {
   const value = el.style.getPropertyValue(prop);
   if (!includes(colorStyles, prop)) return value || null;
   const color = safeColor((namedColors as Record<string, string>)[value.toLowerCase()] ?? value);
-  return color && !isPageColor(prop, color) ? color : null;
+  return color && (!isPageColor(prop, color) || (prop === TEXT_COLOR && readsOnFill(el, color))) ? color : null;
 }
 
 /** Rewrites the style attribute with only the styles the schema reads. */

@@ -87,6 +87,39 @@ describe('Word colors, highlights and cell shading (audit #24)', () => {
   });
 });
 
+describe('text on a fill the paste keeps (audit #23, #24)', () => {
+  it('keeps white text on a dark Google Sheets header cell', () => {
+    expect(paste('<table><tbody><tr><td style="background-color:#1f4e79;color:#ffffff;font-weight:bold">Header</td></tr></tbody></table>')).toBe(
+      '<table><tbody><tr><td style="background-color: rgb(31, 78, 121);"><p><strong><span style="color: rgb(255, 255, 255);">Header</span></strong></p></td></tr></tbody></table>',
+    );
+  });
+
+  it('keeps white text inside a dark Word cell shaded with the background shorthand', () => {
+    const out = paste(
+      word(
+        "<table class=MsoTableGrid><tr><td style='background:#1F3864'><p class=MsoNormal><b><span style='color:white;mso-themecolor:background1'>헤더</span></b></p></td></tr></table>",
+      ),
+    );
+    expect(out).toBe(
+      '<table><tbody><tr><td style="background-color: rgb(31, 56, 100);"><p><strong><span style="color: rgb(255, 255, 255);">헤더</span></strong></p></td></tr></tbody></table>',
+    );
+  });
+
+  it('keeps white text on a colored badge highlight', () => {
+    expect(paste('<p><span style="background-color: rgb(13, 110, 253); color: rgb(255, 255, 255);">Badge</span></p>')).toBe(
+      '<p><span style="color: rgb(255, 255, 255);"><mark style="background-color: rgb(13, 110, 253);">Badge</mark></span></p>',
+    );
+  });
+
+  it('drops grey text on a page background, on a fill the schema does not keep, or darker than its fill', () => {
+    expect(paste('<div style="background-color: rgb(251, 243, 219); color: rgb(55, 53, 47);">callout</div>')).toBe('<p>callout</p>');
+    expect(paste('<p><span style="background-color:#ffff00;color:#000000">hl</span></p>')).toBe('<p><mark style="background-color: rgb(255, 255, 0);">hl</mark></p>');
+    expect(paste('<table><tbody><tr><td style="background-color:#ffffff;color:#212529">cell</td></tr></tbody></table>')).toBe(
+      '<table><tbody><tr><td><p>cell</p></td></tr></tbody></table>',
+    );
+  });
+});
+
 describe('colors in any CSS syntax (audit #24)', () => {
   it('keeps hsl, space-separated rgb, 8-digit hex and !important colors, as the browser resolves them', () => {
     const out = paste(

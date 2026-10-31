@@ -85,6 +85,22 @@ test.describe('paste from other pages (audit)', () => {
     expect(weights.slice(2).every((weight) => weight < 600)).toBe(true);
   });
 
+  test('white header text on a dark Sheets or Word fill stays white (#23, #24)', async ({ page }) => {
+    await pasteHTML(
+      page,
+      `<html xmlns:o="urn:schemas-microsoft-com:office:office"><body><!--StartFragment--><table><tr><td style="background-color:#1f4e79;color:#ffffff;font-weight:bold">Sheets</td><td style='background:#1F3864'><p class=MsoNormal><b><span style='color:white;mso-themecolor:background1'>Word</span></b></p></td></tr></table><!--EndFragment--></body></html>`,
+    );
+    await expect.poll(() => html(page)).toContain('Word');
+    const colors = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('#editor .ProseMirror td p'), (p) => {
+        let text: Element = p;
+        while (text.firstElementChild) text = text.firstElementChild;
+        return getComputedStyle(text).color;
+      }),
+    );
+    expect(colors).toEqual(['rgb(255, 255, 255)', 'rgb(255, 255, 255)']);
+  });
+
   test('colors written in any CSS syntax survive (#24)', async ({ page }) => {
     await pasteHTML(
       page,
