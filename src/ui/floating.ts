@@ -21,6 +21,33 @@ export function followFloating(reference: Anchor, el: HTMLElement, placement: Pl
   return autoUpdate(reference, el, () => void placeFloating(reference, el, placement, gap));
 }
 
+/** Shows a floating bar or menu next to an anchor that changes with the editor state, following it on scroll. */
+export class FloatingFollower {
+  private stop: (() => void) | null = null;
+
+  constructor(
+    private readonly el: HTMLElement,
+    private readonly placement: Placement,
+    private readonly gap: FloatingGap,
+  ) {}
+
+  show(anchor: Anchor): void {
+    this.unfollow();
+    this.el.hidden = false;
+    this.stop = followFloating(anchor, this.el, this.placement, this.gap);
+  }
+
+  hide(): void {
+    this.unfollow();
+    this.el.hidden = true;
+  }
+
+  private unfollow(): void {
+    this.stop?.();
+    this.stop = null;
+  }
+}
+
 /** A virtual box covering document positions `from`..`to` (the caret when they are equal). */
 export function rangeReference(view: EditorView, from: number, to = from): Anchor {
   return {

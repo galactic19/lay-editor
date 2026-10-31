@@ -134,3 +134,39 @@ test.describe('panels anchor to what opened them (#29, #59)', () => {
     await expectPanelUnder(page, [moreBox]);
   });
 });
+
+test.describe('floating toolbars follow page scroll (#35)', () => {
+  test.beforeEach(({}, info) => test.skip(isMobile(info.project.name), 'desktop floating toolbars'));
+
+  const filler = (count: number): string => '<p>filler</p>'.repeat(count);
+
+  /** Scrolls the page and checks that `bar` keeps its offset from `target`. */
+  async function expectFollows(page: Page, bar: Locator, target: () => Promise<Box>): Promise<void> {
+    await expect(bar).toBeVisible();
+    const offset = async (): Promise<number> => (await bar.boundingBox())!.y - (await target()).y;
+    const before = await offset();
+    const scrollY = await page.evaluate(() => window.scrollY);
+    await page.mouse.wheel(0, 120);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(scrollY);
+    await expect.poll(offset).toBeCloseTo(before, 0);
+  }
+
+  test('the selection bubble', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await openEmpty(page);
+    await page.evaluate((html) => window.__editor.setHTML(html), `${filler(8)}<p>target line</p>${filler(60)}`);
+    await page.getByText('target line').click();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Shift+Home');
+    await expectFollows(page, page.locator('.le-bubble:not([hidden])'), () => selectionBox(page));
+  });
+
+  test('the context toolbar', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await openEmpty(page);
+    await page.evaluate((html) => window.__editor.setHTML(html), `${filler(8)}<table><tbody><tr><td><p>cell</p></td></tr></tbody></table>${filler(60)}`);
+    await page.click('#editor td');
+    const table = page.locator('#editor table');
+    await expectFollows(page, page.locator('.le-context-toolbar:not([hidden])'), async () => (await table.boundingBox())!);
+  });
+});
