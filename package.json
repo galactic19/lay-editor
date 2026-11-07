@@ -1,0 +1,136 @@
+{
+  "name": "@laymaker/editor",
+  "version": "0.1.0",
+  "description": "Framework-agnostic, mobile-friendly rich text editor built on ProseMirror",
+  "license": "MIT",
+  "keywords": [
+    "editor",
+    "rich-text",
+    "wysiwyg",
+    "prosemirror",
+    "korean",
+    "hangul",
+    "mobile",
+    "react",
+    "vue"
+  ],
+  "homepage": "https://github.com/galactic19/lay-editor#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/galactic19/lay-editor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/galactic19/lay-editor/issues"
+  },
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "module": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "unpkg": "./dist/editor.umd.js",
+  "jsdelivr": "./dist/editor.umd.js",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/editor.umd.cjs"
+    },
+    "./react": {
+      "types": "./dist/types/adapters/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./vue": {
+      "types": "./dist/types/adapters/vue.d.ts",
+      "import": "./dist/vue.js"
+    },
+    "./style.css": {
+      "types": "./dist/css.d.ts",
+      "default": "./dist/style.css"
+    },
+    "./content.css": {
+      "types": "./dist/css.d.ts",
+      "default": "./dist/content.css"
+    },
+    "./editor.umd.js": "./dist/editor.umd.js",
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "react": [
+        "./dist/types/adapters/react.d.ts"
+      ],
+      "vue": [
+        "./dist/types/adapters/vue.d.ts"
+      ],
+      "style.css": [
+        "./dist/css.d.ts"
+      ],
+      "content.css": [
+        "./dist/css.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && vite build --config vite.umd.config.ts && node scripts/build-css.mjs && tsc -p tsconfig.build.json && node scripts/complete-dts-imports.mjs && node scripts/verify-exports.mjs && node scripts/verify-types.mjs && node scripts/check-size.mjs",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@floating-ui/dom": "1.8.0",
+    "lowlight": "3.3.0",
+    "lucide": "1.65.0",
+    "prosemirror-commands": "1.7.2",
+    "prosemirror-dropcursor": "1.8.4",
+    "prosemirror-gapcursor": "1.4.1",
+    "prosemirror-history": "1.5.1",
+    "prosemirror-inputrules": "1.5.1",
+    "prosemirror-keymap": "1.2.3",
+    "prosemirror-model": "1.25.12",
+    "prosemirror-schema-list": "1.6.0",
+    "prosemirror-state": "1.4.4",
+    "prosemirror-tables": "1.8.5",
+    "prosemirror-transform": "1.12.4",
+    "prosemirror-view": "1.42.8"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "vue": ">=3.3"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.19.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.14.0",
+    "jsdom": "30.1.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "5.0.5",
+    "vue": "3.5.44"
+  },
+  "laymaker": {
+    "sizeBudget": 153600
+  }
+}

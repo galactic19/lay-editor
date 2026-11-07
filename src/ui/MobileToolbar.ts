@@ -1,0 +1,121 @@
+import type { Editor } from '../core/Editor';
+import { DEFAULTS } from '../core/defaults';
+import type { UIContext, UIItem } from '../core/types';
+import { c, PORTAL_CLASS } from './classes';
+import { contextOnlyItems } from './context';
+import { createControl, createSeparator, syncControl } from './controls';
+import { h } from './dom';
+import type { EditorUI } from './EditorUI';
+import { SEPARATOR } from './presets';
+import { RovingFocus } from './roving';
+import type { ToolbarEntry } from './Toolbar';
+import { copyTheme } from './theme';
+import { UIComponent } from './UIComponent';
+
+const { scrollGap } = DEFAULTS.mobileBar;
+/** Published on the editor root: the bar's own height, and the height it and the on-screen keyboard cover. */
+const BAR_HEIGHT = '--le-mobile-bar-height';
+const COVERED_HEIGHT = '--le-mobile-covered-height';
+
+/** One-row toolbar pinned above the on-screen keyboard; its items follow the selection context. */
+export class MobileToolbar extends UIComponent<HTMLDivElement> {
+  /** The item ids the bar shows, to rebuild only when they change. */
+  private shown = '';
+  private controls: Array<{ item: UIItem; el: HTMLButtonElement }> = [];
+  private readonly roving: RovingFocus;
+  private height = -1;
+
+  constructor(
+    editor: Editor,
+    private readonly ui: EditorUI,
+  ) {
+    super(editor, h('div', { class: `${PORTAL_CLASS} ${c('mobile-bar')}`, attrs: { role: 'toolbar', 'aria-label': editor.t('a11y.toolbar'), hidden: true } }));
+    document.body.appendChild(this.el);
+    this.roving = new RovingFocus(this.el, `.${c('control')}`);
+    this.addDisposer(() => this.roving.destroy());
+    this.addDisposer(ui.viewport.onChange(() => this.place()));
+    this.addDisposer(() => {
+      [BAR_HEIGHT, COVERED_HEIGHT].forEach((name) => editor.root.style.removeProperty(name));
+      editor.view.setProps({ scrollMargin: undefined, scrollThreshold: undefined });
+    });
+    // The bar is the only chrome on mobile, so while editing, focus anywhere in the editor keeps it, the HTML source textarea included.
+    this.followEditorFocus(editor.root);
+  }
+
+  /** Context-only tools first, then the regular tools that also work in this context. */
+  private contextEntries(context: UIContext): ToolbarEntry[] {
+    if (context === 'text') return this.ui.entries;
+    const shared = this.ui.entries.filter((entry): entry is UIItem => entry !== SEPARATOR && entry.contexts.includes(context));
+    return [...contextOnlyItems(this.ui.registry, context), SEPARATOR, ...shared];
+  }
+
+  /** What the bar offers: while editing, the tools for the context; in read-only mode only the ways out of a mode (full screen, HTML source). */
+  private entries(): ToolbarEntry[] {
+    const entries = this.contextEntries(this.ui.getContext());
+    return this.editor.isEditable ? entries : entries.filter((entry): entry is UIItem => entry !== SEPARATOR && this.ui.isWayOut(entry));
+  }
+
+  /**
+   * While editing the bar follows focus in the editor. Read-only content has nothing to edit and cannot take focus,
+   * so the bar shows exactly when a way out of a mode is on.
+   */
+  private wanted(entries: readonly ToolbarEntry[]): boolean {
+    return this.editor.isEditable ? this.hasFocusWithin() : entries.length > 0;
+  }
+
+  /** Height of the bar itself (0 while hidden). */
+  get barHeight(): number {
+    return this.el.hidden ? 0 : this.el.offsetHeight;
+  }
+
+  /** Screen height it and the on-screen keyboard cover at the bottom. */
+  get coveredHeight(): number {
+    return this.ui.viewport.bottomInset + this.barHeight;
+  }
+
+  override update(): void {
+    const entries = this.entries();
+    if (!this.wanted(entries)) {
+      this.setVisible(false);
+      this.place();
+      return;
+    }
+    copyTheme(this.el, this.editor.root);
+    // Shown before rebuilding: a hidden bar has no layout, so it would ignore the scroll reset.
+    this.setVisible(true);
+    const shown = entries.map((entry) => (entry === SEPARATOR ? entry : entry.id)).join();
+    if (shown !== this.shown) this.keepingFocus(() => this.rebuild(entries, shown));
+    this.controls.forEach(({ item, el }) => syncControl(el, item, this.editor, this.ui));
+    this.place();
+  }
+
+  private rebuild(entries: readonly ToolbarEntry[], shown: string): void {
+    this.shown = shown;
+    this.controls = [];
+    this.el.replaceChildren(
+      ...entries.map((entry) => {
+        if (entry === SEPARATOR) return createSeparator();
+        const el = createControl(entry, this.editor, this.ui);
+        this.controls.push({ item: entry, el });
+        return el;
+      }),
+    );
+    // The context-only tools lead the new set, so show the start instead of the old scroll position.
+    this.el.scrollLeft = 0;
+    this.roving.refresh();
+  }
+
+  /** Keeps the bar on top of the keyboard and the caret clear of the bar, and publishes what covers the bottom. */
+  private place(): void {
+    this.editor.root.style.setProperty(COVERED_HEIGHT, `${this.coveredHeight}px`);
+    if (this.el.hidden) return;
+    this.el.style.bottom = `${this.ui.viewport.bottomInset}px`;
+    const height = this.el.offsetHeight;
+    if (height === this.height) return;
+    this.height = height;
+    this.editor.root.style.setProperty(BAR_HEIGHT, `${height}px`);
+    const edge = { top: scrollGap, left: scrollGap, right: scrollGap, bottom: height + scrollGap };
+    // ProseMirror applies the margin only to a caret past the threshold, so the bar must count for both.
+    this.editor.view.setProps({ scrollMargin: edge, scrollThreshold: edge });
+  }
+}
