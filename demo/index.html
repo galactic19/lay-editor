@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Laymaker Editor Demo</title>
+    <link rel="stylesheet" href="../src/themes/tokens.css" />
+    <link rel="stylesheet" href="../src/themes/editor.css" />
+    <link rel="stylesheet" href="../src/themes/content.css" />
+    <style>
+      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+      body { margin: 0; padding: 16px; max-width: 920px; margin-inline: auto; background: Canvas; color: CanvasText; }
+      header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+      header h1 { font-size: 20px; margin: 0 auto 0 0; }
+      section { margin-bottom: 32px; }
+      pre#output { white-space: pre-wrap; word-break: break-all; background: #8881; padding: 12px; border-radius: 8px; max-height: 240px; overflow: auto; font-size: 12px; }
+      button.demo { padding: 6px 12px; border-radius: 6px; border: 1px solid #8886; background: transparent; color: inherit; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Laymaker Editor</h1>
+      <button class="demo" id="toggle-theme" type="button">테마 전환</button>
+      <button class="demo" id="toggle-locale" type="button">English</button>
+      <button class="demo" id="large-sample" type="button">5만 자 샘플</button>
+    </header>
+    <section>
+      <div id="editor"></div>
+      <h2>getHTML()</h2>
+      <pre id="output"></pre>
+    </section>
+    <section>
+      <h2>textarea 모드 (폼 전송)</h2>
+      <form id="form">
+        <textarea name="body"><p>폼 안의 <strong>textarea</strong>가 에디터로 바뀝니다.</p></textarea>
+        <button class="demo" type="submit">전송</button>
+      </form>
+      <output id="form-output"></output>
+    </section>
+    <section>
+      <h2>두 번째 에디터 (basic)</h2>
+      <div id="editor-2"></div>
+    </section>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,264 @@
+/* Editor chrome. All numbers come from tokens.css. */
+.le-editor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--le-color-bg);
+  color: var(--le-color-fg);
+  border: 1px solid var(--le-color-border);
+  border-radius: var(--le-radius);
+  font-family: var(--le-font);
+  font-size: var(--le-font-size-ui);
+}
+.le-editor *, .le-portal * { box-sizing: border-box; }
+/* The hidden attribute must beat display rules below (toolbar overflow, menus). */
+.le-editor [hidden], .le-portal[hidden], .le-portal [hidden] { display: none !important; }
+.le-content { flex: 1; min-height: var(--le-min-height); padding: var(--le-content-padding); cursor: text; }
+.le-content .ProseMirror { outline: none; min-height: calc(var(--le-min-height) - 32px); white-space: pre-wrap; word-wrap: break-word; caret-color: var(--le-color-primary); }
+.le-content .ProseMirror ::selection { background: var(--le-color-selection); }
+/* ProseMirror sets this class for node selections (e.g. a clicked image); the outline shows those instead. */
+.le-content .ProseMirror-hideselection ::selection { background: transparent; }
+.le-content .ProseMirror-hideselection { caret-color: transparent; }
+.le-editor:focus-within { border-color: var(--le-color-primary); box-shadow: 0 0 0 var(--le-focus-ring-width) var(--le-color-selection); }
+/* Textarea mode: the replaced <textarea> failed its form check (e.g. required and empty). */
+.le-editor.le-invalid { border-color: var(--le-color-danger); }
+.le-editor.le-invalid:focus-within { box-shadow: 0 0 0 var(--le-focus-ring-width) var(--le-color-danger-ring); }
+.le-readonly .le-content { cursor: default; }
+
+.le-placeholder::before { content: attr(data-placeholder); color: var(--le-color-muted); pointer-events: none; float: left; height: 0; }
+
+/* Task list editing view */
+.le-content .le-prose ul[data-type='taskList'] li::before,
+.le-content .le-prose ul[data-type='taskList'] li[data-checked]::before { content: none; }
+.le-content .le-prose ul[data-type='taskList'] li { display: flex; gap: var(--le-task-gap); align-items: flex-start; padding-left: 0; }
+/* The label is as wide as the view page's box glyph, so text starts at the same place in both. */
+.le-task-check { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--le-task-check-size); height: calc(var(--le-line-height) * 1em); user-select: none; }
+.le-task-check input { width: var(--le-task-check-size); height: var(--le-task-check-size); margin: 0; accent-color: var(--le-color-primary); cursor: pointer; }
+/* The content wrapper hides the paragraphs from content.css's li > p rule; space them the same. */
+.le-task-content { flex: 1; min-width: 0; }
+.le-prose .le-task-content > p { margin: var(--le-list-paragraph-spacing) 0; }
+
+/* Top bar */
+.le-top { position: sticky; top: 0; z-index: var(--le-z-sticky); background: var(--le-color-surface); border-bottom: 1px solid var(--le-color-border); border-radius: var(--le-radius) var(--le-radius) 0 0; }
+.le-toolbar { display: flex; align-items: center; gap: var(--le-space-hair); min-height: var(--le-toolbar-height); padding: var(--le-space-1) var(--le-space-2); flex-wrap: nowrap; overflow: hidden; }
+.le-separator { width: 1px; align-self: stretch; margin: var(--le-space-2) var(--le-space-1); background: var(--le-color-border); flex: none; }
+
+/* Controls */
+.le-control {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--le-space-hair);
+  min-width: var(--le-control-size);
+  height: var(--le-control-size);
+  padding: 0 var(--le-space-1);
+  border: none;
+  border-radius: var(--le-radius-sm);
+  background: transparent;
+  color: var(--le-color-fg);
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--le-transition);
+}
+.le-control:hover { background: var(--le-color-hover); }
+.le-control[aria-pressed='true'] { background: var(--le-color-active); color: var(--le-color-active-fg); }
+.le-control:disabled, .le-control[aria-disabled='true'] { opacity: 0.4; cursor: default; background: transparent; }
+.le-control:focus-visible { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
+.le-icon { width: var(--le-icon-size); height: var(--le-icon-size); flex: none; }
+.le-control .le-caret { width: var(--le-caret-size); height: var(--le-caret-size); opacity: 0.6; }
+
+/* Portals: chrome rendered in document.body (panels, floating toolbars, tooltips) */
+.le-portal { font-family: var(--le-font); font-size: var(--le-font-size-ui); color: var(--le-color-fg); }
+
+/* Control tooltips: placed by Tooltip.ts outside the toolbar, so its overflow clipping cannot hide them. */
+.le-tooltip { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); padding: var(--le-space-hair) var(--le-space-2); border-radius: var(--le-radius-sm); background: var(--le-color-fg); color: var(--le-color-bg); font-size: var(--le-font-size-small); white-space: nowrap; pointer-events: none; }
+
+/* Dropdown panels */
+.le-dropdown { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); box-sizing: border-box; min-width: var(--le-dropdown-min-width); max-width: min(var(--le-dropdown-max-width), calc(100vw - 2 * var(--le-space-2))); max-height: var(--le-available-height, none); overflow-y: auto; padding: var(--le-space-2); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
+.le-panel { display: flex; flex-direction: column; gap: var(--le-space-2); }
+.le-panel-row { display: flex; gap: var(--le-space-2); align-items: center; flex-wrap: wrap; }
+.le-panel label { display: flex; align-items: center; gap: var(--le-space-2); }
+.le-input { width: 100%; min-height: var(--le-control-size); padding: 0 var(--le-space-2); border: 1px solid var(--le-color-control-border); border-radius: var(--le-radius-sm); background: var(--le-color-bg); color: var(--le-color-fg); font: inherit; }
+.le-input:focus { outline: 2px solid var(--le-color-primary); outline-offset: -1px; }
+.le-input::placeholder { color: var(--le-color-muted); opacity: 1; }
+.le-button { min-height: var(--le-control-size); padding: 0 var(--le-space-3); border: 1px solid var(--le-color-control-border); border-radius: var(--le-radius-sm); background: var(--le-color-bg); color: var(--le-color-fg); font: inherit; cursor: pointer; }
+.le-button:hover { background: var(--le-color-hover); }
+.le-button-primary { background: var(--le-color-primary); border-color: var(--le-color-primary); color: var(--le-color-primary-fg); }
+.le-button-primary:hover { background: var(--le-color-primary); filter: brightness(1.08); }
+.le-menu { display: flex; flex-direction: column; gap: var(--le-space-hair); }
+.le-menu .le-control { justify-content: flex-start; width: 100%; padding: 0 var(--le-space-2); gap: var(--le-space-2); }
+.le-menu .le-control-label { flex: 1; text-align: left; }
+.le-menu .le-control-hint { color: var(--le-color-muted); font-size: var(--le-font-size-small); }
+.le-menu .le-control[aria-pressed='true'] .le-control-hint { color: inherit; }
+.le-swatches { display: grid; grid-template-columns: repeat(5, var(--le-control-size)); gap: var(--le-space-1); }
+.le-swatch { width: var(--le-control-size); height: var(--le-control-size); border: 1px solid var(--le-color-control-border); border-radius: var(--le-radius-sm); cursor: pointer; }
+.le-swatch[aria-pressed='true'] { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
+
+/* Toasts */
+/* --le-toast-offset: screen height covered at the bottom (keyboard, mobile bar), kept current while toasts show. */
+.le-toasts { position: fixed; left: 50%; bottom: calc(var(--le-space-3) + max(var(--le-toast-offset, 0px), env(safe-area-inset-bottom, 0px))); transform: translateX(-50%); z-index: var(--le-z-toast); display: flex; flex-direction: column; gap: var(--le-space-2); pointer-events: none; }
+.le-toast { padding: var(--le-space-2) var(--le-space-3); border-radius: var(--le-radius-sm); background: var(--le-color-fg); color: var(--le-color-bg); box-shadow: var(--le-shadow); }
+.le-toast-error { background: var(--le-color-danger); color: var(--le-color-danger-fg); }
+
+/* ProseMirror helpers */
+.le-content .ProseMirror-gapcursor { display: none; pointer-events: none; position: absolute; }
+.le-content .ProseMirror-gapcursor::after { content: ''; display: block; position: absolute; top: -2px; width: 20px; border-top: 1px solid var(--le-color-fg); animation: le-blink 1.1s steps(2, start) infinite; }
+.le-content .ProseMirror-focused .ProseMirror-gapcursor { display: block; }
+.le-content .ProseMirror-selectednode { outline: 2px solid var(--le-color-primary); outline-offset: 2px; }
+@keyframes le-blink { to { visibility: hidden; } }
+
+/* Images */
+.le-image-frame { position: relative; }
+.le-content .le-caption-empty figcaption { display: none; }
+/* An empty caption shows its hint while its image is being edited; read-only mode keeps it hidden. */
+.le-editor:not(.le-readonly) .le-caption-empty.le-image-active figcaption { display: block; position: relative; min-height: 1.5em; }
+/* Like .le-placeholder, the hint takes no room in the (centred) text, so the caret sits where typing starts. */
+.le-editor:not(.le-readonly) .le-caption-empty.le-image-active figcaption::before { content: attr(data-placeholder); position: absolute; inset-inline: 0; color: var(--le-color-muted); pointer-events: none; }
+.le-content .le-image.ProseMirror-selectednode { outline: none; }
+.le-content .le-image.ProseMirror-selectednode img { outline: 2px solid var(--le-color-primary); outline-offset: 2px; }
+.le-resize-handle {
+  position: absolute;
+  top: 50%;
+  width: var(--le-resize-handle-width);
+  height: var(--le-resize-handle-height);
+  transform: translateY(-50%);
+  border: 2px solid var(--le-color-bg);
+  border-radius: var(--le-resize-handle-width);
+  background: var(--le-color-primary);
+  cursor: ew-resize;
+  opacity: 0;
+  touch-action: none;
+  transition: opacity var(--le-transition);
+}
+.le-resize-left { left: calc(var(--le-resize-handle-width) / -2 - 1px); }
+.le-resize-right { right: calc(var(--le-resize-handle-width) / -2 - 1px); }
+.le-image-active .le-resize-handle { opacity: 1; }
+.le-editor[data-mode='mobile'] .le-resize-handle, .le-readonly .le-resize-handle { display: none; }
+.le-uploading img { opacity: 0.5; }
+.le-upload-progress { display: none; position: absolute; left: 0; bottom: 0; height: var(--le-progress-height); width: calc(var(--le-progress, 0.1) * 100%); background: var(--le-color-primary); border-radius: 2px; transition: width var(--le-transition); }
+.le-uploading .le-upload-progress { display: block; }
+.le-file-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--le-space-2); }
+.le-control-text { font-size: var(--le-font-size-small); font-weight: 600; padding: 0 var(--le-space-1); }
+.le-panel-error { color: var(--le-color-danger); font-size: var(--le-font-size-small); }
+
+/* Video embeds: clicks select the node instead of reaching the iframe. */
+.le-content .le-video iframe { pointer-events: none; }
+.le-content .le-video.ProseMirror-selectednode { outline: 2px solid var(--le-color-primary); outline-offset: 2px; border-radius: var(--le-radius-sm); }
+
+/* Tables (prosemirror-tables) */
+.le-content .tableWrapper { overflow-x: auto; margin: 0 0 1em; }
+.le-content .tableWrapper table { margin: 0; display: table; }
+.le-content table { table-layout: fixed; }
+.le-content td, .le-content th { position: relative; }
+.le-content .selectedCell::after { content: ''; position: absolute; inset: 0; background: var(--le-color-selection); pointer-events: none; }
+.le-content .column-resize-handle { position: absolute; top: 0; bottom: -2px; right: -2px; width: 4px; background: var(--le-color-primary); pointer-events: none; }
+.le-content.resize-cursor, .le-content .resize-cursor { cursor: col-resize; }
+.le-editor[data-mode='mobile'] .column-resize-handle { display: none; }
+
+/* Table size picker */
+.le-grid { display: grid; gap: var(--le-space-hair); }
+.le-grid-cell { width: var(--le-grid-cell); height: var(--le-grid-cell); padding: 0; border: 1px solid var(--le-color-control-border); border-radius: 2px; background: var(--le-color-bg); cursor: pointer; }
+.le-grid-cell.le-grid-on { background: var(--le-color-active); border-color: var(--le-color-primary); }
+.le-grid-cell:focus-visible { outline: 2px solid var(--le-color-primary); outline-offset: 1px; }
+.le-grid-label { text-align: center; color: var(--le-color-muted); font-size: var(--le-font-size-small); }
+
+/* Context toolbar */
+.le-context-toolbar { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); display: flex; gap: var(--le-space-hair); padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
+.le-context-toolbar[hidden] { display: none; }
+
+/* Slash menu */
+.le-slash-menu { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); width: var(--le-menu-width); max-height: min(var(--le-menu-max-height), var(--le-available-height, var(--le-menu-max-height))); overflow-y: auto; padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
+.le-slash-menu[hidden] { display: none; }
+.le-slash-item { display: flex; align-items: center; gap: var(--le-space-2); min-height: var(--le-control-size); padding: 0 var(--le-space-2); border-radius: var(--le-radius-sm); cursor: pointer; }
+.le-slash-item[aria-selected='true'], .le-slash-item:hover { background: var(--le-color-hover); }
+.le-slash-empty { padding: var(--le-space-2); color: var(--le-color-muted); }
+@media (pointer: coarse) { .le-slash-item { min-height: var(--le-touch-target); } }
+
+/* Syntax highlighting (lowlight / highlight.js class names) */
+.le-content .hljs-keyword, .le-content .hljs-selector-tag, .le-content .hljs-literal, .le-content .hljs-doctag { color: var(--le-code-keyword); }
+.le-content .hljs-string, .le-content .hljs-regexp, .le-content .hljs-meta .hljs-string { color: var(--le-code-string); }
+.le-content .hljs-comment, .le-content .hljs-quote { color: var(--le-code-comment); font-style: italic; }
+.le-content .hljs-number, .le-content .hljs-built_in, .le-content .hljs-variable, .le-content .hljs-symbol { color: var(--le-code-number); }
+.le-content .hljs-title, .le-content .hljs-section, .le-content .hljs-name, .le-content .hljs-type { color: var(--le-code-title); }
+.le-content .hljs-attr, .le-content .hljs-attribute, .le-content .hljs-property, .le-content .hljs-params, .le-content .hljs-meta { color: var(--le-code-attr); }
+
+/* Find and replace */
+.le-find-match { background: var(--le-color-mark-match); border-radius: 2px; }
+.le-find-current { background: var(--le-color-mark-current); }
+.le-find-panel { min-width: var(--le-find-panel-width); }
+.le-find-panel .le-input { flex: 1; width: auto; }
+.le-find-status { min-width: 4em; text-align: right; color: var(--le-color-muted); font-size: var(--le-font-size-small); }
+
+/* Status bar, full screen, source view */
+.le-status:empty { display: none; }
+.le-statusbar { padding: var(--le-space-1) var(--le-space-3); border-top: 1px solid var(--le-color-border); color: var(--le-color-muted); font-size: var(--le-font-size-small); text-align: right; }
+.le-editor.le-fullscreen { position: fixed; inset: 0; z-index: var(--le-z-fullscreen); border-radius: 0; border: none; }
+.le-editor.le-fullscreen .le-content { overflow-y: auto; }
+.le-editor.le-fullscreen .le-top { border-radius: 0; }
+/* On mobile the keyboard bar and the on-screen keyboard sit over the bottom of the screen (MobileToolbar sets the height). */
+.le-editor.le-fullscreen[data-mode='mobile'] { bottom: var(--le-mobile-covered-height, 0px); }
+html.le-scroll-locked { overflow: hidden; }
+.le-source { display: block; width: 100%; min-height: var(--le-min-height); padding: var(--le-content-padding); border: none; resize: vertical; background: var(--le-color-code-bg); color: var(--le-color-fg); font-family: var(--le-font-mono); font-size: var(--le-font-size-source); line-height: 1.6; outline: none; }
+.le-editor.le-fullscreen .le-source { flex: 1; resize: none; }
+
+/* Autosave restore bar */
+.le-restore-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--le-space-2); padding: var(--le-space-2) var(--le-space-3); border-top: 1px solid var(--le-color-border); background: var(--le-color-active); }
+.le-restore-bar[hidden] { display: none; }
+.le-restore-bar span { flex: 1; min-width: 12em; }
+
+/* Selection bubble */
+.le-bubble { position: fixed; top: 0; left: 0; z-index: var(--le-z-overlay); display: flex; gap: var(--le-space-hair); padding: var(--le-space-1); background: var(--le-color-bg); border: 1px solid var(--le-color-border); border-radius: var(--le-radius); box-shadow: var(--le-shadow); }
+.le-bubble[hidden] { display: none; }
+
+/* Mobile: keyboard bar and bottom sheets */
+.le-mobile-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--le-z-overlay);
+  display: flex;
+  align-items: center;
+  gap: var(--le-space-hair);
+  padding: var(--le-space-1) var(--le-space-2);
+  padding-bottom: calc(var(--le-space-1) + env(safe-area-inset-bottom, 0px));
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  background: var(--le-color-surface);
+  border-top: 1px solid var(--le-color-border);
+  -webkit-overflow-scrolling: touch;
+}
+.le-mobile-bar::-webkit-scrollbar { display: none; }
+.le-mobile-bar[hidden] { display: none; }
+.le-mobile-bar .le-control { min-width: var(--le-touch-target); height: var(--le-touch-target); scroll-snap-align: start; }
+.le-mobile-bar .le-separator { margin: var(--le-space-2) var(--le-space-1); }
+.le-editor[data-mode='mobile'] .le-content { scroll-padding-bottom: var(--le-mobile-bar-height, 0px); }
+.le-sheet-backdrop { position: fixed; inset: 0; z-index: var(--le-z-overlay); background: var(--le-backdrop); }
+.le-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--le-z-overlay);
+  max-height: var(--le-sheet-max-height);
+  overflow-y: auto;
+  padding: var(--le-space-2) var(--le-space-4) calc(var(--le-space-4) + env(safe-area-inset-bottom, 0px));
+  background: var(--le-color-bg);
+  border-radius: var(--le-radius) var(--le-radius) 0 0;
+  box-shadow: var(--le-shadow);
+  animation: le-sheet-in var(--le-sheet-duration) ease-out;
+}
+/* The whole top strip of the sheet (its padding included) starts the drag; the grip is only the visible mark. */
+.le-sheet-handle { position: relative; height: var(--le-touch-target); margin-top: calc(-1 * var(--le-space-2)); touch-action: none; cursor: grab; }
+.le-sheet-handle::before { content: ''; position: absolute; top: 50%; left: 50%; width: var(--le-sheet-handle-width); height: var(--le-sheet-handle-height); transform: translate(-50%, -50%); border-radius: var(--le-sheet-handle-height); background: var(--le-color-border); }
+.le-sheet .le-control, .le-sheet .le-button, .le-sheet .le-input, .le-sheet .le-panel label { min-height: var(--le-touch-target); }
+.le-sheet .le-swatches { grid-template-columns: repeat(5, var(--le-touch-target)); }
+.le-sheet { --le-grid-cell: var(--le-touch-target); }
+.le-sheet .le-grid { justify-content: center; }
+.le-sheet .le-swatch { width: var(--le-touch-target); height: var(--le-touch-target); }
+@keyframes le-sheet-in { from { transform: translateY(100%); } }
+/* A find match is centred in the space above an open sheet (BottomSheet sets --le-sheet-height). */
+.le-find-current { scroll-margin-bottom: var(--le-sheet-height, 0px); }

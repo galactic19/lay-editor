@@ -1,0 +1,174 @@
+import { exitCode, setBlockType } from 'prosemirror-commands';
+import type { Attrs, Node as PMNode, NodeType } from 'prosemirror-model';
+import { Plugin, Selection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
+import { DEFAULTS } from '../../core/defaults';
+import { findParent, isNodeActive, NEWLINE } from '../../core/state-utils';
+import type { UIItem } from '../../core/types';
+import { classLanguage, languageClass, safeLanguage } from '../../io/sanitize';
+import { blockExtension, sequence } from '../factories';
+
+type CodeBlockOptions = { indent: string; exitBlankLines: number; plainLanguage: string; languages: readonly string[] };
+
+const inCode = (state: EditorState) => findParent(state, (node) => node.type.name === 'codeBlock');
+
+const ALIASES: Readonly<Record<string, string>> = DEFAULTS.codeBlock.aliases;
+
+/** A block's language as the language menu names it: a known short name (```js, language-py) reads as the full name. */
+const menuLanguage = (language: string | null): string | null => language && (ALIASES[language.toLowerCase()] ?? language);
+
+/** The caret when it sits at the very end of a code block. */
+function caretAtCodeEnd(state: EditorState) {
+  const { $from, empty } = state.selection;
+  return empty && $from.parent.type.spec.code && $from.parentOffset === $from.parent.content.size ? $from : null;
+}
+
+/** An isolating container (a table cell) is left by its own arrow handling, a gap cursor after the table. */
+const inIsolating = (state: EditorState) => findParent(state, (node) => Boolean(node.type.spec.isolating)) !== null;
+
+/** Arrows at the end of a code block that nothing follows add a paragraph after it instead of trapping the caret. */
+const exitAtEnd: Command = (state, dispatch) => {
+  const $end = caretAtCodeEnd(state);
+  if (!$end || Selection.findFrom(state.doc.resolve($end.after()), 1) || inIsolating(state)) return false;
+  return exitCode(state, dispatch);
+};
+
+/** Removes `count` empty trailing lines when Enter is pressed on the last of them; a count that is not a positive whole number turns it off. */
+const trimBlankLines = (count: number): Command => {
+  const blank = Number.isInteger(count) && count > 0 ? NEWLINE.repeat(count) : '';
+  return (state, dispatch) => {
+    const $end = caretAtCodeEnd(state);
+    if (!blank || !$end?.parent.textContent.endsWith(blank)) return false;
+    dispatch?.(state.tr.delete($end.pos - blank.length, $end.pos));
+    return true;
+  };
+};
+
+/** Enter on the last of `count` empty trailing lines drops them and leaves the block. */
+const exitAfterBlankLines = (count: number): Command => sequence(trimBlankLines(count), exitCode);
+
+/** Joins neighbouring code blocks touched by [from, to] into one, a newline between each pair. */
+function joinLines(tr: Transaction, code: NodeType, from: number, to: number): void {
+  const seams: number[] = [];
+  tr.doc.nodesBetween(from, to, (node, pos, parent, index) => {
+    const end = pos + node.nodeSize;
+    if (node.type === code && end < to && parent?.maybeChild(index + 1)?.sameMarkup(node)) seams.push(end);
+    return !node.isTextblock;
+  });
+  // Last seam first keeps earlier positions valid; the newline opens the later block so a caret there stays on its line.
+  for (const seam of seams.reverse()) tr.insert(seam + 1, code.schema.text(NEWLINE)).join(seam);
+}
+
+/** Splits the code block at `pos` into one block per line, dropping the newlines. */
+function splitLines(tr: Transaction, pos: number, node: PMNode): void {
+  const text = node.textContent;
+  for (let i = text.length - 1; i >= 0; i--) {
+    if (text[i] !== NEWLINE) continue;
+    const at = pos + 1 + i;
+    tr.split(at + 1).delete(at, at + 1);
+  }
+}
+
+/** Selected lines (paragraphs or line breaks) become one code block; each code line becomes a paragraph again. */
+function toggleCodeLines(code: NodeType, paragraph: NodeType, attrs?: Attrs): Command {
+  return (state, dispatch) => {
+    const { from, to } = state.selection;
+    if (!isNodeActive(state, code, attrs)) {
+      return setBlockType(code, attrs)(state, dispatch && ((tr) => {
+        joinLines(tr, code, tr.mapping.map(from), tr.mapping.map(to));
+        dispatch(tr);
+      }));
+    }
+    if (!setBlockType(paragraph)(state)) return false;
+    if (!dispatch) return true;
+    const blocks: Array<{ node: PMNode; pos: number }> = [];
+    state.doc.nodesBetween(from, to, (node, pos) => {
+      if (node.type === code) blocks.push({ node, pos });
+      return !node.isTextblock;
+    });
+    const tr = state.tr;
+    for (const { node, pos } of [...blocks].reverse()) splitLines(tr, pos, node);
+    const last = blocks[blocks.length - 1]!;
+    tr.setBlockType(tr.mapping.map(blocks[0]!.pos), tr.mapping.map(Math.max(to, last.pos + last.node.nodeSize)), paragraph);
+    dispatch(tr.scrollIntoView());
+    return true;
+  };
+}
+
+const languageOption = (language: string, plain: string): UIItem => {
+  const value = language === plain ? null : language;
+  return {
+    id: `codeLanguage:${language}`,
+    kind: 'button',
+    icon: 'code',
+    label: value ? 'option.codeLanguage.named' : 'option.codeLanguage.plain',
+    labelParams: { name: language },
+    command: 'setCodeLanguage',
+    args: [value],
+    contexts: ['codeBlock'],
+    // The saved class stays as written (language-js); only the menu reads the short name as its entry.
+    isActive: (editor) => {
+      const block = inCode(editor.state);
+      return block !== null && menuLanguage(block.node.attrs.language) === value;
+    },
+  };
+};
+
+export const codeBlock = blockExtension({
+  name: 'codeBlock',
+  kind: 'textblock',
+  tag: 'pre',
+  content: 'text*',
+  marks: '',
+  code: true,
+  defining: true,
+  attrs: { language: { default: null } },
+  tagRule: {
+    preserveWhitespace: 'full',
+    getAttrs: (dom: HTMLElement) => ({ language: classLanguage(dom.querySelector('code')?.classList ?? []) }),
+  },
+  toDOM: (node: PMNode) => ['pre', ['code', { class: node.attrs.language ? languageClass(node.attrs.language) : null }, 0]],
+  shortcut: 'Mod-Alt-c',
+  icon: 'square-code',
+  inputRule: { pattern: /^```([a-z0-9+#-]*)\s$/i, attrs: (match) => ({ language: safeLanguage(match[1]) }) },
+  slash: { keywords: ['code', 'codeblock', '코드'] },
+  extend: {
+    // Above lists so Tab indents code inside a list item.
+    priority: 250,
+    defaults: DEFAULTS.codeBlock,
+    commands: ({ schema }) => ({
+      toggleCodeBlock: (attrs?: Attrs) => toggleCodeLines(schema.nodes.codeBlock!, schema.nodes.paragraph!, attrs),
+      setCodeLanguage: (language: string | null): Command => (state, dispatch) => {
+        const value = language === null ? null : safeLanguage(language);
+        const block = inCode(state);
+        if (!block || (language !== null && !value)) return false;
+        dispatch?.(state.tr.setNodeMarkup(block.pos, undefined, { ...block.node.attrs, language: value }));
+        return true;
+      },
+    }),
+    keymap: ({ options }: { options: CodeBlockOptions }) => ({
+      Tab: (state, dispatch) => {
+        if (!inCode(state)) return false;
+        dispatch?.(state.tr.insertText(options.indent));
+        return true;
+      },
+      Enter: exitAfterBlankLines(options.exitBlankLines),
+      ArrowDown: exitAtEnd,
+      ArrowRight: exitAtEnd,
+    }),
+    plugins: ({ options }: { options: CodeBlockOptions }) => {
+      const exit = exitAfterBlankLines(options.exitBlankLines);
+      // Chrome on Android sends no Enter key inside <pre>; the newline arrives as typed text instead.
+      return [new Plugin({ props: { handleTextInput: (view, _from, _to, text) => text === NEWLINE && exit(view.state, view.dispatch) } })];
+    },
+    ui: ({ options }: { options: CodeBlockOptions }) => [
+      {
+        id: 'codeLanguage',
+        kind: 'dropdown',
+        icon: 'file-code',
+        label: 'toolbar.codeLanguage',
+        contexts: ['codeBlock'],
+        options: options.languages.map((language) => languageOption(language, options.plainLanguage)),
+      },
+    ],
+  },
+});

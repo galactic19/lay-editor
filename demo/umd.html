@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Laymaker Editor UMD</title>
+    <!-- Exactly what a project without a bundler would include. Run `npm run build` first. -->
+    <link rel="stylesheet" href="/dist/style.css" />
+  </head>
+  <body>
+    <div id="editor"></div>
+    <script src="/dist/editor.umd.js"></script>
+    <script>
+      window.__umd = LayEditor.createEditor({ element: '#editor', content: '<p>UMD</p>' });
+    </script>
+  </body>
+</html>

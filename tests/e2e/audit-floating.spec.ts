@@ -1,0 +1,278 @@
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { control, openEmpty, panel } from './helpers';
+
+const isMobile = (name: string): boolean => name.startsWith('mobile');
+
+/** Whether the element's centre point hits the element itself (once its entry animation ends), i.e. nothing is painted over it. */
+const onTop = (locator: Locator): Promise<boolean> =>
+  locator.evaluate(async (el) => {
+    await Promise.all(el.getAnimations().map((animation) => animation.finished));
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return Boolean(hit && el.contains(hit));
+  });
+
+const isFullscreen = (page: Page): Promise<boolean> => page.locator('#editor .le-editor').evaluate((el) => el.classList.contains('le-fullscreen'));
+
+test.describe('fullscreen stacking (#28, #38)', () => {
+  test('dropdowns, the bubble and the slash menu stay above the fullscreen editor', async ({ page }, info) => {
+    test.skip(isMobile(info.project.name), 'desktop floating UI');
+    await openEmpty(page);
+    await page.keyboard.type('hello world');
+    await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+    expect(await isFullscreen(page)).toBe(true);
+
+    await control(page, 'heading').click();
+    await expect(panel(page)).toBeVisible();
+    expect(await onTop(panel(page))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(panel(page)).toHaveCount(0);
+    expect(await isFullscreen(page)).toBe(true);
+
+    await page.keyboard.press('Shift+Home');
+    const bubble = page.locator('.le-bubble:not([hidden])');
+    await expect(bubble).toBeVisible();
+    expect(await onTop(bubble)).toBe(true);
+
+    await page.keyboard.press('End');
+    await page.keyboard.type(' /');
+    const slash = page.locator('.le-slash-menu:not([hidden])');
+    await expect(slash).toBeVisible();
+    expect(await onTop(slash)).toBe(true);
+  });
+
+  test('the keyboard bar and bottom sheets stay above the fullscreen editor, so it can be left again', async ({ page }, info) => {
+    test.skip(!isMobile(info.project.name), 'mobile keyboard bar');
+    await openEmpty(page);
+    await page.keyboard.type('hello');
+    await control(page, 'fullscreen').tap();
+    expect(await isFullscreen(page)).toBe(true);
+    const bar = page.locator('.le-mobile-bar:not([hidden])');
+    expect(await onTop(bar)).toBe(true);
+
+    await control(page, 'textColor').tap();
+    await expect(panel(page)).toBeVisible();
+    expect(await onTop(panel(page))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(panel(page)).toHaveCount(0);
+
+    await control(page, 'fullscreen').tap({ timeout: 5000 });
+    expect(await isFullscreen(page)).toBe(false);
+  });
+});
+
+test('Escape leaves fullscreen while the caret is in the editor (#52)', async ({ page }) => {
+  await openEmpty(page);
+  await page.keyboard.type('hello');
+  await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+  expect(await page.evaluate(() => document.activeElement?.classList.contains('ProseMirror'))).toBe(true);
+  await page.keyboard.press('Escape');
+  expect(await isFullscreen(page)).toBe(false);
+  expect(await page.evaluate(() => document.documentElement.classList.contains('le-scroll-locked'))).toBe(false);
+});
+
+type Box = { x: number; y: number; width: number; height: number };
+
+/** The open dropdown sits right under one of `targets` (its opener, or the selection), aligned to its left or right edge. */
+async function expectPanelUnder(page: Page, targets: Box[]): Promise<void> {
+  await expect(panel(page)).toBeVisible();
+  const box = (await panel(page).boundingBox())!;
+  const near = (a: number, b: number): boolean => Math.abs(a - b) <= 16;
+  const under = targets.some(
+    (t) => near(box.y, t.y + t.height) && (near(box.x, t.x) || near(box.x + box.width, t.x + t.width)),
+  );
+  expect(under, `panel ${JSON.stringify(box)} vs ${JSON.stringify(targets)}`).toBe(true);
+}
+
+const selectionBox = (page: Page): Promise<Box> =>
+  page.evaluate(() => {
+    const { x, y, width, height } = window.getSelection()!.getRangeAt(0).getBoundingClientRect();
+    return { x, y, width, height };
+  });
+
+/** Clicks a floating-toolbar button and checks where its panel opened. */
+async function openFrom(page: Page, button: Locator): Promise<void> {
+  const opener = (await button.boundingBox())!;
+  const selection = await selectionBox(page);
+  await button.click();
+  await expectPanelUnder(page, [opener, selection]);
+}
+
+test.describe('panels anchor to what opened them (#29, #59)', () => {
+  test.beforeEach(({}, info) => test.skip(isMobile(info.project.name), 'desktop dropdowns'));
+
+  for (const id of ['link', 'textColor', 'highlight']) {
+    test(`from the selection bubble: ${id}`, async ({ page }) => {
+      await openEmpty(page);
+      await page.keyboard.type('hello world');
+      await page.keyboard.press('Shift+Home');
+      await openFrom(page, page.locator(`.le-bubble:not([hidden]) [data-item="${id}"]`));
+    });
+  }
+
+  for (const [id, content, target] of [
+    ['codeLanguage', '<p>intro</p><pre><code>let a = 1;</code></pre>', '#editor pre'],
+    ['tableCellColor', '<p>intro</p><table><tbody><tr><td><p>cell</p></td></tr></tbody></table>', '#editor td'],
+    ['linkEdit', '<p>intro <a href="https://a.com">link</a> text</p>', '#editor a'],
+  ] as const) {
+    test(`from the context toolbar: ${id}`, async ({ page }) => {
+      await openEmpty(page);
+      await page.evaluate((html) => window.__editor.setHTML(html), content);
+      await page.click(target);
+      await openFrom(page, page.locator(`.le-context-toolbar:not([hidden]) [data-item="${id}"]`));
+    });
+  }
+
+  test('from the toolbar overflow menu', async ({ page }) => {
+    await openEmpty(page);
+    const more = page.locator('#editor .le-toolbar [data-item="more"]');
+    await expect(more).toBeVisible();
+    const moreBox = (await more.boundingBox())!;
+    await more.click();
+    await panel(page).locator('[data-item="findReplace"]').click();
+    await expect(panel(page).locator('.le-find-panel')).toBeVisible();
+    await expectPanelUnder(page, [moreBox]);
+  });
+});
+
+test.describe('floating toolbars follow page scroll (#35)', () => {
+  test.beforeEach(({}, info) => test.skip(isMobile(info.project.name), 'desktop floating toolbars'));
+
+  const filler = (count: number): string => '<p>filler</p>'.repeat(count);
+
+  /** Scrolls (the page, or the content area in fullscreen) and checks that `bar` keeps its offset from `target`. */
+  async function expectFollows(page: Page, bar: Locator, target: () => Promise<Box>): Promise<void> {
+    await expect(bar).toBeVisible();
+    const offset = async (): Promise<number> => (await bar.boundingBox())!.y - (await target()).y;
+    const scrolled = (): Promise<number> => page.evaluate(() => window.scrollY + document.querySelector('#editor .le-content')!.scrollTop);
+    const before = await offset();
+    const start = await scrolled();
+    await page.mouse.wheel(0, 120);
+    await expect.poll(scrolled).toBeGreaterThan(start);
+    await expect.poll(offset).toBeCloseTo(before, 0);
+  }
+
+  async function setUp(page: Page, html: string, fullscreen: boolean): Promise<void> {
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await openEmpty(page);
+    await page.evaluate((content) => window.__editor.setHTML(content), `${filler(8)}${html}${filler(60)}`);
+    if (fullscreen) await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+  }
+
+  for (const fullscreen of [false, true]) {
+    const where = fullscreen ? ' in fullscreen' : '';
+
+    test(`the selection bubble${where}`, async ({ page }) => {
+      await setUp(page, '<p>target line</p>', fullscreen);
+      await page.getByText('target line').click();
+      await page.keyboard.press('End');
+      await page.keyboard.press('Shift+Home');
+      await expectFollows(page, page.locator('.le-bubble:not([hidden])'), () => selectionBox(page));
+    });
+
+    test(`the context toolbar${where}`, async ({ page }) => {
+      await setUp(page, '<table><tbody><tr><td><p>cell</p></td></tr></tbody></table>', fullscreen);
+      await page.click('#editor td');
+      const table = page.locator('#editor table');
+      await expectFollows(page, page.locator('.le-context-toolbar:not([hidden])'), async () => (await table.boundingBox())!);
+    });
+  }
+
+  test('the selection bubble shown before entering fullscreen', async ({ page }) => {
+    await setUp(page, '<p>target line</p>', false);
+    await page.getByText('target line').click();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Shift+Home');
+    const bubble = page.locator('.le-bubble:not([hidden])');
+    await expect(bubble).toBeVisible();
+    await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+    await expectFollows(page, bubble, () => selectionBox(page));
+  });
+});
+
+test.describe('floating bars keep clear of the top toolbar', () => {
+  test.beforeEach(({}, info) => test.skip(isMobile(info.project.name), 'desktop floating toolbars'));
+
+  /** `bar` shows entirely below the sticky top bar, leaving every toolbar button uncovered. */
+  async function expectBelowTopBar(page: Page, bar: Locator): Promise<void> {
+    await expect(bar).toBeVisible();
+    const top = (await page.locator('#editor .le-top').boundingBox())!;
+    const box = (await bar.boundingBox())!;
+    expect(box.y, `bar ${JSON.stringify(box)} vs top bar ${JSON.stringify(top)}`).toBeGreaterThanOrEqual(top.y + top.height);
+  }
+
+  for (const fullscreen of [false, true]) {
+    const where = fullscreen ? ' in fullscreen' : '';
+    const setUp = async (page: Page, html: string): Promise<void> => {
+      await openEmpty(page);
+      await page.evaluate((content) => window.__editor.setHTML(content), html);
+      if (fullscreen) await page.evaluate(() => window.__editor.exec('toggleFullscreen'));
+    };
+
+    test(`the selection bubble on the first line${where}`, async ({ page }) => {
+      await setUp(page, '<p>hello world</p>');
+      await page.getByText('hello world').click();
+      await page.keyboard.press('End');
+      await page.keyboard.press('Shift+Home');
+      await expectBelowTopBar(page, page.locator('.le-bubble:not([hidden])'));
+    });
+
+    test(`the context toolbar of a first-block table${where}`, async ({ page }) => {
+      await setUp(page, '<table><tbody><tr><td><p>cell</p></td></tr></tbody></table><p>after</p>');
+      await page.click('#editor td');
+      await expectBelowTopBar(page, page.locator('.le-context-toolbar:not([hidden])'));
+    });
+  }
+});
+
+test('a dropdown taller than the viewport fits it and scrolls inside (#37)', async ({ page }, info) => {
+  test.skip(isMobile(info.project.name), 'desktop dropdowns');
+  await page.setViewportSize({ width: 560, height: 520 });
+  await openEmpty(page);
+  await page.locator('#editor .le-toolbar [data-item="more"]').click();
+  const menu = panel(page);
+  await expect(menu).toBeVisible();
+  const box = (await menu.boundingBox())!;
+  expect(box.y + box.height).toBeLessThanOrEqual(520);
+  const last = menu.locator('[data-item]').last();
+  await page.keyboard.press('End');
+  await expect(last).toBeFocused();
+  const item = (await last.boundingBox())!;
+  expect(item.y + item.height).toBeLessThanOrEqual(520);
+  await expect(last).toBeInViewport({ ratio: 1 });
+});
+
+test('an upload error toast shows in the viewport, above the keyboard bar, in a long document (#45)', async ({ page }, info) => {
+  await openEmpty(page);
+  await page.evaluate(() => window.__editor.setHTML('<p>first</p>' + '<p>filler</p>'.repeat(60)));
+  const first = page.locator('#editor .ProseMirror p').first();
+  await (isMobile(info.project.name) ? first.tap() : first.click());
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await control(page, 'image').click();
+  await panel(page).locator('input[type="file"]').setInputFiles({ name: 'note.txt', mimeType: 'text/plain', buffer: Buffer.from('x') });
+  const toast = page.locator('.le-toast-error');
+  await expect(toast).toBeVisible();
+  await expect(toast).toBeInViewport({ ratio: 1 });
+  const bar = page.locator('.le-mobile-bar:not([hidden])');
+  if (await bar.count()) {
+    const box = (await toast.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual((await bar.boundingBox())!.y);
+  }
+});
+
+test('tapping the sheet backdrop only closes the sheet (#41)', async ({ page }, info) => {
+  test.skip(!isMobile(info.project.name), 'bottom sheets are mobile-only');
+  await openEmpty(page, 'theme=light');
+  await page.keyboard.type('abc');
+  await control(page, 'textColor').tap();
+  await expect(page.locator('.le-sheet')).toBeVisible();
+  const target = (await page.locator('#toggle-theme').boundingBox())!;
+  await page.touchscreen.tap(target.x + target.width / 2, target.y + target.height / 2);
+  await expect(page.locator('.le-sheet')).toHaveCount(0);
+  const theme = () => page.evaluate(() => window.__editor.root.dataset.theme);
+  expect(await theme()).toBe('light');
+  await expect(page.locator('#editor .ProseMirror')).toBeFocused();
+  await expect(page.locator('.le-mobile-bar:not([hidden])')).toBeVisible();
+  await page.keyboard.type('d');
+  expect(await page.evaluate(() => window.__editor.getHTML())).toBe('<p>abcd</p>');
+});
